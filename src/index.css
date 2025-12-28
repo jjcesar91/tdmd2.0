@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes flipIn {
+  0% {
+    transform: translateX(-100%) rotateY(90deg);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(0) rotateY(0deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateX(0) rotateY(0deg);
+    opacity: 1;
+  }
+}
