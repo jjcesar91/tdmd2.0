@@ -455,9 +455,10 @@ interface CardProps extends Partial<Card> {
   disabled?: boolean;
   className?: string;
   smallMode?: boolean;
+  previewMode?: boolean;
 }
 
-const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, className = "", smallMode = false }: CardProps) => {
+const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, className = "", smallMode = false, previewMode = false }: CardProps) => {
   const timerRef = useRef<number | null>(null);
 
   const handleStart = (_e: React.MouseEvent | React.TouchEvent) => {
@@ -543,7 +544,7 @@ const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEn
       {/* Top corner indicator */}
       {!smallMode && range !== undefined && range > 0 && (
         <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-stone-950/80 border border-stone-600 flex items-center justify-center z-10">
-          <span className="text-[8px] font-bold text-stone-300">R{range}</span>
+          <span className={`${previewMode ? 'text-sm' : 'text-[8px]'} font-bold text-stone-300`}>R{range}</span>
         </div>
       )}
 
@@ -566,13 +567,13 @@ const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEn
          {/* Card Name - Always centered */}
          {!smallMode && (
            <div className="px-1 py-0.5 bg-stone-950/90 border border-stone-700 mb-1">
-             <span className="text-[6px] font-bold text-stone-100 uppercase tracking-wide font-serif">{name}</span>
+             <span className={`${previewMode ? 'text-sm' : 'text-[5px]'} font-bold text-stone-100 uppercase tracking-wide font-serif`}>{name}</span>
            </div>
          )}
           
          {/* Description below name */}
          {!smallMode && (
-           <div className="text-[7px] text-center text-stone-300 leading-tight w-full px-2 line-clamp-3">
+           <div className={`${previewMode ? 'text-base' : 'text-[7px]'} text-center text-stone-300 leading-tight w-full px-2 ${previewMode ? '' : 'line-clamp-3'}`}>
              {desc}
            </div>
          )}
@@ -582,10 +583,10 @@ const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEn
       {!smallMode && (
         <div className="w-full px-2 py-1 bg-black/40 border-t border-stone-800 flex justify-between items-center relative z-10">
           <div className="flex items-center gap-1">
-            <span className="text-[7px] text-stone-400 uppercase tracking-wider">{typeLabel}</span>
+            <span className={`${previewMode ? 'text-xs' : 'text-[7px]'} text-stone-400 uppercase tracking-wider`}>{typeLabel}</span>
           </div>
           {ownerId && (
-            <div className="text-[7px] font-bold text-stone-500 uppercase tracking-wider">
+            <div className={`${previewMode ? 'text-xs' : 'text-[7px]'} font-bold text-stone-500 uppercase tracking-wider`}>
               {ownerId === 'crusader' ? 'KNIGHT' : ownerId.toUpperCase()}
             </div>
           )}
@@ -1388,6 +1389,7 @@ export default function TheDragonMustDie() {
   // Two-step hero selection
   const [selectedHeroes, setSelectedHeroes] = useState<string[]>([]);
   const [draggedHeroIndex, setDraggedHeroIndex] = useState<number | null>(null);
+  const [heroLevels, setHeroLevels] = useState<{[heroId: string]: number}>({});
   
   // Modals & UI State
   const [showDeckModal, setShowDeckModal] = useState<boolean>(false);
@@ -1415,14 +1417,21 @@ export default function TheDragonMustDie() {
     setParty([]); 
     setPartyLanes({}); 
     setSelectedHeroes([]);
+    setHeroLevels({});
     setView('HERO_SELECTION'); 
   };
   
   const handleHeroSelect = (heroId: string) => {
     if (selectedHeroes.includes(heroId)) {
       setSelectedHeroes(selectedHeroes.filter(id => id !== heroId));
+      // Remove level when hero is deselected
+      const newLevels = { ...heroLevels };
+      delete newLevels[heroId];
+      setHeroLevels(newLevels);
     } else if (selectedHeroes.length < 3) {
       setSelectedHeroes([...selectedHeroes, heroId]);
+      // Set default level to 1 when hero is selected
+      setHeroLevels({ ...heroLevels, [heroId]: 1 });
     }
   };
   
@@ -1450,15 +1459,22 @@ export default function TheDragonMustDie() {
     setSelectedHeroes(newOrder);
     setDraggedHeroIndex(null);
   };
+  
+  const handleLevelChange = (heroId: string, delta: number) => {
+    const currentLevel = heroLevels[heroId] || 1;
+    const newLevel = Math.max(1, Math.min(5, currentLevel + delta));
+    setHeroLevels({ ...heroLevels, [heroId]: newLevel });
+  };
+  
   const finalizeDraft = () => {
     if (selectedHeroes.length !== 3) return;
     
-    // Create party with heroes in lane order
+    // Create party with heroes in lane order and selected levels
     const finalParty = selectedHeroes.map((heroId) => {
       const heroData = HEROES_DB.find(h => h.id === heroId)!;
       return {
         ...heroData,
-        level: 1,
+        level: heroLevels[heroId] || 1,
         dead: false,
         buffs: { immune: false, tanking: false, strength: 0 }
       } as Unit;
@@ -2641,8 +2657,41 @@ export default function TheDragonMustDie() {
                             <div className="text-xs font-bold text-white text-center mb-1 drop-shadow-md leading-tight">
                               {hero.name}
                             </div>
-                            <div className="text-[9px] px-1.5 py-0.5 bg-amber-900/40 border border-amber-300/50 rounded-full text-amber-100 uppercase tracking-wide backdrop-blur-sm">
+                            <div className="text-[9px] px-1.5 py-0.5 bg-amber-900/40 border border-amber-300/50 rounded-full text-amber-100 uppercase tracking-wide backdrop-blur-sm mb-2">
                               {laneNames[index]}
+                            </div>
+                            
+                            {/* Level Selector */}
+                            <div className="flex items-center gap-1 mt-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleLevelChange(heroId, -1);
+                                }}
+                                disabled={(heroLevels[heroId] || 1) <= 1}
+                                className="w-5 h-5 rounded-full bg-amber-800/60 hover:bg-amber-700/80 disabled:opacity-30 disabled:cursor-not-allowed border border-amber-300/50 flex items-center justify-center text-white font-bold text-xs transition-all"
+                              >
+                                -
+                              </button>
+                              <div className={`px-2 py-0.5 rounded-full border-2 font-bold text-[10px] min-w-[2.5rem] text-center ${
+                                (heroLevels[heroId] || 1) === 1 ? 'bg-stone-600 text-stone-100 border-stone-400' :
+                                (heroLevels[heroId] || 1) === 2 ? 'bg-green-600 text-white border-green-400' :
+                                (heroLevels[heroId] || 1) === 3 ? 'bg-blue-600 text-white border-blue-400' :
+                                (heroLevels[heroId] || 1) === 4 ? 'bg-purple-600 text-white border-purple-400' :
+                                'bg-amber-600 text-white border-amber-400'
+                              }`}>
+                                LV {heroLevels[heroId] || 1}
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleLevelChange(heroId, 1);
+                                }}
+                                disabled={(heroLevels[heroId] || 1) >= 5}
+                                className="w-5 h-5 rounded-full bg-amber-800/60 hover:bg-amber-700/80 disabled:opacity-30 disabled:cursor-not-allowed border border-amber-300/50 flex items-center justify-center text-white font-bold text-xs transition-all"
+                              >
+                                +
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -2943,7 +2992,7 @@ export default function TheDragonMustDie() {
                         }}
                       >
                         <div 
-                          className={`aspect-[2/3] h-[130px] transition-transform duration-300 ${
+                          className={`aspect-[2/3] h-[140px] transition-transform duration-300 ${
                             selectedCardIdx === i ? 'scale-110 -translate-y-4' : 'hover:scale-105 hover:-translate-y-2'
                           } ${isNewlyDrawn ? 'animate-[flipIn_0.6s_ease-out]' : ''}`}
                           style={{ cursor: isPlayerTurn ? 'pointer' : 'not-allowed' }}
@@ -2969,7 +3018,7 @@ export default function TheDragonMustDie() {
           {previewCard && (
              <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none animate-in fade-in zoom-in-95 duration-200">
                 <div className="w-64 aspect-[2/3] pointer-events-auto shadow-2xl">
-                   <Card {...previewCard} disabled={false} className="w-full h-full text-sm" />
+                   <Card {...previewCard} disabled={false} previewMode={true} className="w-full h-full" />
                 </div>
              </div>
           )}
