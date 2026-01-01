@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Sword, Skull, RefreshCw, Play, Crown, Castle, Map as MapIcon, User, Layers, X, Trash2, Eye, FlaskConical, Target, Swords, Heart } from 'lucide-react';
+import { Shield, Sword, Skull, RefreshCw, Play, Crown, Castle, Map as MapIcon, User, Layers, X, Trash2, Eye, FlaskConical, Target, Swords, Heart, Lock } from 'lucide-react';
 
 // --- TYPE DEFINITIONS ---
 type CardType = 'ATTACK' | 'DEFENSE' | 'SKILL' | 'FAST';
@@ -18,6 +18,7 @@ interface Card {
   range?: number;
   effect?: string;
   revealed?: boolean;
+  archetype?: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
 }
 
 interface Buffs {
@@ -38,6 +39,10 @@ interface Unit {
   grayHp?: number;
   cards?: Card[];
   isBoss?: boolean;
+  activeCooldown?: number;
+  activeCooldownMax?: number;
+  archetype?: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
+  level?: number;
 }
 
 interface CombatState {
@@ -67,29 +72,51 @@ const POTIONS_DB: Card[] = [
   { id: 'pot_str', type: 'SKILL', value: 2, name: 'Str. Potion', desc: '+2 DMG next', isPotion: true, color: 'bg-amber-950', border: 'border-amber-700' }
 ];
 
-const HEROES_DB = [
+type Hero = {
+  id: string;
+  name: string;
+  role: string;
+  desc: string;
+  hp: number;
+  maxHp: number;
+  archetype: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
+  cards: Card[];
+  level: number;
+  locked?: boolean;
+  lore?: string;
+};
+
+const HEROES_DB: Hero[] = [
   {
     id: 'crusader',
     name: 'Crusader',
     role: 'TANK',
-    desc: 'Passive: Gain 1 Gray Heart each round.',
+    desc: 'Passive: Gain 1 Gray Heart each round. Active: Provoke (Taunt 1 attack; Cooldown 0)',
     hp: 5,
     maxHp: 5,
+    archetype: 'VENGEANCE',
+    level: 1,
+    locked: false,
+    lore: 'An old veteran, back to action to avenge its family',
     cards: [
-      { id: 'c_van', type: 'ATTACK', value: 1, name: 'Vanguard', desc: 'Deal 1. Tank Right.', effect: 'TANK_RIGHT' },
-      { id: 'c_van', type: 'ATTACK', value: 1, name: 'Vanguard', desc: 'Deal 1. Tank Right.', effect: 'TANK_RIGHT' },
-      { id: 'c_van', type: 'ATTACK', value: 1, name: 'Vanguard', desc: 'Deal 1. Tank Right.', effect: 'TANK_RIGHT' },
-      { id: 'c_beh', type: 'DEFENSE', value: 1, name: 'Behind Me', desc: 'Prevent 1 Right.', effect: 'DEF_RIGHT' },
-      { id: 'c_beh', type: 'DEFENSE', value: 1, name: 'Behind Me', desc: 'Prevent 1 Right.', effect: 'DEF_RIGHT' },
+      { id: 'c_van', type: 'ATTACK', value: 1, name: 'Vanguard', desc: 'Deal 1. Prevent 1 on adjacent right lane.', effect: 'ATTACK_DEF_RIGHT' },
+      { id: 'c_van', type: 'ATTACK', value: 1, name: 'Vanguard', desc: 'Deal 1. Prevent 1 on adjacent right lane.', effect: 'ATTACK_DEF_RIGHT' },
+      { id: 'c_van', type: 'ATTACK', value: 1, name: 'Vanguard', desc: 'Deal 1. Prevent 1 on adjacent right lane.', effect: 'ATTACK_DEF_RIGHT' },
+      { id: 'c_beh', type: 'SKILL', value: 0, name: 'Behind Me', desc: 'Tank adjacent right lane.', effect: 'TANK_RIGHT' },
+      { id: 'c_beh', type: 'SKILL', value: 0, name: 'Behind Me', desc: 'Tank adjacent right lane.', effect: 'TANK_RIGHT' },
     ]
   },
   {
     id: 'ranger',
-    name: 'Ranger',
+    name: 'Lone Ranger',
     role: 'DPS',
-    desc: 'Cards can target distant lanes.',
+    desc: 'Active: Camouflage (Immune this turn; Cooldown 2)',
     hp: 3,
     maxHp: 3,
+    archetype: 'BALANCE' as const,
+    level: 1,
+    locked: false,
+    lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
     cards: [
       { id: 'r_arr', type: 'ATTACK', value: 1, name: 'Arrow Shot', desc: 'Deal 1. Ranged 2.', range: 2 },
       { id: 'r_arr', type: 'ATTACK', value: 1, name: 'Arrow Shot', desc: 'Deal 1. Ranged 2.', range: 2 },
@@ -102,10 +129,17 @@ const HEROES_DB = [
     id: 'prophet',
     name: 'Prophet',
     role: 'SUPP',
-    desc: 'Passive: Map Vision. Active: Scry All.',
+    desc: 'Passive: Map Vision. Active: Scry All (Cooldown 2)',
     hp: 3,
     maxHp: 3,
-    cards: [] // No cards in deck
+    archetype: 'KINGDOM' as const,
+    level: 1,
+    locked: false,
+    lore: "Once king's high priest, it bears a prophecy of restoration",
+    cards: [
+      { id: 'p_div', type: 'FAST', value: 0, name: 'Divination', desc: 'Divine 1 kingdom card. If you can\'t, draw 1 card.', effect: 'DIVINE' },
+      { id: 'p_div', type: 'FAST', value: 0, name: 'Divination', desc: 'Divine 1 kingdom card. If you can\'t, draw 1 card.', effect: 'DIVINE' },
+    ]
   },
   {
     id: 'alchemist',
@@ -114,10 +148,274 @@ const HEROES_DB = [
     desc: 'Passive: Craft potion on Draw.',
     hp: 4,
     maxHp: 4,
+    archetype: 'POWER' as const,
+    level: 1,
+    locked: false,
+    lore: 'A prodigy that seeks legendary ingredients for dangerous formulas',
     cards: [
       { id: 'a_fla', type: 'ATTACK', value: 1, name: 'Explosive', desc: 'Deal 1. Unpreventable.', effect: 'UNPREV_NEXT' },
       { id: 'a_fla', type: 'ATTACK', value: 1, name: 'Explosive', desc: 'Deal 1. Unpreventable.', effect: 'UNPREV_NEXT' },
       { id: 'a_fla', type: 'ATTACK', value: 1, name: 'Explosive', desc: 'Deal 1. Unpreventable.', effect: 'UNPREV_NEXT' },
+    ]
+  },
+  // KINGDOM HEROES
+  {
+    id: 'banner',
+    name: 'Banner',
+    role: 'SUPP',
+    desc: 'Placeholder ability',
+    hp: 4,
+    maxHp: 4,
+    archetype: 'KINGDOM' as const,
+    level: 1,
+    locked: true,
+    lore: "Loyal knight of the crown, is gathering people for the kingdom cause",
+    cards: [
+      { id: 'ban_1', type: 'ATTACK', value: 1, name: 'Rally', desc: 'Deal 1.', range: 1 },
+      { id: 'ban_2', type: 'DEFENSE', value: 1, name: 'Defend', desc: 'Prevent 1.', range: 1 },
+    ]
+  },
+  {
+    id: 'princess',
+    name: 'Princess',
+    role: 'SUPP',
+    desc: 'Placeholder ability',
+    hp: 3,
+    maxHp: 3,
+    archetype: 'KINGDOM' as const,
+    level: 1,
+    locked: true,
+    lore: "Daughter of crown distant relative, tend to few land survivor aside the Governor",
+    cards: [
+      { id: 'pri_1', type: 'SKILL', value: 1, name: 'Grace', desc: 'Heal 1.', range: 1 },
+      { id: 'pri_2', type: 'DEFENSE', value: 1, name: 'Protect', desc: 'Prevent 1.', range: 1 },
+    ]
+  },
+  {
+    id: 'sentry',
+    name: 'Sentry',
+    role: 'TANK',
+    desc: 'Placeholder ability',
+    hp: 6,
+    maxHp: 6,
+    archetype: 'KINGDOM' as const,
+    level: 1,
+    locked: true,
+    lore: "Old magical golem bound to protect the kingdom, even now after all this time",
+    cards: [
+      { id: 'sen_1', type: 'DEFENSE', value: 2, name: 'Shield', desc: 'Prevent 2.', range: 0 },
+      { id: 'sen_2', type: 'ATTACK', value: 1, name: 'Strike', desc: 'Deal 1.', range: 0 },
+    ]
+  },
+  {
+    id: 'lostprince',
+    name: 'Lost Prince',
+    role: 'DPS',
+    desc: 'Placeholder ability',
+    hp: 4,
+    maxHp: 4,
+    archetype: 'KINGDOM' as const,
+    level: 1,
+    locked: true,
+    lore: "The Lone Ranger transformed - the heir to the throne",
+    cards: [
+      { id: 'lpr_1', type: 'ATTACK', value: 2, name: 'Royal Strike', desc: 'Deal 2.', range: 1 },
+      { id: 'lpr_2', type: 'ATTACK', value: 1, name: 'Command', desc: 'Deal 1.', range: 2 },
+    ]
+  },
+  // VENGEANCE HEROES
+  {
+    id: 'silenced',
+    name: 'Silenced',
+    role: 'DPS',
+    desc: 'Placeholder ability',
+    hp: 3,
+    maxHp: 3,
+    archetype: 'VENGEANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "A bard who lost her voice in a fire caused by monsters, is ready for retribution",
+    cards: [
+      { id: 'sil_1', type: 'ATTACK', value: 1, name: 'Silent Fury', desc: 'Deal 1.', range: 1 },
+      { id: 'sil_2', type: 'ATTACK', value: 2, name: 'Revenge', desc: 'Deal 2.', range: 0 },
+    ]
+  },
+  {
+    id: 'oathbreaker',
+    name: 'Oathbreaker',
+    role: 'TANK',
+    desc: 'Placeholder ability',
+    hp: 5,
+    maxHp: 5,
+    archetype: 'VENGEANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "Dishonored captain who fled the battlefield, seeks now an honorable death",
+    cards: [
+      { id: 'oat_1', type: 'ATTACK', value: 1, name: 'Redemption', desc: 'Deal 1.', range: 0 },
+      { id: 'oat_2', type: 'DEFENSE', value: 1, name: 'Last Stand', desc: 'Prevent 1.', range: 0 },
+    ]
+  },
+  {
+    id: 'captive',
+    name: 'Captive',
+    role: 'DPS',
+    desc: 'Placeholder ability',
+    hp: 3,
+    maxHp: 3,
+    archetype: 'VENGEANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "Fled from some cultists, she's back to exact vengeance from her captor",
+    cards: [
+      { id: 'cap_1', type: 'ATTACK', value: 2, name: 'Escape', desc: 'Deal 2.', range: 1 },
+      { id: 'cap_2', type: 'SKILL', value: 0, name: 'Evade', desc: 'Immune this turn.', range: 0 },
+    ]
+  },
+  {
+    id: 'cursed',
+    name: 'Cursed',
+    role: 'DPS',
+    desc: 'Placeholder ability',
+    hp: 4,
+    maxHp: 4,
+    archetype: 'VENGEANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "Having lost a loved one to the calamity, bound his soul to get his revenge",
+    cards: [
+      { id: 'cur_1', type: 'ATTACK', value: 1, name: 'Soul Strike', desc: 'Deal 1.', range: 1 },
+      { id: 'cur_2', type: 'ATTACK', value: 2, name: 'Curse', desc: 'Deal 2.', range: 0 },
+    ]
+  },
+  // BALANCE HEROES
+  {
+    id: 'gravekeeper',
+    name: 'Gravekeeper',
+    role: 'SUPP',
+    desc: 'Placeholder ability',
+    hp: 3,
+    maxHp: 3,
+    archetype: 'BALANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "Devoted mystic who vowed to extinguish the Death Plague from the land",
+    cards: [
+      { id: 'grv_1', type: 'SKILL', value: 1, name: 'Purify', desc: 'Heal 1.', range: 1 },
+      { id: 'grv_2', type: 'ATTACK', value: 1, name: 'Smite', desc: 'Deal 1.', range: 1 },
+    ]
+  },
+  {
+    id: 'druid',
+    name: 'Druid',
+    role: 'SUPP',
+    desc: 'Placeholder ability',
+    hp: 4,
+    maxHp: 4,
+    archetype: 'BALANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "Keeper of earth leylines, she is determined to restore the natural order",
+    cards: [
+      { id: 'dru_1', type: 'DEFENSE', value: 1, name: 'Nature Ward', desc: 'Prevent 1.', range: 1 },
+      { id: 'dru_2', type: 'ATTACK', value: 1, name: 'Vine Lash', desc: 'Deal 1.', range: 1 },
+    ]
+  },
+  {
+    id: 'hunter',
+    name: 'Hunter',
+    role: 'DPS',
+    desc: 'Placeholder ability',
+    hp: 4,
+    maxHp: 4,
+    archetype: 'BALANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "Legendary monster slayer forged for this kind of expedition",
+    cards: [
+      { id: 'hun_1', type: 'ATTACK', value: 2, name: 'Hunt', desc: 'Deal 2.', range: 1 },
+      { id: 'hun_2', type: 'ATTACK', value: 1, name: 'Track', desc: 'Deal 1.', range: 2 },
+    ]
+  },
+  {
+    id: 'entropy',
+    name: 'Entropy',
+    role: 'WILD',
+    desc: 'Placeholder ability',
+    hp: 3,
+    maxHp: 3,
+    archetype: 'BALANCE' as const,
+    level: 1,
+    locked: true,
+    lore: "A mysterious entity conjured to oppose the great evil",
+    cards: [
+      { id: 'ent_1', type: 'ATTACK', value: 1, name: 'Chaos', desc: 'Deal 1.', range: 1 },
+      { id: 'ent_2', type: 'SKILL', value: 0, name: 'Disorder', desc: 'Random effect.', range: 1 },
+    ]
+  },
+  // POWER HEROES
+  {
+    id: 'scavenger',
+    name: 'Scavenger',
+    role: 'WILD',
+    desc: 'Placeholder ability',
+    hp: 4,
+    maxHp: 4,
+    archetype: 'POWER' as const,
+    level: 1,
+    locked: true,
+    lore: "Having heard of great riches hoarded by the dragon, wants a piece of the cake",
+    cards: [
+      { id: 'sca_1', type: 'ATTACK', value: 1, name: 'Loot', desc: 'Deal 1.', range: 1 },
+      { id: 'sca_2', type: 'SKILL', value: 1, name: 'Scavenge', desc: 'Draw 1.', range: 0 },
+    ]
+  },
+  {
+    id: 'witch',
+    name: 'Witch',
+    role: 'DPS',
+    desc: 'Placeholder ability',
+    hp: 3,
+    maxHp: 3,
+    archetype: 'POWER' as const,
+    level: 1,
+    locked: true,
+    lore: "Embarked to slay the dragon to perform some heinous ritual",
+    cards: [
+      { id: 'wit_1', type: 'ATTACK', value: 2, name: 'Hex', desc: 'Deal 2.', range: 1 },
+      { id: 'wit_2', type: 'ATTACK', value: 1, name: 'Curse', desc: 'Deal 1.', range: 1 },
+    ]
+  },
+  {
+    id: 'dragonblood',
+    name: 'Dragonblood',
+    role: 'DPS',
+    desc: 'Placeholder ability',
+    hp: 4,
+    maxHp: 4,
+    archetype: 'POWER' as const,
+    level: 1,
+    locked: true,
+    lore: "Imbued by draconic bloodline power, needs to slay a real dragon to finally ascend",
+    cards: [
+      { id: 'dbl_1', type: 'ATTACK', value: 2, name: 'Dragon Breath', desc: 'Deal 2.', range: 1 },
+      { id: 'dbl_2', type: 'DEFENSE', value: 1, name: 'Dragon Scales', desc: 'Prevent 1.', range: 0 },
+    ]
+  },
+  {
+    id: 'fanatic',
+    name: 'Fanatic',
+    role: 'WILD',
+    desc: 'Placeholder ability',
+    hp: 3,
+    maxHp: 3,
+    archetype: 'POWER' as const,
+    level: 1,
+    locked: true,
+    lore: "Expelled even by the cultists, he is obsessed he knows a way to control the dragon",
+    cards: [
+      { id: 'fan_1', type: 'ATTACK', value: 1, name: 'Obsession', desc: 'Deal 1.', range: 1 },
+      { id: 'fan_2', type: 'SKILL', value: 1, name: 'Control', desc: 'Confuse enemy.', range: 1 },
     ]
   }
 ];
@@ -267,7 +565,7 @@ const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEn
 
          {/* Card Name - Always centered */}
          {!smallMode && (
-           <div className="px-1.5 py-0.5 bg-stone-950/90 border border-stone-700 rounded-full mb-1">
+           <div className="px-1 py-0.5 bg-stone-950/90 border border-stone-700 mb-1">
              <span className="text-[6px] font-bold text-stone-100 uppercase tracking-wide font-serif">{name}</span>
            </div>
          )}
@@ -303,9 +601,11 @@ interface UnitPortraitProps {
   unit: Unit | null;
   isEnemy: boolean;
   onProphetAction?: () => void;
+  onCrusaderAction?: () => void;
+  onRangerAction?: () => void;
 }
 
-const UnitPortrait = ({ unit, isEnemy, onProphetAction }: UnitPortraitProps) => {
+const UnitPortrait = ({ unit, isEnemy, onProphetAction, onCrusaderAction, onRangerAction }: UnitPortraitProps) => {
   // Empty State - Same style for both
   if (!unit) {
     return (
@@ -330,6 +630,19 @@ const UnitPortrait = ({ unit, isEnemy, onProphetAction }: UnitPortraitProps) => 
       ${borderColor} ${bgColor} ${isDead ? 'grayscale opacity-50' : `shadow-lg ${glowColor}`}
       ${unit.buffs?.immune ? 'ring-2 ring-indigo-500/50' : ''}
     `}>
+      {/* Level Badge */}
+      {!isEnemy && !isDead && unit.level && (
+        <div className={`absolute top-1 left-1 z-30 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-black border shadow-lg ${
+          unit.level === 1 ? 'bg-stone-600 text-stone-300 border-stone-500' :
+          unit.level === 2 ? 'bg-green-600 text-stone-100 border-green-400' :
+          unit.level === 3 ? 'bg-blue-600 text-stone-100 border-blue-400' :
+          unit.level === 4 ? 'bg-purple-600 text-stone-100 border-purple-400' :
+          'bg-amber-600 text-stone-100 border-amber-400'
+        }`}>
+          {unit.level}
+        </div>
+      )}
+      
       {/* Header Name */}
       <div className="px-1 py-0.5 bg-black/60 border-b border-white/5 text-[8px] font-bold font-serif text-center truncate text-stone-300">
         {unit.name}
@@ -375,10 +688,535 @@ const UnitPortrait = ({ unit, isEnemy, onProphetAction }: UnitPortraitProps) => 
 
       {/* Action Button (Prophet) */}
       {!isEnemy && !isDead && unit.id === 'prophet' && (
-         <button onClick={(e) => { e.stopPropagation(); if(onProphetAction) onProphetAction(); }} className="absolute bottom-12 right-1 p-1 bg-violet-900 rounded-full border border-violet-500 shadow-lg shadow-violet-900/50 hover:scale-110 z-20">
-            <Eye size={10} className="text-violet-200" />
+         <button 
+           onClick={(e) => { e.stopPropagation(); if(onProphetAction) onProphetAction(); }} 
+           disabled={unit.activeCooldown! > 0}
+           className={`absolute bottom-12 right-1 p-1 rounded-full border shadow-lg z-20 transition-all ${
+             unit.activeCooldown! > 0 
+               ? 'bg-stone-700 border-stone-600 shadow-stone-900/50 cursor-not-allowed opacity-50' 
+               : 'bg-violet-900 border-violet-500 shadow-violet-900/50 hover:scale-110'
+           }`}
+         >
+            {unit.activeCooldown! > 0 ? (
+              <span className="text-[8px] font-bold text-stone-400">{unit.activeCooldown}</span>
+            ) : (
+              <Eye size={10} className="text-violet-200" />
+            )}
          </button>
       )}
+      
+      {/* Action Button (Crusader - Provoke) */}
+      {!isEnemy && !isDead && unit.id === 'crusader' && (
+         <button 
+           onClick={(e) => { e.stopPropagation(); if(onCrusaderAction) onCrusaderAction(); }} 
+           disabled={unit.activeCooldown! > 0 || !unit.level || unit.level < 2}
+           className={`absolute bottom-12 right-1 p-1 rounded-full border shadow-lg z-20 transition-all ${
+             (unit.activeCooldown! > 0 || !unit.level || unit.level < 2)
+               ? 'bg-stone-700 border-stone-600 shadow-stone-900/50 cursor-not-allowed opacity-50' 
+               : 'bg-red-900 border-red-500 shadow-red-900/50 hover:scale-110'
+           }`}
+         >
+            {unit.activeCooldown! > 0 ? (
+              <span className="text-[8px] font-bold text-stone-400">{unit.activeCooldown}</span>
+            ) : (!unit.level || unit.level < 2) ? (
+              <Lock size={10} className="text-stone-400" />
+            ) : (
+              <Target size={10} className="text-red-200" />
+            )}
+         </button>
+      )}
+      
+      {/* Action Button (Ranger - Camouflage) */}
+      {!isEnemy && !isDead && unit.id === 'ranger' && (
+         <button 
+           onClick={(e) => { e.stopPropagation(); if(onRangerAction) onRangerAction(); }} 
+           disabled={unit.activeCooldown! > 0}
+           className={`absolute bottom-12 right-1 p-1 rounded-full border shadow-lg z-20 transition-all ${
+             unit.activeCooldown! > 0 
+               ? 'bg-stone-700 border-stone-600 shadow-stone-900/50 cursor-not-allowed opacity-50' 
+               : 'bg-green-900 border-green-500 shadow-green-900/50 hover:scale-110'
+           }`}
+         >
+            {unit.activeCooldown! > 0 ? (
+              <span className="text-[8px] font-bold text-stone-400">{unit.activeCooldown}</span>
+            ) : (
+              <RefreshCw size={10} className="text-green-200" />
+            )}
+         </button>
+      )}
+    </div>
+  );
+};
+
+// --- HERO DETAIL VIEW COMPONENT ---
+
+// --- HERO DETAIL VIEW COMPONENT ---
+
+interface HeroDetailViewProps {
+  hero: Hero;
+  onClose: () => void;
+}
+
+const HeroDetailView = ({ hero, onClose }: HeroDetailViewProps) => {
+  const getLevelProgression = (heroId: string) => {
+    if (heroId === 'crusader') {
+      return [
+        { level: 1, unlock: 'Base kit: 3x Vanguard, 2x Behind Me', locked: false },
+        { level: 2, unlock: 'Unlock Provoke active ability', locked: false },
+        { level: 3, unlock: 'Add 2x Eye for an Eye to deck', locked: false },
+        { level: 4, unlock: 'Passive: +2 Gray HP per turn (was +1)', locked: false },
+        { level: 5, unlock: 'Add 1x Nothing to Lose to deck', locked: false }
+      ];
+    }
+    if (heroId === 'prophet') {
+      return [
+        { level: 1, unlock: 'Base kit: 2x Divination', locked: false },
+        { level: 2, unlock: 'Add 2x Foretell to deck', locked: false },
+        { level: 3, unlock: 'Add 2x Mending to deck', locked: false },
+        { level: 4, unlock: 'Improve and Heal increased by 1', locked: false },
+        { level: 5, unlock: 'Divination becomes Pick', locked: false }
+      ];
+    }
+    if (heroId === 'ranger') {
+      return [
+        { level: 1, unlock: 'Base kit: 3x Arrow Shot, 2x Track, Camouflage active', locked: false },
+        { level: 2, unlock: 'Passive: Revealed enemies take +1 damage', locked: false },
+        { level: 3, unlock: 'Arrow Shot damage increased to 2', locked: false },
+        { level: 4, unlock: 'Add 2x Mark of Hunter to deck', locked: false },
+        { level: 5, unlock: 'Camouflage grants CRIT (2x damage)', locked: false }
+      ];
+    }
+    // Default progression for other heroes
+    return [
+      { level: 1, unlock: 'Base abilities unlocked', locked: false },
+      { level: 2, unlock: 'Enhanced passive', locked: true },
+      { level: 3, unlock: 'New card added to deck', locked: true },
+      { level: 4, unlock: 'Ability upgrade', locked: true },
+      { level: 5, unlock: 'Ultimate card unlocked', locked: true }
+    ];
+  };
+
+  const getActiveAbility = (heroId: string) => {
+    if (heroId === 'crusader') return { name: 'Provoke', desc: 'Force an enemy card to attack. The attack is revealed and stays face-up.', cooldown: 0 };
+    if (heroId === 'prophet') return { name: 'Scry All', desc: 'Reveal all enemy cards for this turn.', cooldown: 2 };
+    if (heroId === 'ranger') return { name: 'Camouflage', desc: 'Become immune to all damage this turn.', cooldown: 2 };
+    return { name: 'Unknown', desc: 'No active ability.', cooldown: 0 };
+  };
+
+  // Get all unique cards including level-unlocked ones
+  const getAllUniqueCards = (heroId: string) => {
+    const cardsWithLevel: { card: any; unlockLevel: number }[] = [];
+    
+    // Add base cards (level 1)
+    if (hero.cards) {
+      const seenIds = new Set<string>();
+      hero.cards.forEach((card: any) => {
+        if (!seenIds.has(card.id)) {
+          seenIds.add(card.id);
+          cardsWithLevel.push({ card: { ...card }, unlockLevel: 1 });
+        }
+      });
+    }
+    
+    // Add level-specific cards
+    if (heroId === 'crusader') {
+      // Level 3: Eye for an Eye
+      cardsWithLevel.push({
+        card: {
+          id: 'c_eye',
+          type: 'ATTACK',
+          value: 0,
+          name: 'Eye for an Eye',
+          desc: 'Deal X equal to your missing hearts.',
+          effect: 'EYE_FOR_EYE',
+          ownerId: 'crusader',
+          archetype: 'VENGEANCE' as const
+        },
+        unlockLevel: 3
+      });
+      
+      // Level 5: Nothing to Lose
+      cardsWithLevel.push({
+        card: {
+          id: 'c_nothing',
+          type: 'SKILL',
+          value: 0,
+          name: 'Nothing to Lose',
+          desc: 'Tank all lanes this turn.',
+          effect: 'TANK_ALL',
+          ownerId: 'crusader',
+          archetype: 'VENGEANCE' as const
+        },
+        unlockLevel: 5
+      });
+    }
+    
+    // Prophet level-specific cards
+    if (heroId === 'prophet') {
+      // Level 2: Foretell
+      cardsWithLevel.push({
+        card: {
+          id: 'p_foretell',
+          type: 'FAST',
+          value: 1,
+          name: 'Foretell',
+          desc: 'Improve 1; Range 1',
+          effect: 'IMPROVE',
+          range: 1,
+          ownerId: 'prophet',
+          archetype: 'KINGDOM' as const
+        },
+        unlockLevel: 2
+      });
+      
+      // Level 3: Mending
+      cardsWithLevel.push({
+        card: {
+          id: 'p_mending',
+          type: 'FAST',
+          value: 1,
+          name: 'Mending',
+          desc: 'Heal 1; Range 1',
+          effect: 'HEAL',
+          range: 1,
+          ownerId: 'prophet',
+          archetype: 'KINGDOM' as const
+        },
+        unlockLevel: 3
+      });
+      
+      // Level 4: Improved versions shown in cards list
+      cardsWithLevel.push({
+        card: {
+          id: 'p_foretell_up',
+          type: 'FAST',
+          value: 2,
+          name: 'Foretell (Upgraded)',
+          desc: 'Improve 2; Range 1',
+          effect: 'IMPROVE',
+          range: 1,
+          ownerId: 'prophet',
+          archetype: 'KINGDOM' as const
+        },
+        unlockLevel: 4
+      });
+      
+      cardsWithLevel.push({
+        card: {
+          id: 'p_mending_up',
+          type: 'FAST',
+          value: 2,
+          name: 'Mending (Upgraded)',
+          desc: 'Heal 2; Range 1',
+          effect: 'HEAL',
+          range: 1,
+          ownerId: 'prophet',
+          archetype: 'KINGDOM' as const
+        },
+        unlockLevel: 4
+      });
+      
+      // Level 5: Pick version of Divination
+      cardsWithLevel.push({
+        card: {
+          id: 'p_pick',
+          type: 'FAST',
+          value: 0,
+          name: 'Divination (Pick)',
+          desc: 'Pick 1 kingdom card. If you can\'t, draw 1 card.',
+          effect: 'PICK',
+          ownerId: 'prophet',
+          archetype: 'KINGDOM' as const
+        },
+        unlockLevel: 5
+      });
+    }
+    
+    // Ranger level-specific cards
+    if (heroId === 'ranger') {
+      // Level 3: Upgraded Arrow Shot
+      cardsWithLevel.push({
+        card: {
+          id: 'r_arr_up',
+          type: 'ATTACK',
+          value: 2,
+          name: 'Arrow Shot (Upgraded)',
+          desc: 'Deal 2. Ranged 2.',
+          range: 2,
+          ownerId: 'ranger',
+          archetype: 'BALANCE' as const
+        },
+        unlockLevel: 3
+      });
+      
+      // Level 4: Mark of Hunter
+      cardsWithLevel.push({
+        card: {
+          id: 'r_mark',
+          type: 'FAST',
+          value: 0,
+          name: 'Mark of Hunter',
+          desc: 'Enemy gets double damage this round.',
+          effect: 'MARK_HUNTER',
+          ownerId: 'ranger',
+          archetype: 'BALANCE' as const
+        },
+        unlockLevel: 4
+      });
+    }
+    
+    return cardsWithLevel;
+  };
+
+  const progression = getLevelProgression(hero.id);
+  const activeAbility = getActiveAbility(hero.id);
+  const uniqueCards = getAllUniqueCards(hero.id);
+  const currentLevel = hero.level || 1;
+  
+  // Determine unlock levels for abilities
+  const passiveUnlockLevel = hero.id === 'crusader' ? 1 : 1; // Crusader passive at level 1
+  const passiveUpgradeLevel = hero.id === 'crusader' ? 4 : null; // Crusader passive upgrades at level 4
+  const activeUnlockLevel = hero.id === 'crusader' ? 2 : 1; // Crusader active unlocks at level 2
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div 
+        className="relative h-full max-w-[56.25vh] aspect-[9/16] w-full overflow-y-auto bg-gradient-to-b from-stone-900 via-stone-950 to-black border-4 border-amber-600/60 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Decorative Pattern Overlay */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{
+          backgroundImage: 'url("https://www.transparenttextures.com/patterns/dark-matter.png")'
+        }} />
+
+        {/* Top ornamental border */}
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+
+        {/* Close Button */}
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-stone-900/90 border-2 border-amber-600/40 hover:border-amber-500 flex items-center justify-center transition-all hover:scale-110 group"
+        >
+          <X size={20} className="text-amber-600 group-hover:text-amber-400" />
+        </button>
+
+        {/* Content Container */}
+        <div className="relative z-10 p-8">
+          {/* Stats Bar */}
+          <div className="flex justify-center gap-4 mb-6">
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-950/80 to-red-900/60 border-2 border-red-700/50 rounded-lg shadow-lg">
+              <Heart size={16} className="text-red-500" />
+              <div className="text-sm">
+                <span className="text-[10px] text-red-400 uppercase tracking-wider">HP</span>
+                <div className="text-lg font-black text-red-100">{hero.maxHp}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-950/80 to-amber-900/60 border-2 border-amber-700/50 rounded-lg shadow-lg">
+              <Sword size={16} className="text-amber-500" />
+              <div className="text-sm">
+                <span className="text-[10px] text-amber-400 uppercase tracking-wider">Cards</span>
+                <div className="text-lg font-black text-amber-100">{hero.cards?.length || 0}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-950/80 to-sky-900/60 border-2 border-sky-700/50 rounded-lg shadow-lg">
+              <Shield size={16} className="text-sky-500" />
+              <div className="text-sm">
+                <span className="text-[10px] text-sky-400 uppercase tracking-wider">Role</span>
+                <div className="text-lg font-black text-sky-100">{hero.role}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Hero Portrait Section */}
+          <div className="relative mb-6">
+            {/* Ornamental Frame */}
+            <div className="relative mx-auto w-48 h-48">
+              {/* Background glow */}
+              <div className="absolute inset-0 bg-gradient-to-b from-amber-600/20 via-amber-800/10 to-transparent rounded-full blur-2xl" />
+              
+              {/* Portrait Circle */}
+              <div className="relative w-full h-full rounded-full border-4 border-amber-600/60 bg-gradient-to-b from-stone-800 to-stone-950 flex items-center justify-center overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-t from-amber-900/20 to-transparent" />
+                {/* Kingdom */}
+                {hero.id === 'prophet' && <Eye size={80} className="text-violet-500/80 relative z-10" />}
+                {hero.id === 'banner' && <Crown size={80} className="text-amber-500/80 relative z-10" />}
+                {hero.id === 'princess' && <Crown size={80} className="text-pink-500/80 relative z-10" />}
+                {hero.id === 'sentry' && <Shield size={80} className="text-slate-500/80 relative z-10" />}
+                {hero.id === 'lostprince' && <Crown size={80} className="text-gold-500/80 relative z-10" />}
+                
+                {/* Vengeance */}
+                {hero.id === 'crusader' && <Shield size={80} className="text-amber-500/80 relative z-10" />}
+                {hero.id === 'silenced' && <Skull size={80} className="text-red-500/80 relative z-10" />}
+                {hero.id === 'oathbreaker' && <Sword size={80} className="text-red-500/80 relative z-10" />}
+                {hero.id === 'captive' && <Swords size={80} className="text-red-500/80 relative z-10" />}
+                {hero.id === 'cursed' && <Skull size={80} className="text-purple-500/80 relative z-10" />}
+                
+                {/* Balance */}
+                {hero.id === 'ranger' && <Target size={80} className="text-green-500/80 relative z-10" />}
+                {hero.id === 'gravekeeper' && <Skull size={80} className="text-teal-500/80 relative z-10" />}
+                {hero.id === 'druid' && <Layers size={80} className="text-green-500/80 relative z-10" />}
+                {hero.id === 'hunter' && <Target size={80} className="text-brown-500/80 relative z-10" />}
+                {hero.id === 'entropy' && <RefreshCw size={80} className="text-indigo-500/80 relative z-10" />}
+                
+                {/* Power */}
+                {hero.id === 'alchemist' && <FlaskConical size={80} className="text-orange-500/80 relative z-10" />}
+                {hero.id === 'scavenger' && <Sword size={80} className="text-yellow-500/80 relative z-10" />}
+                {hero.id === 'witch' && <Skull size={80} className="text-purple-500/80 relative z-10" />}
+                {hero.id === 'dragonblood' && <Swords size={80} className="text-red-500/80 relative z-10" />}
+                {hero.id === 'fanatic' && <Eye size={80} className="text-red-500/80 relative z-10" />}
+              </div>
+
+              {/* Corner decorations */}
+              <div className="absolute -top-2 -left-2 w-8 h-8 border-l-4 border-t-4 border-amber-500/60 rounded-tl-lg" />
+              <div className="absolute -top-2 -right-2 w-8 h-8 border-r-4 border-t-4 border-amber-500/60 rounded-tr-lg" />
+              <div className="absolute -bottom-2 -left-2 w-8 h-8 border-l-4 border-b-4 border-amber-500/60 rounded-bl-lg" />
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 border-r-4 border-b-4 border-amber-500/60 rounded-br-lg" />
+            </div>
+
+            {/* Name Banner */}
+            <div className="relative mt-4">
+              <div className="text-center">
+                <div className="inline-block relative">
+                  {/* Banner background */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-900/50 to-transparent blur-sm" />
+                  <h2 className="relative text-3xl font-black font-serif text-amber-400 tracking-wider px-8 py-2">
+                    {hero.name}
+                  </h2>
+                  {/* Decorative lines */}
+                  <div className="absolute left-0 top-1/2 w-6 h-0.5 bg-gradient-to-r from-transparent to-amber-600" />
+                  <div className="absolute right-0 top-1/2 w-6 h-0.5 bg-gradient-to-l from-transparent to-amber-600" />
+                </div>
+                <div className="text-sm text-stone-400 uppercase tracking-widest mt-1">{hero.archetype}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Abilities Section */}
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            {/* Passive Ability */}
+            <div className="bg-stone-900/60 border-2 border-stone-700/50 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 border-2 border-amber-400/50 flex items-center justify-center shadow-lg">
+                  <Layers size={20} className="text-amber-100" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-amber-500 uppercase tracking-wider font-bold">Passive Ability</div>
+                    {currentLevel < passiveUnlockLevel && (
+                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-amber-600 rounded-full text-amber-400">
+                        Unlocks at Level {passiveUnlockLevel}
+                      </div>
+                    )}
+                    {passiveUpgradeLevel && currentLevel < passiveUpgradeLevel && currentLevel >= passiveUnlockLevel && (
+                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-green-600 rounded-full text-green-400">
+                        Upgrade at Level {passiveUpgradeLevel}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-sm text-stone-300">
+                    {hero.id === 'crusader' && 'Gain Gray Hearts each turn'}
+                    {hero.id === 'prophet' && 'Map Vision - See all enemy encounters'}
+                    {hero.id === 'ranger' && 'Level 5: CRIT while immune (2x damage)'}
+                    {hero.id === 'alchemist' && 'Craft Potion on Draw'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Ability */}
+            <div className="bg-stone-900/60 border-2 border-stone-700/50 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-red-800 border-2 border-red-400/50 flex items-center justify-center shadow-lg">
+                  <Swords size={20} className="text-red-100" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="text-xs text-red-500 uppercase tracking-wider font-bold">Active Ability</div>
+                    {currentLevel < activeUnlockLevel && (
+                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-amber-600 rounded-full text-amber-400">
+                        Unlocks at Level {activeUnlockLevel}
+                      </div>
+                    )}
+                    {currentLevel >= activeUnlockLevel && activeAbility.cooldown > 0 && (
+                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-stone-600 rounded-full text-stone-400">
+                        Cooldown: {activeAbility.cooldown}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-lg font-bold text-stone-100 font-serif">{activeAbility.name}</div>
+                </div>
+              </div>
+              <div className="text-sm text-stone-400 leading-relaxed">
+                {activeAbility.desc}
+              </div>
+            </div>
+          </div>
+
+          {/* Cards Section */}
+          <div className="mb-6">
+            <div className="text-center mb-3">
+              <div className="inline-block px-4 py-1 bg-stone-800/80 border-2 border-amber-700/40 rounded-full">
+                <span className="text-xs text-amber-500 uppercase tracking-wider font-bold">Cards</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {uniqueCards.map((cardInfo, idx) => (
+                <div key={idx} className="aspect-[2/3] relative">
+                  <Card {...cardInfo.card} smallMode={false} className="h-full" />
+                  {/* Level Unlock Badge */}
+                  <div className={`absolute -top-1 -right-1 z-20 rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-black border-2 shadow-lg ${
+                    cardInfo.unlockLevel === 1 ? 'bg-stone-700 text-stone-300 border-stone-500' :
+                    cardInfo.unlockLevel === 2 ? 'bg-green-700 text-stone-100 border-green-500' :
+                    cardInfo.unlockLevel === 3 ? 'bg-blue-700 text-stone-100 border-blue-500' :
+                    cardInfo.unlockLevel === 4 ? 'bg-purple-700 text-stone-100 border-purple-500' :
+                    'bg-amber-700 text-stone-100 border-amber-500'
+                  }`}>
+                    {cardInfo.unlockLevel}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Level Progression */}
+          <div>
+            <div className="text-center mb-3">
+              <div className="inline-block px-4 py-1 bg-stone-800/80 border-2 border-amber-700/40 rounded-full">
+                <span className="text-xs text-amber-500 uppercase tracking-wider font-bold">Level Progression</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {progression.map((prog, idx) => (
+                <div 
+                  key={idx}
+                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
+                    prog.locked 
+                      ? 'bg-stone-900/40 border-stone-800/50 opacity-60' 
+                      : 'bg-gradient-to-r from-amber-950/30 to-stone-900/40 border-amber-700/30'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black border-2 ${
+                    prog.level === 1 ? 'bg-stone-700 text-stone-300 border-stone-500' :
+                    prog.level === 2 ? 'bg-green-700 text-stone-100 border-green-500' :
+                    prog.level === 3 ? 'bg-blue-700 text-stone-100 border-blue-500' :
+                    prog.level === 4 ? 'bg-purple-700 text-stone-100 border-purple-500' :
+                    'bg-amber-700 text-stone-100 border-amber-500'
+                  }`}>
+                    {prog.level}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm text-stone-300">{prog.unlock}</div>
+                  </div>
+                  {prog.locked && (
+                    <Lock size={16} className="text-stone-600" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -392,18 +1230,23 @@ interface BattleLaneProps {
   enemyCard: Card | null;
   playerCard: Card | null;
   onPlayerSlotClick: () => void;
+  onEnemyCardClick?: () => void;
   isSelected: boolean;
   isValidTarget: boolean;
   onPreviewStart: (card: Card) => void;
   onPreviewEnd: () => void;
   onProphetAction?: () => void;
+  onCrusaderAction?: () => void;
+  onRangerAction?: () => void;
   showTargetArrow?: boolean;
+  showDefenseArrow?: boolean;
   onLaneHover?: () => void;
   onLaneLeave?: () => void;
   isResolving?: boolean;
+  provokeMode?: boolean;
 }
 
-const BattleLane = ({ zoneLabel, enemyUnit, playerUnit, enemyCard, playerCard, onPlayerSlotClick, isValidTarget, onPreviewStart, onPreviewEnd, onProphetAction, showTargetArrow, onLaneHover, onLaneLeave, isResolving }: BattleLaneProps) => {
+const BattleLane = ({ zoneLabel, enemyUnit, playerUnit, enemyCard, playerCard, onPlayerSlotClick, onEnemyCardClick, isValidTarget, onPreviewStart, onPreviewEnd, onProphetAction, onCrusaderAction, onRangerAction, showTargetArrow, showDefenseArrow, onLaneHover, onLaneLeave, isResolving, provokeMode }: BattleLaneProps) => {
   return (
     <div 
       className={`
@@ -449,7 +1292,14 @@ const BattleLane = ({ zoneLabel, enemyUnit, playerUnit, enemyCard, playerCard, o
          <div className="absolute top-0 bottom-0 w-px bg-stone-800 z-0" />
 
          {/* Enemy Card Slot */}
-         <div className={`w-full aspect-[2/3] max-h-[80px] z-10 transition-all duration-300 ${isResolving && enemyCard ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''}`}>
+         <div 
+           onClick={provokeMode && enemyCard ? onEnemyCardClick : undefined}
+           className={`w-full aspect-[2/3] max-h-[80px] z-10 transition-all duration-300 ${
+             isResolving && enemyCard ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''
+           } ${
+             provokeMode && enemyCard ? 'cursor-pointer ring-2 ring-amber-500 animate-pulse' : ''
+           }`}
+         >
             {enemyCard ? (
                <Card 
                  {...enemyCard} 
@@ -457,7 +1307,9 @@ const BattleLane = ({ zoneLabel, enemyUnit, playerUnit, enemyCard, playerCard, o
                  smallMode={true} 
                  onPreviewStart={() => onPreviewStart && onPreviewStart(enemyCard)}
                  onPreviewEnd={onPreviewEnd}
-                 className={`w-full h-full text-[10px] ${isResolving ? 'ring-2 ring-red-500 shadow-lg' : ''}`}
+                 className={`w-full h-full text-[10px] ${
+                   isResolving ? 'ring-2 ring-red-500 shadow-lg' : ''
+                 }`}
                />
             ) : (
                // Empty Enemy Slot - Matches Player Style
@@ -498,8 +1350,24 @@ const BattleLane = ({ zoneLabel, enemyUnit, playerUnit, enemyCard, playerCard, o
       </div>
 
       {/* 3. BOTTOM: PLAYER UNIT */}
-      <div className="w-full h-[22%] min-h-[60px]">
-         <UnitPortrait unit={playerUnit} isEnemy={false} onProphetAction={onProphetAction} />
+      <div className="w-full h-[22%] min-h-[60px] relative">
+         {showDefenseArrow && (
+           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+             <div className="flex flex-col items-center">
+               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-sky-500">
+                 <path d="M12 20L12 4M12 4L6 10M12 4L18 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+               </svg>
+               <div className="text-sky-500 font-bold text-xs drop-shadow-lg">PROTECT</div>
+             </div>
+           </div>
+         )}
+         <UnitPortrait 
+           unit={playerUnit} 
+           isEnemy={false} 
+           onProphetAction={onProphetAction} 
+           onCrusaderAction={onCrusaderAction}
+           onRangerAction={onRangerAction}
+         />
       </div>
     </div>
   );
@@ -512,11 +1380,14 @@ export default function TheDragonMustDie() {
   const [view, setView] = useState<string>('START');
   const [party, setParty] = useState<Unit[]>([]);
   const [partyLanes, setPartyLanes] = useState<{[heroId: string]: number}>({});
-  const [selectedHero, setSelectedHero] = useState<string | null>(null);
   const [globalDeck, setGlobalDeck] = useState<Card[]>([]);
   const [mapNode, setMapNode] = useState<number>(0);
   const [combatState, setCombatState] = useState<CombatState | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  
+  // Two-step hero selection
+  const [selectedHeroes, setSelectedHeroes] = useState<string[]>([]);
+  const [draggedHeroIndex, setDraggedHeroIndex] = useState<number | null>(null);
   
   // Modals & UI State
   const [showDeckModal, setShowDeckModal] = useState<boolean>(false);
@@ -524,6 +1395,8 @@ export default function TheDragonMustDie() {
   const [previewCard, setPreviewCard] = useState<Card | null>(null);
   const [showLogs, setShowLogs] = useState<boolean>(false);
   const [hoveredLane, setHoveredLane] = useState<number | null>(null);
+  const [provokeMode, setProvokeMode] = useState<boolean>(false);
+  const [heroDetailView, setHeroDetailView] = useState<Hero | null>(null);
 
   // Clear animation flags after animation completes
   useEffect(() => {
@@ -538,53 +1411,96 @@ export default function TheDragonMustDie() {
   const addLog = (msg: string) => setLogs(prev => [msg, ...prev].slice(0, 3));
 
   // --- LOGIC FUNCTIONS (Unchanged logic) ---
-  const startDraft = () => { setParty([]); setPartyLanes({}); setSelectedHero(null); setView('DRAFT'); };
-  const handleDraftSelect = (hero: any) => {
-    if (party.find(p => p.id === hero.id)) {
-      setParty(party.filter(p => p.id !== hero.id));
-      const newLanes = {...partyLanes};
-      delete newLanes[hero.id];
-      setPartyLanes(newLanes);
-      setSelectedHero(null);
-    }
-    else if (party.length < 3) {
-      setParty([...party, hero]);
-      setSelectedHero(hero.id);
+  const startDraft = () => { 
+    setParty([]); 
+    setPartyLanes({}); 
+    setSelectedHeroes([]);
+    setView('HERO_SELECTION'); 
+  };
+  
+  const handleHeroSelect = (heroId: string) => {
+    if (selectedHeroes.includes(heroId)) {
+      setSelectedHeroes(selectedHeroes.filter(id => id !== heroId));
+    } else if (selectedHeroes.length < 3) {
+      setSelectedHeroes([...selectedHeroes, heroId]);
     }
   };
   
-  const handleLaneSelect = (laneIdx: number) => {
-    if (!selectedHero) return;
+  const confirmHeroSelection = () => {
+    if (selectedHeroes.length !== 3) return;
+    // Move to lane assignment view
+    setView('LANE_ASSIGNMENT');
+  };
+  
+  const handleDragStart = (index: number) => {
+    setDraggedHeroIndex(index);
+  };
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  
+  const handleDrop = (targetIndex: number) => {
+    if (draggedHeroIndex === null) return;
     
-    const laneTaken = Object.entries(partyLanes).find(([id, lane]) => lane === laneIdx && id !== selectedHero);
-    if (laneTaken) {
-      // Swap lanes
-      const [otherId] = laneTaken;
-      const currentLane = partyLanes[selectedHero];
-      setPartyLanes({...partyLanes, [selectedHero]: laneIdx, [otherId]: currentLane});
-    } else {
-      setPartyLanes({...partyLanes, [selectedHero]: laneIdx});
-    }
-    setSelectedHero(null);
+    const newOrder = [...selectedHeroes];
+    const [draggedHero] = newOrder.splice(draggedHeroIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedHero);
+    
+    setSelectedHeroes(newOrder);
+    setDraggedHeroIndex(null);
   };
   const finalizeDraft = () => {
-    if (party.length !== 3) return;
-    let deck: Card[] = [];
-    party.forEach(hero => {
-      if (hero.cards) { const heroCards = hero.cards.map(c => ({...c, ownerId: hero.id, uid: Math.random()})); deck = [...deck, ...heroCards]; }
+    if (selectedHeroes.length !== 3) return;
+    
+    // Create party with heroes in lane order
+    const finalParty = selectedHeroes.map((heroId) => {
+      const heroData = HEROES_DB.find(h => h.id === heroId)!;
+      return {
+        ...heroData,
+        level: 1,
+        dead: false,
+        buffs: { immune: false, tanking: false, strength: 0 }
+      } as Unit;
     });
-    setGlobalDeck(deck); setMapNode(0); setView('MAP');
+    
+    // Set party lanes (0=Front, 1=Mid, 2=Rear)
+    const lanes: {[heroId: string]: number} = {};
+    selectedHeroes.forEach((heroId, index) => {
+      lanes[heroId] = index;
+    });
+    
+    setParty(finalParty);
+    setPartyLanes(lanes);
+    
+    // Build deck
+    let deck: Card[] = [];
+    finalParty.forEach(hero => {
+      if (hero.cards) { 
+        const heroCards = hero.cards.map(c => ({
+          ...c, 
+          ownerId: hero.id, 
+          archetype: hero.archetype, 
+          uid: Math.random()
+        })); 
+        deck = [...deck, ...heroCards]; 
+      }
+    });
+    
+    setGlobalDeck(deck); 
+    setMapNode(0); 
+    setView('MAP');
   };
 
   const enterCombat = (enemyType: string) => {
     let enemies: (Unit | null)[] = [null, null, null];
     if (enemyType === 'boss') {
-      // BOSS ENCOUNTER: Dragon + Void Mages (require Prophet scry + Ranger range)
+      // BOSS ENCOUNTER: Dragon + Void Mages (require Prophet scry + Lone Ranger range)
       enemies[1] = { ...ENEMIES_DB.find(e => e.isBoss)!, id: 'boss', name: 'ANCIENT DRAGON', desc: '', maxHp: 15, hp: 15, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
       enemies[0] = { name: 'Void Mage', id: 'guard1', desc: '', hp: 4, maxHp: 4, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
       enemies[2] = { name: 'Void Mage', id: 'guard2', desc: '', hp: 4, maxHp: 4, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
     } else {
-      // STRATEGIC ENCOUNTERS designed for Crusader (F) / Prophet (M) / Ranger (R)
+      // STRATEGIC ENCOUNTERS designed for Crusader (F) / Prophet (M) / Lone Ranger (R)
       const encounterType = Math.floor(Math.random() * 8);
       
       switch(encounterType) {
@@ -597,7 +1513,7 @@ export default function TheDragonMustDie() {
           break;
           
         case 1: // "THE WALL" - Tank + Support behind
-          // Challenge: Knight tanks, Cultist buffs him. Must kill cultist first (Ranger!)
+          // Challenge: Knight tanks, Cultist buffs him. Must kill cultist first (Lone Ranger!)
           // If cultist survives, knight becomes unkillable
           enemies[0] = { name: 'Armored Knight', id: 'tank', desc: '', hp: 6, maxHp: 6, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
           enemies[2] = { name: 'Blood Cultist', id: 'buffer', desc: '', hp: 4, maxHp: 4, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
@@ -619,7 +1535,7 @@ export default function TheDragonMustDie() {
           
         case 4: // "THE NECROMANCER" - Value race
           // Challenge: Necromancer summons minions each turn
-          // Must rush him down before overwhelmed (Ranger focus!)
+          // Must rush him down before overwhelmed (Lone Ranger focus!)
           enemies[1] = { name: 'Necromancer', id: 'necro', desc: '', hp: 4, maxHp: 4, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
           enemies[0] = { name: 'Skeleton', id: 'minion1', desc: '', hp: 2, maxHp: 2, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
           enemies[2] = { name: 'Skeleton', id: 'minion2', desc: '', hp: 2, maxHp: 2, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
@@ -627,7 +1543,7 @@ export default function TheDragonMustDie() {
           
         case 5: // "THE EXECUTIONER" - Single massive threat
           // Challenge: Berserker deals 4-5 damage per turn
-          // Crusader MUST tank it or Prophet/Ranger die instantly
+          // Crusader MUST tank it or Prophet/Lone Ranger die instantly
           enemies[1] = { name: 'Berserker', id: 'zerk', desc: '', hp: 5, maxHp: 5, dead: false, buffs: { immune: false, tanking: false, strength: 0 } };
           break;
           
@@ -653,10 +1569,99 @@ export default function TheDragonMustDie() {
     const combatParty: (Unit | null)[] = [null, null, null];
     party.forEach(hero => {
       const laneIdx = partyLanes[hero.id] !== undefined ? partyLanes[hero.id] : party.indexOf(hero);
-      combatParty[laneIdx] = { ...hero, grayHp: 0, buffs: { immune: false, tanking: false, strength: 0 } };
+      // Initialize cooldown based on hero
+      let cooldownMax = 0;
+      if (hero.id === 'prophet') cooldownMax = 2;
+      else if (hero.id === 'ranger') cooldownMax = 2;
+      else if (hero.id === 'crusader') cooldownMax = 0;
+      
+      combatParty[laneIdx] = { 
+        ...hero, 
+        grayHp: 0, 
+        buffs: { immune: false, tanking: false, strength: 0 },
+        activeCooldown: 0,
+        activeCooldownMax: cooldownMax
+      };
     });
     
-    const combatDeck = [...globalDeck].sort(() => Math.random() - 0.5);
+    // Add level-specific cards to deck
+    let combatDeck = [...globalDeck].sort(() => Math.random() - 0.5);
+    party.forEach(hero => {
+      const heroLevel = hero.level || 1;
+      let levelCards: Card[] = [];
+      
+      // Crusader level cards
+      if (hero.id === 'crusader') {
+        if (heroLevel >= 3) {
+          // Level 3: Add 2x Eye for an Eye
+          levelCards.push(
+            { id: 'c_eye', type: 'ATTACK', value: 0, name: 'Eye for an Eye', desc: 'Deal X equal to your missing hearts.', effect: 'EYE_FOR_EYE', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() },
+            { id: 'c_eye', type: 'ATTACK', value: 0, name: 'Eye for an Eye', desc: 'Deal X equal to your missing hearts.', effect: 'EYE_FOR_EYE', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
+          );
+        }
+        if (heroLevel >= 5) {
+          // Level 5: Add 1x Nothing to Lose
+          levelCards.push(
+            { id: 'c_nothing', type: 'SKILL', value: 0, name: 'Nothing to Lose', desc: 'Tank all lanes this turn.', effect: 'TANK_ALL', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
+          );
+        }
+      }
+      
+      // Ranger level cards
+      if (hero.id === 'ranger') {
+        if (heroLevel >= 3) {
+          // Level 3: Upgrade Arrow Shot to deal 2 damage
+          // Replace existing Arrow Shot cards with upgraded versions
+          combatDeck = combatDeck.map(card => {
+            if (card.id === 'r_arr' && card.ownerId === 'ranger') {
+              return { ...card, value: 2, desc: 'Deal 2. Ranged 2.' };
+            }
+            return card;
+          });
+        }
+        if (heroLevel >= 4) {
+          // Level 4: Add 2x Mark of Hunter
+          levelCards.push(
+            { id: 'r_mark', type: 'FAST', value: 0, name: 'Mark of Hunter', desc: 'Enemy gets double damage this round.', effect: 'MARK_HUNTER', ownerId: 'ranger', archetype: 'BALANCE' as const, uid: Math.random() },
+            { id: 'r_mark', type: 'FAST', value: 0, name: 'Mark of Hunter', desc: 'Enemy gets double damage this round.', effect: 'MARK_HUNTER', ownerId: 'ranger', archetype: 'BALANCE' as const, uid: Math.random() }
+          );
+        }
+      }
+      
+      // Prophet level cards
+      if (hero.id === 'prophet') {
+        if (heroLevel >= 2) {
+          // Level 2: Add 2x Foretell
+          const improveValue = heroLevel >= 4 ? 2 : 1; // Level 4 increases Improve by 1
+          levelCards.push(
+            { id: 'p_foretell', type: 'FAST', value: improveValue, name: 'Foretell', desc: `Improve ${improveValue}; Range 1`, effect: 'IMPROVE', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() },
+            { id: 'p_foretell', type: 'FAST', value: improveValue, name: 'Foretell', desc: `Improve ${improveValue}; Range 1`, effect: 'IMPROVE', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() }
+          );
+        }
+        if (heroLevel >= 3) {
+          // Level 3: Add 2x Mending
+          const healValue = heroLevel >= 4 ? 2 : 1; // Level 4 increases Heal by 1
+          levelCards.push(
+            { id: 'p_mending', type: 'FAST', value: healValue, name: 'Mending', desc: `Heal ${healValue}; Range 1`, effect: 'HEAL', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() },
+            { id: 'p_mending', type: 'FAST', value: healValue, name: 'Mending', desc: `Heal ${healValue}; Range 1`, effect: 'HEAL', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() }
+          );
+        }
+        if (heroLevel >= 5) {
+          // Level 5: Divination changes to Pick
+          // Update existing Divination cards
+          combatDeck = combatDeck.map(card => {
+            if (card.id === 'p_div' && card.ownerId === 'prophet') {
+              return { ...card, desc: 'Pick 1 kingdom card. If you can\'t, draw 1 card.', effect: 'PICK' };
+            }
+            return card;
+          });
+        }
+      }
+      
+      combatDeck = [...combatDeck, ...levelCards];
+    });
+    
+    combatDeck = combatDeck.sort(() => Math.random() - 0.5);
     
     // Strategic encounter descriptions
     let encounterHint = "Battle Started!";
@@ -677,7 +1682,15 @@ export default function TheDragonMustDie() {
       let newPUnits = (state.playerUnits || []).map((u: Unit | null) => {
           if (!u || u.dead) return u;
           let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false, strength: 0 } };
-          if (unit.id === 'crusader') unit.grayHp = (unit.grayHp || 0) + 1;
+          // Crusader passive: Gain Gray HP based on level
+          if (unit.id === 'crusader') {
+            const grayHpGain = (unit.level && unit.level >= 4) ? 2 : 1;
+            unit.grayHp = (unit.grayHp || 0) + grayHpGain;
+          }
+          // Decrement cooldown each turn
+          if (unit.activeCooldown && unit.activeCooldown > 0) {
+              unit.activeCooldown = unit.activeCooldown - 1;
+          }
           return unit;
       });
       let newDraw = [...(state.drawPile || [])]; let newDiscard = [...(state.discardPile || [])]; let newHand: Card[] = [];
@@ -760,13 +1773,134 @@ export default function TheDragonMustDie() {
 
   const onProphetAction = () => {
      if (!combatState || combatState.scryActive) return;
+     
+     // Find prophet unit and check cooldown
+     const prophetUnit = combatState.playerUnits.find(u => u && u.id === 'prophet');
+     if (!prophetUnit || prophetUnit.activeCooldown! > 0) return;
+     
      // Reveal all enemy cards immediately
+     const newPlayerUnits = combatState.playerUnits.map(u => {
+       if (u && u.id === 'prophet') {
+         return { ...u, activeCooldown: u.activeCooldownMax || 0 };
+       }
+       return u;
+     });
+     
      setCombatState(prev => ({ 
        ...prev!, 
        scryActive: true,
+       playerUnits: newPlayerUnits,
        enemyZoneCards: prev!.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null)
      }));
      addLog("Prophet reveals all enemy intentions!");
+  };
+
+  const onCrusaderAction = () => {
+     if (!combatState || combatState.phase !== 'planning') return;
+     
+     // Find crusader unit and check cooldown
+     const crusaderUnit = combatState.playerUnits.find(u => u && u.id === 'crusader');
+     if (!crusaderUnit || crusaderUnit.activeCooldown! > 0) return;
+     
+     // Check if Provoke is unlocked (level 2+)
+     if (!crusaderUnit.level || crusaderUnit.level < 2) {
+       addLog("Provoke locked! Requires Level 2.");
+       return;
+     }
+     
+     // Activate Provoke mode - player must select an enemy card
+     setProvokeMode(true);
+     addLog("Crusader Provoke: Select an enemy card to force an attack!");
+  };
+
+  const onRangerAction = () => {
+     if (!combatState || combatState.phase !== 'planning') return;
+     
+     // Find ranger unit and check cooldown
+     const rangerUnit = combatState.playerUnits.find(u => u && u.id === 'ranger');
+     if (!rangerUnit || rangerUnit.activeCooldown! > 0) return;
+     
+     // Camouflage: Get Immune this round
+     const newPlayerUnits = combatState.playerUnits.map(u => {
+       if (u && u.id === 'ranger') {
+         return { 
+           ...u, 
+           activeCooldown: u.activeCooldownMax || 0,
+           buffs: { ...u.buffs, immune: true }
+         };
+       }
+       return u;
+     });
+     
+     setCombatState(prev => ({ ...prev!, playerUnits: newPlayerUnits }));
+     addLog("Ranger uses Camouflage! Immune this turn!");
+  };
+
+  const handleProvokeClick = (laneIdx: number) => {
+    if (!combatState || !provokeMode) return;
+    
+    const enemyCard = combatState.enemyZoneCards[laneIdx];
+    const enemyUnit = combatState.enemyUnits[laneIdx];
+    
+    if (!enemyCard || !enemyUnit || enemyUnit.dead) {
+      addLog("No valid target!");
+      return;
+    }
+    
+    // Generate an attack card, preferring one from the targeted enemy
+    const enemyDeckType = (enemyUnit as any).deckType || 'medium';
+    let attackValue = 2;
+    
+    // Generate attack based on enemy type
+    switch (enemyDeckType) {
+      case 'burst':
+      case 'big_damage':
+        attackValue = 3 + Math.floor(Math.random() * 2);
+        break;
+      case 'boss':
+        attackValue = 3 + Math.floor(Math.random() * 3);
+        break;
+      case 'medium':
+      case 'tricky':
+        attackValue = 2 + Math.floor(Math.random() * 2);
+        break;
+      default:
+        attackValue = 1 + Math.floor(Math.random() * 2);
+    }
+    
+    const attackCard: Card = {
+      id: 'enemy_provoked',
+      type: 'ATTACK',
+      value: attackValue,
+      name: 'Provoked Strike',
+      desc: '',
+      revealed: true // Provoked cards stay revealed
+    };
+    
+    // Replace the enemy card and set cooldown
+    const newPlayerUnits = combatState.playerUnits.map(u => {
+      if (u && u.id === 'crusader') {
+        return { ...u, activeCooldown: u.activeCooldownMax || 0 };
+      }
+      return u;
+    });
+    
+    const newEnemyZones = [...combatState.enemyZoneCards];
+    const oldCard = newEnemyZones[laneIdx];
+    newEnemyZones[laneIdx] = attackCard;
+    
+    // Discard the old card
+    const newEnemyDiscard = oldCard ? [...(combatState.discardPile || []), oldCard] : combatState.discardPile;
+    
+    setCombatState(prev => ({
+      ...prev!,
+      playerUnits: newPlayerUnits,
+      enemyZoneCards: newEnemyZones,
+      discardPile: newEnemyDiscard
+    }));
+    
+    setProvokeMode(false);
+    addLog(`Crusader provokes ${enemyUnit.name} into attacking with ${attackValue} damage!`);
   };
 
   const handleZoneClick = (idx: number) => {
@@ -794,6 +1928,161 @@ export default function TheDragonMustDie() {
               newEnemyZones[idx] = { ...newEnemyZones[idx]!, revealed: true };
               addLog("Scried Enemy Intent!");
           }
+          
+          // Handle DIVINE effect
+          if (card.effect === 'DIVINE') {
+              // Divine: draw a random KINGDOM archetype card from deck (only Prophet)
+              const kingdomCardsInDeck = combatState.drawPile.filter(c => 
+                  c.archetype === 'KINGDOM'
+              );
+              
+              if (kingdomCardsInDeck.length > 0) {
+                  // Divine: draw a random kingdom card from deck
+                  const randomIndex = Math.floor(Math.random() * kingdomCardsInDeck.length);
+                  const divinedCard = kingdomCardsInDeck[randomIndex];
+                  
+                  setCombatState(prev => ({
+                      ...prev!,
+                      playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx).concat(divinedCard),
+                      drawPile: prev!.drawPile.filter(c => c.uid !== divinedCard.uid),
+                      discardPile: [...prev!.discardPile, card],
+                      selectedCardIdx: null
+                  }));
+                  addLog(`Divine: Drew ${divinedCard.name} from deck!`);
+              } else {
+                  // No kingdom cards in deck, draw 1 card normally
+                  if (combatState.drawPile.length > 0) {
+                      const drawnCard = combatState.drawPile[0];
+                      setCombatState(prev => ({
+                          ...prev!,
+                          playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx).concat(drawnCard),
+                          drawPile: prev!.drawPile.slice(1),
+                          discardPile: [...prev!.discardPile, card],
+                          selectedCardIdx: null
+                      }));
+                      addLog(`Divine failed: Drew ${drawnCard.name} instead`);
+                  } else {
+                      // No cards in deck at all
+                      setCombatState(prev => ({
+                          ...prev!,
+                          playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx),
+                          discardPile: [...prev!.discardPile, card],
+                          selectedCardIdx: null
+                      }));
+                      addLog("Divine failed: No cards in deck!");
+                  }
+              }
+              return;
+          }
+          
+          // Handle PICK effect (level 5 upgrade of DIVINE)
+          if (card.effect === 'PICK') {
+              // Pick: search deck for kingdom cards and let player choose
+              const kingdomCardsInDeck = combatState.drawPile.filter(c => 
+                  c.archetype === 'KINGDOM'
+              );
+              
+              if (kingdomCardsInDeck.length > 0) {
+                  // For now, auto-pick the first kingdom card
+                  // TODO: Add UI for player to choose
+                  const pickedCard = kingdomCardsInDeck[0];
+                  
+                  setCombatState(prev => ({
+                      ...prev!,
+                      playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx).concat(pickedCard),
+                      drawPile: prev!.drawPile.filter(c => c.uid !== pickedCard.uid),
+                      discardPile: [...prev!.discardPile, card],
+                      selectedCardIdx: null
+                  }));
+                  addLog(`Pick: Added ${pickedCard.name} to hand!`);
+              } else {
+                  // No kingdom cards in deck, draw 1 card normally
+                  if (combatState.drawPile.length > 0) {
+                      const drawnCard = combatState.drawPile[0];
+                      setCombatState(prev => ({
+                          ...prev!,
+                          playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx).concat(drawnCard),
+                          drawPile: prev!.drawPile.slice(1),
+                          discardPile: [...prev!.discardPile, card],
+                          selectedCardIdx: null
+                      }));
+                      addLog(`Pick failed: Drew ${drawnCard.name} instead`);
+                  } else {
+                      // No cards in deck at all
+                      setCombatState(prev => ({
+                          ...prev!,
+                          playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx),
+                          discardPile: [...prev!.discardPile, card],
+                          selectedCardIdx: null
+                      }));
+                      addLog("Pick failed: No cards in deck!");
+                  }
+              }
+              return;
+          }
+          
+          // Handle IMPROVE effect
+          if (card.effect === 'IMPROVE') {
+              // Improve: add bonus to the card already in the zone
+              const newPlayerZones = [...combatState.playerZoneCards];
+              if (newPlayerZones[idx]) {
+                // Add improve bonus to existing card
+                const existingCard = newPlayerZones[idx]!;
+                newPlayerZones[idx] = { 
+                  ...existingCard, 
+                  value: existingCard.value + card.value,
+                  desc: existingCard.desc + ` (+${card.value})`
+                };
+                
+                setCombatState(prev => ({
+                    ...prev!,
+                    playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx),
+                    playerZoneCards: newPlayerZones,
+                    discardPile: [...prev!.discardPile, card],
+                    enemyZoneCards: newEnemyZones,
+                    selectedCardIdx: null
+                }));
+                addLog(`Foretell: +${card.value} to lane ${idx}!`);
+              } else {
+                addLog("No card in lane to improve!");
+                setCombatState(prev => ({
+                    ...prev!,
+                    selectedCardIdx: null
+                }));
+              }
+              return;
+          }
+          
+          // Handle HEAL effect
+          if (card.effect === 'HEAL') {
+              // Heal: immediately heal the hero in target lane
+              const healAmount = card.value;
+              const newPlayerUnits = [...combatState.playerUnits];
+              if (newPlayerUnits[idx]) {
+                  const hero = newPlayerUnits[idx]!;
+                  const oldHp = hero.hp;
+                  hero.hp = Math.min(hero.maxHp, hero.hp + healAmount);
+                  const actualHeal = hero.hp - oldHp;
+                  
+                  setCombatState(prev => ({
+                      ...prev!,
+                      playerHand: prev!.playerHand.filter((_, i) => i !== selectedCardIdx),
+                      playerUnits: newPlayerUnits,
+                      discardPile: [...prev!.discardPile, card],
+                      enemyZoneCards: newEnemyZones,
+                      selectedCardIdx: null
+                  }));
+                  addLog(`Mending: Healed ${hero.name} for ${actualHeal} HP!`);
+              } else {
+                  addLog("No hero in lane to heal!");
+                  setCombatState(prev => ({
+                      ...prev!,
+                      selectedCardIdx: null
+                  }));
+              }
+              return;
+          }
+          
           // FAST cards are discarded immediately, not placed in zone
           setCombatState(prev => ({
               ...prev!, 
@@ -817,6 +2106,7 @@ export default function TheDragonMustDie() {
 
   const handleEndTurn = async () => {
     if (!combatState || combatState.phase !== 'planning') return;
+    setProvokeMode(false); // Cancel provoke mode when ending turn
     setCombatState(prev => ({ ...prev!, phase: 'resolving', selectedCardIdx: null }));
     setCombatState(prev => ({ ...prev!, enemyZoneCards: prev!.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null) }));
     await new Promise(r => setTimeout(r, 800));
@@ -830,6 +2120,10 @@ export default function TheDragonMustDie() {
         if (card.id === 'pot_inv') sourceUnit.buffs.immune = true;
         if (card.id === 'pot_str') sourceUnit.buffs.strength += 2;
         if (card.effect === 'TANK_RIGHT') sourceUnit.buffs.tanking = true;
+        if (card.effect === 'TANK_ALL') {
+          // Tank all lanes: set tanking on this unit and apply to all lanes
+          sourceUnit.buffs.tanking = true;
+        }
     };
     for (let i = 0; i < 3; i++) applyEffects(pZones[i], pUnits[i]);
 
@@ -843,6 +2137,10 @@ export default function TheDragonMustDie() {
         
         if (pUnit && !pUnit.dead && pCard) {
             let dmg = (pCard.type === 'ATTACK' ? pCard.value : 0) + (pUnit.buffs.strength || 0);
+            // Eye for an Eye: damage equals missing hearts
+            if (pCard.effect === 'EYE_FOR_EYE') {
+              dmg = pUnit.maxHp - pUnit.hp;
+            }
             let targetIdx = i; 
             // If enemy lane is empty/dead, find adjacent or farthest alive enemy
             if (!eUnits[i] || eUnits[i]!.dead) {
@@ -865,8 +2163,33 @@ export default function TheDragonMustDie() {
                     }
                 }
             }
+            
+            // Ranger Level 5: CRIT - If ranger is immune, double damage
+            const rangerUnit = pUnits.find(u => u && u.id === 'ranger' && !u.dead && (u.level || 1) >= 5);
+            if (rangerUnit && rangerUnit.buffs.immune && pCard.ownerId === 'ranger') {
+              dmg *= 2;
+              msg += "CRIT! ";
+            }
+            
             let reduction = (eZones[targetIdx]?.type === 'DEFENSE') ? (eZones[targetIdx]?.value || 0) : 0;
             let finalDmg = Math.max(0, dmg - reduction);
+            
+            // Ranger Level 2: Revealed enemies get +1 damage from all sources
+            const targetEnemy = eUnits[targetIdx];
+            if (targetEnemy && eZones[targetIdx]?.revealed) {
+              const hasRangerLevel2 = pUnits.some(u => u && u.id === 'ranger' && !u.dead && (u.level || 1) >= 2);
+              if (hasRangerLevel2 && finalDmg > 0) {
+                finalDmg += 1;
+                msg += "+1 Revealed! ";
+              }
+            }
+            
+            // Mark of Hunter: Double damage this round
+            if (eZones[targetIdx]?.effect === 'MARK_HUNTER' && finalDmg > 0) {
+              finalDmg *= 2;
+              msg += "Marked! ";
+            }
+            
             if (finalDmg > 0 && eUnits[targetIdx]) {
                 eUnits[targetIdx]!.hp -= finalDmg;
                 if (eUnits[targetIdx]!.hp <= 0) { eUnits[targetIdx]!.dead = true; eUnits[targetIdx]!.hp = 0; }
@@ -882,13 +2205,28 @@ export default function TheDragonMustDie() {
                if (candidates.length > 0) targetIdx = candidates[0];
             }
             let targetUnit = pUnits[targetIdx];
-            if (targetIdx > 0 && pUnits[targetIdx-1]?.buffs?.tanking && !pUnits[targetIdx-1]!.dead) { targetUnit = pUnits[targetIdx-1]; msg += "Tank! "; }
+            
+            // Check for tanking: TANK_RIGHT tanks for right lane, TANK_ALL tanks for all lanes
+            const tankingUnit = pUnits.find((u, idx) => {
+              if (!u || u.dead || !u.buffs.tanking) return false;
+              // TANK_ALL: check if any player zone card has TANK_ALL effect
+              const hasTankAll = pZones.some(c => c?.effect === 'TANK_ALL' && c.ownerId === u.id);
+              if (hasTankAll) return true;
+              // TANK_RIGHT: only tank for the lane to the right (idx+1 === targetIdx)
+              return idx + 1 === targetIdx;
+            });
+            
+            if (tankingUnit) { 
+              targetUnit = tankingUnit; 
+              msg += "Tank! "; 
+            }
 
             if (targetUnit) {
                 if (targetUnit.buffs.immune) { msg += "Immune! "; } else {
                     let reduction = (pZones[targetIdx]?.type === 'DEFENSE') ? (pZones[targetIdx]?.value || 0) : 0;
                     if (targetIdx > 0 && pZones[targetIdx-1]?.effect === 'DEF_RIGHT') reduction += (pZones[targetIdx-1]?.value || 0);
                     let finalDmg = Math.max(0, dmg - reduction);
+                    
                     if (finalDmg > 0 && (targetUnit.grayHp || 0) > 0) { const abs = Math.min(finalDmg, targetUnit.grayHp || 0); targetUnit.grayHp = (targetUnit.grayHp || 0) - abs; finalDmg -= abs; }
                     if (finalDmg > 0) {
                         targetUnit.hp -= finalDmg;
@@ -937,6 +2275,11 @@ export default function TheDragonMustDie() {
 
   // --- RENDERING ---
 
+  // Hero Detail View Modal (renders on top of any view)
+  if (heroDetailView) {
+    return <HeroDetailView hero={heroDetailView} onClose={() => setHeroDetailView(null)} />;
+  }
+  
   if (view === 'START') {
     return (
        <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-serif">
@@ -956,107 +2299,384 @@ export default function TheDragonMustDie() {
     );
   }
 
-  if (view === 'DRAFT') {
+  // HERO SELECTION VIEW (Step 1: Pick 3 heroes)
+  if (view === 'HERO_SELECTION') {
     return (
-      <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-sans">
-        <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full bg-stone-900 border-4 border-stone-700 flex flex-col relative overflow-hidden shadow-2xl">
-          <div className="p-4 bg-stone-950 border-b border-stone-800 flex justify-between items-center">
-             <div>
-                <h2 className="text-lg font-bold text-amber-500 font-serif">Draft Party</h2>
-                <p className="text-[10px] text-stone-500 uppercase tracking-widest">Select Heroes & Assign Lanes</p>
-             </div>
-             <div className="text-xl font-black text-stone-300">{party.length}/3</div>
-          </div>
+      <div className="w-full h-screen bg-[#D4B896] text-stone-800 flex items-center justify-center font-sans">
+        <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full bg-gradient-to-b from-[#E8D4B8] to-[#C4A876] flex flex-col relative overflow-hidden shadow-2xl">
           
-          {/* Lane Selection - Always Visible */}
-          <div className="flex-none bg-stone-950 border-b border-stone-800 p-4">
-            <div className="text-[10px] text-stone-400 uppercase tracking-wider mb-2 text-center">
-              {selectedHero ? 'Click a lane to assign hero' : 'Select a hero first'}
+          {/* Ornamental Header Border */}
+          <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-amber-700/20 to-transparent pointer-events-none z-10" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-8 bg-amber-600/30 rounded-b-full" />
+          
+          {/* Header */}
+          <div className="relative pt-6 pb-4 px-4">
+            <div className="text-center mb-3">
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-600/50 to-amber-600/50" />
+                <h2 className="text-2xl font-bold text-amber-800 font-serif tracking-wide drop-shadow-sm">Heroes</h2>
+                <div className="flex-1 h-px bg-gradient-to-l from-transparent via-amber-600/50 to-amber-600/50" />
+              </div>
+              <p className="text-[10px] text-amber-700 uppercase tracking-[0.2em] font-bold">Choose Your Champions</p>
             </div>
-            <div className="flex gap-2 justify-center">
-              {[0, 1, 2].map(laneIdx => {
-                const heroInLane = party.find(h => partyLanes[h.id] === laneIdx);
-                const isClickable = selectedHero !== null;
+            
+            {/* Selection Indicators */}
+            <div className="flex justify-center gap-3">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={`w-8 h-8 rounded-full border-3 transition-all flex items-center justify-center ${
+                  selectedHeroes.length > i 
+                    ? 'bg-gradient-to-br from-amber-400 to-amber-600 border-amber-700 shadow-lg scale-110' 
+                    : 'bg-[#C4A876] border-amber-700/40'
+                }`}>
+                  {selectedHeroes.length > i && (
+                    <span className="text-sm font-black text-white drop-shadow">{i + 1}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Heroes Grid - Vertical Columns */}
+          <div className="flex-1 overflow-y-auto px-3 pb-4">
+            <div className="grid grid-cols-3 gap-2">
+              {HEROES_DB.filter(hero => hero.id !== 'lostprince').map(hero => {
+                const isSelected = selectedHeroes.includes(hero.id);
+                const selectionOrder = selectedHeroes.indexOf(hero.id);
+                const isLocked = hero.locked || false;
+                
                 return (
-                  <div 
-                    key={laneIdx} 
-                    onClick={() => isClickable && handleLaneSelect(laneIdx)}
-                    className={`flex-1 flex flex-col items-center gap-1 transition-all ${isClickable ? 'cursor-pointer' : ''}`}
-                  >
-                    <div className="text-[8px] text-stone-500 font-bold uppercase tracking-wider">{['Front', 'Mid', 'Rear'][laneIdx]}</div>
-                    <div className={`w-full aspect-square rounded-lg border-2 flex items-center justify-center transition-all ${
-                      isClickable && !heroInLane
-                        ? 'border-sky-500/50 bg-sky-900/20 scale-105 shadow-[0_0_15px_rgba(14,165,233,0.4)]'
-                        : heroInLane 
-                          ? selectedHero === heroInLane.id
-                            ? 'bg-amber-900/40 border-amber-400 ring-2 ring-amber-500 scale-105'
-                            : 'bg-amber-900/20 border-amber-600'
-                          : 'border-dashed border-stone-700 bg-stone-900/50'
-                    }`}>
-                      {heroInLane ? (
-                        <div className="text-center">
-                          <User size={20} className={selectedHero === heroInLane.id ? 'text-amber-400' : 'text-amber-500'} />
-                          <div className="text-[8px] font-bold text-stone-200">{heroInLane.name}</div>
+                  <div key={hero.id} className="flex flex-col relative group">
+                    {/* Hero Banner Card */}
+                    <div
+                      onClick={() => !isLocked && handleHeroSelect(hero.id)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setHeroDetailView(hero);
+                      }}
+                      className={`w-full aspect-[1/2] relative rounded-t-3xl rounded-b-lg overflow-hidden transition-all ${
+                        isLocked 
+                          ? 'cursor-not-allowed opacity-60 grayscale' 
+                          : 'cursor-pointer ' + (isSelected
+                            ? 'ring-4 ring-amber-500 shadow-[0_0_25px_rgba(217,119,6,0.6)] scale-[1.02]'
+                            : 'shadow-lg hover:shadow-xl hover:scale-[1.01]')
+                      }`}
+                      style={{
+                        background: isSelected 
+                          ? 'linear-gradient(180deg, #92400E 0%, #78350F 50%, #451A03 100%)'
+                          : 'linear-gradient(180deg, #57534E 0%, #44403C 50%, #292524 100%)'
+                      }}
+                    >
+                      {/* Locked Overlay */}
+                      {isLocked && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-40">
+                          <Lock size={32} className="text-stone-400" />
                         </div>
-                      ) : isClickable ? (
-                        <Target size={16} className="text-sky-500 animate-pulse" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-stone-700" />
                       )}
+                      
+                      {/* Ornamental Top Border */}
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
+                      
+                      {/* Info Button - Shows on Hover or Selected */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHeroDetailView(hero);
+                        }}
+                        className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-amber-600 border-2 border-amber-400 flex items-center justify-center transition-all shadow-lg hover:scale-110 z-30 ${
+                          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        }`}
+                      >
+                        <Eye size={16} className="text-white" />
+                      </button>
+                      
+                      {/* Selection Badge */}
+                      {isSelected && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-3 border-white flex items-center justify-center shadow-xl z-20">
+                          <span className="text-lg font-black text-white drop-shadow">{selectionOrder + 1}</span>
+                        </div>
+                      )}
+                      
+                      {/* Side Ornaments */}
+                      <div className="absolute top-8 left-0 w-1 h-16 bg-gradient-to-b from-amber-500/60 to-transparent" />
+                      <div className="absolute top-8 right-0 w-1 h-16 bg-gradient-to-b from-amber-500/60 to-transparent" />
+                      
+                      {/* Main Portrait Area - Top Icon */}
+                      <div className="relative h-[35%] flex items-center justify-center border-b-2 border-amber-700/30">
+                        <div className={`w-16 h-16 rounded-lg flex items-center justify-center ${
+                          isSelected ? 'bg-amber-800/40' : 'bg-stone-800/40'
+                        } border-2 ${isSelected ? 'border-amber-500' : 'border-stone-600'}`}>
+                          {/* Kingdom */}
+                          {hero.id === 'prophet' && <Eye size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'banner' && <Crown size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'princess' && <Crown size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'sentry' && <Shield size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'lostprince' && <Crown size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          
+                          {/* Vengeance */}
+                          {hero.id === 'crusader' && <Shield size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'silenced' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'oathbreaker' && <Sword size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'captive' && <Swords size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'cursed' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          
+                          {/* Balance */}
+                          {hero.id === 'ranger' && <Target size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'gravekeeper' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'druid' && <Layers size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'hunter' && <Target size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'entropy' && <RefreshCw size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          
+                          {/* Power */}
+                          {hero.id === 'alchemist' && <FlaskConical size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'scavenger' && <Sword size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'witch' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'dragonblood' && <Swords size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                          {hero.id === 'fanatic' && <Eye size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
+                        </div>
+                      </div>
+                      
+                      {/* Center - Hero Name */}
+                      <div className="relative h-[40%] flex flex-col items-center justify-center px-2">
+                        <div className="text-center">
+                          <div className={`text-base font-bold font-serif leading-tight mb-1 ${
+                            isSelected ? 'text-amber-200' : 'text-stone-300'
+                          }`}>
+                            {hero.name}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Bottom - Archetype */}
+                      <div className="relative h-[25%] flex items-center justify-center border-t-2 border-amber-700/30 pb-2">
+                        <div className="text-center px-1">
+                          <div className={`text-[9px] font-bold uppercase tracking-wider ${
+                            isSelected ? 'text-amber-300' : 'text-stone-400'
+                          }`}>
+                            {hero.archetype}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Bottom ornamental curve */}
+                      <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-amber-600/40 to-transparent" />
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
-             {HEROES_DB.map(hero => {
-               const selected = party.find(p => p.id === hero.id);
-               const isSelected = selectedHero === hero.id;
-               const assignedLane = partyLanes[hero.id];
-               return (
-                 <div 
-                   key={hero.id} 
-                   onClick={() => selected && setSelectedHero(hero.id)}
-                   className={`p-3 rounded-lg border transition-all relative ${
-                     isSelected 
-                       ? 'border-amber-400 bg-amber-900/30 ring-2 ring-amber-500 scale-105' 
-                       : selected 
-                         ? 'border-amber-600 bg-amber-900/20 cursor-pointer hover:bg-amber-900/30' 
-                         : 'border-stone-700 bg-stone-900 hover:bg-stone-800 cursor-pointer'
-                   }`}
-                 >
-                    <div onClick={(e) => { if (!selected) { e.stopPropagation(); handleDraftSelect(hero); } }} className="flex items-center gap-3">
-                       <div className="w-12 h-12 bg-stone-800 rounded flex items-center justify-center border border-stone-600">
-                          <User size={24} className={selected ? 'text-amber-500' : 'text-stone-500'} />
-                       </div>
-                       <div className="flex-1">
-                          <div className="font-bold text-sm text-stone-100 font-serif">{hero.name}</div>
-                          <div className="text-[10px] text-stone-500 uppercase tracking-wider">{hero.role}</div>
-                          {selected && assignedLane !== undefined && (
-                            <div className="text-[9px] text-amber-400 font-bold mt-1">Lane: {['Front', 'Mid', 'Rear'][assignedLane]}</div>
-                          )}
-                       </div>
-                       {selected && (
-                         <div className="flex items-center gap-2">
-                           {assignedLane !== undefined && <div className="text-[10px] text-stone-400 bg-stone-800 px-2 py-1 rounded">{['F', 'M', 'R'][assignedLane]}</div>}
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); handleDraftSelect(hero); }}
-                             className="w-6 h-6 rounded-full bg-red-900 hover:bg-red-800 border border-red-700 flex items-center justify-center font-bold text-xs"
-                           >
-                             ✕
-                           </button>
-                         </div>
-                       )}
-                       {!selected && <div className="w-6 h-6 rounded-full border-2 border-stone-600 bg-stone-800 flex items-center justify-center text-stone-600 font-bold text-xs">+</div>}
-                    </div>
-                 </div>
-               );
-             })}
+
+          {/* Bottom Navigation Bar */}
+          <div className="relative bg-gradient-to-b from-[#78350F] to-[#451A03] border-t-2 border-amber-700/50 px-4 py-3">
+            <div className="flex justify-center">
+              <button
+                onClick={confirmHeroSelection}
+                disabled={selectedHeroes.length !== 3}
+                className={`px-8 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 transition-all shadow-lg ${
+                  selectedHeroes.length === 3
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 border-amber-300 text-white shadow-amber-500/50 hover:shadow-amber-500/70 hover:scale-105'
+                    : 'bg-stone-700 border-stone-600 text-stone-500 cursor-not-allowed opacity-50'
+                }`}
+              >
+                {selectedHeroes.length === 3 ? 'Continue' : `${selectedHeroes.length}/3 Selected`}
+              </button>
+            </div>
           </div>
-          <div className="p-4 bg-stone-950 border-t border-stone-800">
-             <button onClick={finalizeDraft} disabled={party.length !== 3} className={`w-full py-4 font-bold rounded-lg uppercase tracking-widest border-2 ${party.length === 3 ? 'bg-amber-700 hover:bg-amber-600 border-amber-500 text-stone-100' : 'bg-stone-800 border-stone-700 text-stone-600 cursor-not-allowed'}`}>Embark</button>
+        </div>
+      </div>
+    );
+  }
+
+  // LANE ASSIGNMENT VIEW (Step 2: Drag & drop to assign lanes)
+  if (view === 'LANE_ASSIGNMENT') {
+    const laneNames = ['Front Line', 'Mid Line', 'Rear Line'];
+    const laneLabels = ['FRONT', 'MID', 'REAR'];
+    // const laneDescriptions = [
+    //   'Vanguards who charge into the fray first, bearing the brunt of enemy assault',
+    //   'Tactical support maintaining balance between offense and defense',
+    //   'Strategic reserves striking from safety with devastating precision'
+    // ];
+    
+    return (
+      <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-sans">
+        <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full bg-gradient-to-b from-[#D4B896] to-[#C4A876] border-4 border-[#8B6F47] flex flex-col relative overflow-hidden shadow-2xl">
+          
+          {/* Header with ornamental design */}
+          <div className="relative p-6 bg-gradient-to-b from-[#78350F] to-[#451A03] border-b-4 border-amber-900/50">
+            {/* Top decorative border */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+            
+            <div className="relative z-10 text-center">
+              <h2 className="text-2xl font-bold text-amber-300 font-serif mb-1 tracking-wider drop-shadow-lg">
+                Formation
+              </h2>
+              <p className="text-xs text-amber-200/70 uppercase tracking-[0.3em]">Arrange Your Heroes</p>
+            </div>
+            
+            {/* Bottom decorative border */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-700/50 to-transparent"></div>
+          </div>
+
+          {/* Instruction Disclaimer */}
+          <div className="px-4 py-4 bg-amber-900/20 border-b border-amber-700/30">
+            <div className="text-center mb-3">
+              <div className="flex items-center justify-center gap-2 text-amber-900 mb-2">
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                </div>
+                <p className="text-xs font-bold tracking-wide uppercase">
+                  Drag to Reorder
+                </p>
+                <div className="flex gap-0.5">
+                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center text-[9px] leading-tight text-amber-950/80">
+              <div>
+                <div className="font-black uppercase mb-0.5 text-amber-800">Front</div>
+                <div className="font-medium">First into battle</div>
+              </div>
+              <div>
+                <div className="font-black uppercase mb-0.5 text-amber-800">Mid</div>
+                <div className="font-medium">Tactical support</div>
+              </div>
+              <div>
+                <div className="font-black uppercase mb-0.5 text-amber-800">Rear</div>
+                <div className="font-medium">Strategic strikes</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Hero Cards in Horizontal Layout */}
+          <div className="flex-1 flex items-center justify-center px-4 py-6">
+            <div className="grid grid-cols-3 gap-2 w-full max-w-md">
+              {selectedHeroes.map((heroId, index) => {
+                const hero = HEROES_DB.find(h => h.id === heroId)!;
+                const isDragging = draggedHeroIndex === index;
+                
+                return (
+                  <div
+                    key={index}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(index)}
+                    className={`relative transition-all cursor-move ${
+                      isDragging ? 'opacity-50 scale-95' : 'opacity-100 hover:scale-[1.02]'
+                    }`}
+                  >
+                    {/* Banner-shaped card with shield bottom */}
+                    <div className="relative w-full rounded-t-2xl shadow-2xl overflow-visible">
+                      
+                      {/* Lane position badge at top right */}
+                      <div className="absolute -top-3 -right-2 z-20 px-2 py-1 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 border-2 border-gray-500 flex items-center justify-center shadow-lg">
+                        <span className="text-[8px] font-black text-white uppercase tracking-tight">{laneLabels[index]}</span>
+                      </div>
+
+                      {/* Main card container with rounded top */}
+                      <div className="relative bg-gradient-to-b from-stone-100 to-white rounded-t-2xl border-3 border-stone-200 overflow-hidden" style={{ paddingBottom: '300%' }}>
+                        
+                        {/* Hero illustration section (upper ~65%) */}
+                        <div className="absolute top-0 left-0 right-0" style={{ height: '65%' }}>
+                          <div className="w-full h-full bg-gradient-to-b from-stone-50 to-white flex items-center justify-center p-3">
+                            {/* Placeholder for hero illustration - using icon for now */}
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-3 border-amber-300 flex items-center justify-center shadow-lg">
+                                {/* Kingdom */}
+                                {hero.id === 'prophet' && <Eye size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'banner' && <Crown size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'princess' && <Crown size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'sentry' && <Shield size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'lostprince' && <Crown size={32} className="text-white drop-shadow-lg" />}
+                                
+                                {/* Vengeance */}
+                                {hero.id === 'crusader' && <Shield size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'silenced' && <Skull size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'oathbreaker' && <Sword size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'captive' && <Swords size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'cursed' && <Skull size={32} className="text-white drop-shadow-lg" />}
+                                
+                                {/* Balance */}
+                                {hero.id === 'ranger' && <Target size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'gravekeeper' && <Skull size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'druid' && <Layers size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'hunter' && <Target size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'entropy' && <RefreshCw size={32} className="text-white drop-shadow-lg" />}
+                                
+                                {/* Power */}
+                                {hero.id === 'alchemist' && <FlaskConical size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'scavenger' && <Sword size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'witch' && <Skull size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'dragonblood' && <Swords size={32} className="text-white drop-shadow-lg" />}
+                                {hero.id === 'fanatic' && <Eye size={32} className="text-white drop-shadow-lg" />}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Golden banner section with shield point (lower ~35%) */}
+                        <div className="absolute left-0 right-0" style={{ top: '65%', bottom: 0 }}>
+                          {/* Shield-shaped banner with pointed bottom */}
+                          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
+                                <stop offset="50%" style={{ stopColor: '#d97706', stopOpacity: 1 }} />
+                                <stop offset="100%" style={{ stopColor: '#b45309', stopOpacity: 1 }} />
+                              </linearGradient>
+                            </defs>
+                            <path 
+                              d="M 0,0 L 100,0 L 100,70 L 85,80 L 70,90 L 50,100 L 30,90 L 15,80 L 0,70 Z" 
+                              fill={`url(#grad-${index})`}
+                            />
+                          </svg>
+                          
+                          {/* Content over the banner */}
+                          <div className="relative z-10 flex flex-col items-center justify-start h-full pt-3 px-2 pb-4">
+                            <div className="text-xs font-bold text-white text-center mb-1 drop-shadow-md leading-tight">
+                              {hero.name}
+                            </div>
+                            <div className="text-[9px] px-1.5 py-0.5 bg-amber-900/40 border border-amber-300/50 rounded-full text-amber-100 uppercase tracking-wide backdrop-blur-sm">
+                              {laneNames[index]}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Drag indicator dots below card */}
+                    <div className="flex justify-center gap-1 mt-2">
+                      <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                      <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                      <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom Navigation Bar */}
+          <div className="relative bg-gradient-to-b from-[#78350F] to-[#451A03] border-t-2 border-amber-700/50 px-4 py-4">
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => setView('HERO_SELECTION')}
+                className="px-6 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 border-stone-500 bg-stone-700 hover:bg-stone-600 text-stone-300 transition-all shadow-lg active:scale-95"
+              >
+                Back
+              </button>
+              <button
+                onClick={finalizeDraft}
+                className="px-8 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 border-amber-300 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white shadow-lg shadow-amber-500/50 hover:shadow-amber-500/70 hover:scale-105 transition-all"
+              >
+                Start Adventure
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1139,6 +2759,22 @@ export default function TheDragonMustDie() {
              </div>
           </div>
 
+          {/* PROVOKE MODE BANNER */}
+          {provokeMode && (
+            <div className="absolute top-12 left-0 right-0 z-50 bg-amber-900/95 border-y-2 border-amber-500 shadow-2xl backdrop-blur-md py-2 px-4 flex justify-between items-center animate-pulse">
+              <div className="flex items-center gap-2">
+                <Target size={16} className="text-amber-200" />
+                <span className="text-sm font-bold text-amber-100 uppercase tracking-wider">Provoke Mode: Select Enemy Card</span>
+              </div>
+              <button 
+                onClick={() => setProvokeMode(false)}
+                className="px-3 py-1 bg-stone-800 hover:bg-stone-700 border border-stone-600 rounded text-xs font-bold text-stone-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
           {/* LOG PANEL */}
           {showLogs && (
             <div className="absolute top-14 right-2 z-50 w-64 max-h-96 bg-stone-900/95 border-2 border-stone-700 rounded-lg shadow-2xl backdrop-blur-md overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
@@ -1184,8 +2820,22 @@ export default function TheDragonMustDie() {
                 
                 // Calculate target lane once for hovered lane
                 let calculatedTargetLane: number | null = null;
+                let calculatedDefenseLane: number | null = null;
+                
                 if (hoveredLane !== null && selectedCard && !selectedCard.isPotion) {
                     calculatedTargetLane = hoveredLane;
+                    
+                    // Check if card has Tank/Defense effects that protect adjacent/all lanes
+                    if (selectedCard.effect === 'TANK_ALL') {
+                        // TANK_ALL: Show defense arrow on all lanes (we'll show arrows on all)
+                        // For simplicity, we'll handle this in the render loop
+                    } else if (selectedCard.effect === 'TANK_RIGHT' || selectedCard.effect === 'ATTACK_DEF_RIGHT') {
+                        // Show defense arrow on the lane to the right (hoveredLane + 1)
+                        if (hoveredLane < 2) {
+                            calculatedDefenseLane = hoveredLane + 1;
+                        }
+                    }
+                    
                     // Use same logic as damage resolution
                     if (!enemyUnits[hoveredLane] || enemyUnits[hoveredLane]!.dead) {
                         // Priority 1: Left adjacent
@@ -1225,6 +2875,18 @@ export default function TheDragonMustDie() {
                         }
                     }
                     
+                    // Check if this lane should show defense arrow
+                    let shouldShowDefenseArrow = false;
+                    if (hoveredLane !== null && selectedCard && !selectedCard.isPotion) {
+                        if (selectedCard.effect === 'TANK_ALL') {
+                            // TANK_ALL: Show defense arrow on all lanes except the hovered one
+                            shouldShowDefenseArrow = laneIdx !== hoveredLane;
+                        } else {
+                            // TANK_RIGHT: Show arrow on calculated defense lane
+                            shouldShowDefenseArrow = calculatedDefenseLane === laneIdx;
+                        }
+                    }
+                    
                     return (
                       <BattleLane 
                          key={laneIdx}
@@ -1234,15 +2896,20 @@ export default function TheDragonMustDie() {
                          enemyCard={enemyZoneCards[laneIdx]}
                          playerCard={playerZoneCards[laneIdx]}
                          onPlayerSlotClick={() => { handleZoneClick(laneIdx); setHoveredLane(null); }}
+                         onEnemyCardClick={() => handleProvokeClick(laneIdx)}
                          isSelected={false}
                          isValidTarget={isValidTarget}
                          onPreviewStart={setPreviewCard}
                          onPreviewEnd={() => setPreviewCard(null)}
                          onProphetAction={onProphetAction}
+                         onCrusaderAction={onCrusaderAction}
+                         onRangerAction={onRangerAction}
                          showTargetArrow={calculatedTargetLane === laneIdx && hoveredLane !== null}
+                         showDefenseArrow={shouldShowDefenseArrow}
                          onLaneHover={() => setHoveredLane(laneIdx)}
                          onLaneLeave={() => setHoveredLane(null)}
                          isResolving={resolvingLane === laneIdx}
+                         provokeMode={provokeMode}
                       />
                     );
                 });
