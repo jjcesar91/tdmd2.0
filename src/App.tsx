@@ -1,15 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Sword, Skull, RefreshCw, Play, Crown, Castle, Map as MapIcon, User, Layers, X, Trash2, Eye, FlaskConical, Target, Swords, Heart, Lock } from 'lucide-react';
+import { Shield, Sword, Skull, RefreshCw, Play, Crown, Castle, Map as MapIcon, Layers, X, Trash2, Eye, FlaskConical, Target, Swords, Lock } from 'lucide-react';
 import splashScreenImage from './assets/images/TDMD.png';
 import startScreenImage from './assets/images/TDMD-START.png';
 import rekodeLogo from './assets/images/REKODE.png';
 import clickSfx from './assets/sounds/sfx/click1.mp3';
 import themeMusic from './assets/sounds/theme/main.mp3';
-import { Card as CardData, Unit, CombatState, Hero, CardType } from './types';
+import { Card as CardData, Unit, CombatState, Hero } from './types';
 import { ZONES, POTIONS_DB, HEROES_DB, ENEMIES_DB } from './data';
 import { Card } from './components/Card';
 import { UnitPortrait } from './components/UnitPortrait';
-import { StatBadge } from './components/StatBadge';
 import { HeroDetailView } from './components/HeroDetailView';
 
 // --- TYPE DEFINITIONS ---
@@ -35,7 +34,7 @@ interface BattleLaneProps {
   onEnemyCardClick?: () => void;
   isSelected: boolean;
   isValidTarget: boolean;
-  onPreviewStart: (card: Card) => void;
+  onPreviewStart: (card: CardData) => void;
   onPreviewEnd: () => void;
   onProphetAction?: () => void;
   onCrusaderAction?: () => void;
@@ -569,7 +568,7 @@ export default function TheDragonMustDie() {
         const enemyData = randomEnemy ? ENEMIES_DB.find(e => e.name === randomEnemy.name) : null;
         const deckType = enemyData?.deckType || 'weak';
         
-        let card: Card;
+        let card: CardData;
         switch(deckType) {
           case 'weak': // Skeletons: low damage, mostly attack
             card = { id: 'enemy_card', type: 'ATTACK', value: 1, name: 'Rusty Blade', desc: '' };
@@ -697,7 +696,7 @@ export default function TheDragonMustDie() {
     const enemyCard = combatState.enemyZoneCards[laneIdx];
     const enemyUnit = combatState.enemyUnits[laneIdx];
     
-    if (!enemyCardData || !enemyUnit || enemyUnit.dead) {
+    if (!enemyCard || !enemyUnit || enemyUnit.dead) {
       addLog("No valid target!");
       return;
     }
@@ -723,7 +722,7 @@ export default function TheDragonMustDie() {
         attackValue = 1 + Math.floor(Math.random() * 2);
     }
     
-    const attackCard: Card = {
+    const attackCard: CardData = {
       id: 'enemy_provoked',
       type: 'ATTACK',
       value: attackValue,
@@ -1101,7 +1100,7 @@ export default function TheDragonMustDie() {
 
     const deadHeroes = pUnits.filter((u): u is Unit => u !== null && u.dead);
     let newGlobalDeck = [...globalDeck];
-    let newDiscard = [...combatState.discardPile, ...pZones.filter((c): c is Card => c !== null), ...combatState.playerHand];
+    let newDiscard = [...combatState.discardPile, ...pZones.filter((c): c is CardData => c !== null), ...combatState.playerHand];
     let newDrawPile = [...combatState.drawPile];
     pUnits = pUnits.map(u => u ? {...u, grayHp: 0} : null);
 
@@ -1856,7 +1855,7 @@ export default function TheDragonMustDie() {
              <div className="flex-1 relative flex items-end justify-center pb-2 overflow-visible px-4">
                 {playerHand.length === 0 && <div className="w-full text-center text-[10px] text-stone-600 font-bold uppercase tracking-widest absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">No Cards Available</div>}
                 <div className="relative h-full w-full max-w-full">
-                  {playerHand.map((card: Card, i: number) => {
+                  {playerHand.map((card: CardData, i: number) => {
                     const totalCards = playerHand.length;
                     const centerIndex = (totalCards - 1) / 2;
                     const offset = i - centerIndex;
@@ -1919,7 +1918,7 @@ export default function TheDragonMustDie() {
                    <button onClick={()=>{setShowDeckModal(false);setShowDiscardModal(false)}}><X size={20} className="text-stone-500 hover:text-stone-200"/></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 grid grid-cols-4 gap-2 content-start bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
-                   {(showDeckModal ? drawPile : discardPile).map((c: Card, i: number) => (
+                   {(showDeckModal ? drawPile : discardPile).map((c: CardData, i: number) => (
                       <div key={i} className="aspect-[2/3]"><Card {...c} smallMode disabled className="w-full h-full text-[8px]" /></div>
                    ))}
                 </div>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Skull, Shield, Crown, User, RefreshCw, Sword, Heart, Eye, Lock, Target } from 'lucide-react';
 import { Unit } from '../types';
 import { StatBadge } from './StatBadge';

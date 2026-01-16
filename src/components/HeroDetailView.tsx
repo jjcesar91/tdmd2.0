@@ -1,6 +1,5 @@
-import React from 'react';
 import { Heart, Sword, Shield, Eye, Crown, Skull, Swords, Target, Layers, RefreshCw, FlaskConical, X, Lock } from 'lucide-react';
-import { Hero, Card as CardType } from '../types';
+import { Hero } from '../types';
 import { Card } from './Card';
 
 interface HeroDetailViewProps {
