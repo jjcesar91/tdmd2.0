@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Shield, Sword, Skull, RefreshCw, Play, Crown, Castle, Map as MapIcon, User, Layers, X, Trash2, Eye, FlaskConical, Target, Swords, Heart, Lock } from 'lucide-react';
+import splashScreenImage from './assets/images/TDMD.png';
+import startScreenImage from './assets/images/TDMD-START.png';
+import rekodeLogo from './assets/images/REKODE.png';
+import clickSfx from './assets/sounds/click1.mp3';
 
 // --- TYPE DEFINITIONS ---
 type CardType = 'ATTACK' | 'DEFENSE' | 'SKILL' | 'FAST';
@@ -1399,6 +1403,31 @@ export default function TheDragonMustDie() {
   const [hoveredLane, setHoveredLane] = useState<number | null>(null);
   const [provokeMode, setProvokeMode] = useState<boolean>(false);
   const [heroDetailView, setHeroDetailView] = useState<Hero | null>(null);
+  
+  // Intro Sequence State
+  const [introPhase, setIntroPhase] = useState<'STUDIO' | 'SPLASH' | 'NONE'>('STUDIO');
+  const [showTapLabel, setShowTapLabel] = useState<boolean>(false);
+
+  // Audio Ref
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playClick = () => {
+    const audio = new Audio(clickSfx);
+    audio.play().catch(e => console.log("Audio play failed", e));
+  };
+
+  useEffect(() => {
+    if (introPhase === 'STUDIO') {
+       const timer = setTimeout(() => setIntroPhase('SPLASH'), 3000);
+       return () => clearTimeout(timer);
+    }
+
+    if (introPhase === 'SPLASH') {
+       // Automatic transition disabled - wait for user tap
+       const labelTimer = setTimeout(() => setShowTapLabel(true), 1000);
+       return () => { clearTimeout(labelTimer); };
+    }
+  }, [introPhase]);
 
   // Clear animation flags after animation completes
   useEffect(() => {
@@ -2291,6 +2320,49 @@ export default function TheDragonMustDie() {
 
   // --- RENDERING ---
 
+  if (introPhase === 'STUDIO') {
+    return (
+      <div className="w-full h-screen bg-black flex items-center justify-center overflow-hidden relative z-[200]">
+         <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full relative shadow-2xl bg-black flex items-center justify-center">
+            <img 
+              key="studio-logo"
+              src={rekodeLogo} 
+              alt="Rekode Studio" 
+              className="w-2/3 object-contain opacity-0 animate-fade-in"
+              style={{ animationDuration: '1.5s' }}
+            />
+         </div>
+      </div>
+    );
+  }
+
+  if (introPhase === 'SPLASH') {
+    return (
+      <div 
+        className="w-full h-screen bg-black flex items-center justify-center cursor-pointer overflow-hidden relative z-[200]"
+        onClick={() => { playClick(); setIntroPhase('NONE'); }}
+      >
+         <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full relative shadow-2xl">
+            <img 
+              key="splash-logo"
+              src={splashScreenImage} 
+              alt="The Dragon Must Die" 
+              className="w-full h-full object-cover opacity-0 animate-fade-in"
+              style={{ animationDuration: '1s' }}
+            />
+            {showTapLabel && (
+                <div className="absolute bottom-16 left-0 right-0 text-center animate-pulse z-10">
+                    <span className="text-white font-serif tracking-widest text-xl uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] border-b-2 border-transparent pb-1">
+                        Tap to continue
+                    </span>
+                </div>
+            )}
+         </div>
+         <audio ref={audioRef} src={clickSfx} preload="auto" />
+      </div>
+    );
+  }
+
   // Hero Detail View Modal (renders on top of any view)
   if (heroDetailView) {
     return <HeroDetailView hero={heroDetailView} onClose={() => setHeroDetailView(null)} />;
@@ -2299,15 +2371,18 @@ export default function TheDragonMustDie() {
   if (view === 'START') {
     return (
        <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-serif">
-          <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full flex flex-col items-center justify-center border-4 border-stone-800 bg-gradient-to-br from-stone-900 via-stone-950 to-red-950 relative overflow-hidden shadow-2xl">
-             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')] opacity-30"></div>
-             <div className="z-10 text-center space-y-12 p-8 relative">
-                <div>
-                    <h1 className="text-5xl font-black text-red-700 tracking-tighter drop-shadow-lg mb-2 uppercase">The Dragon</h1>
-                    <h2 className="text-3xl font-bold text-stone-300 tracking-widest uppercase">Must Die</h2>
-                </div>
-                <button onClick={startDraft} className="w-full py-4 bg-red-900 hover:bg-red-800 text-stone-100 font-bold rounded-lg border-2 border-red-700 shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider">
-                   <Play size={20} className="fill-stone-100" /> New Expedition
+          {/* Global Audio for other views */}
+          <audio ref={audioRef} src={clickSfx} preload="auto" /> 
+          <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full flex flex-col items-center justify-end border-4 border-stone-800 bg-stone-950 relative overflow-hidden shadow-2xl pb-24 opacity-0 animate-fade-in">
+             {/* Background */}
+             <div className="absolute inset-0">
+               <img src={startScreenImage} alt="" className="w-full h-full object-cover opacity-80" />
+               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90"></div>
+             </div>
+             
+             <div className="z-10 text-center w-full px-8 relative">
+                <button onClick={() => { playClick(); startDraft(); }} className="w-full py-4 bg-indigo-950 hover:bg-indigo-900 text-stone-200 font-bold rounded-lg border-2 border-indigo-800/50 shadow-xl shadow-black/50 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider backdrop-blur-sm">
+                   <Play size={20} className="fill-stone-200" /> Start Game
                 </button>
              </div>
           </div>
