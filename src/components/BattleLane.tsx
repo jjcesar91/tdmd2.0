@@ -1,6 +1,4 @@
-import React from 'react';
 import { Target, X } from 'lucide-react';
-import { UnitPortrai } from './UnitPortrait'; // typo in original file? no, let's check
 import { UnitPortrait } from './UnitPortrait';
 import { Card } from './Card';
 import { Unit, Card as CardData } from '../types';
@@ -17,9 +15,9 @@ interface BattleLaneProps {
   isValidTarget: boolean;
   onPreviewStart: (card: CardData) => void;
   onPreviewEnd: () => void;
-  onProphetAction?: (unit: Unit) => void; // Check signature in App.tsx
-  onCrusaderAction?: (unit: Unit) => void;
-  onRangerAction?: (unit: Unit) => void;
+  onProphetAction?: () => void;
+  onCrusaderAction?: () => void;
+  onRangerAction?: () => void;
   showTargetArrow?: boolean;
   showDefenseArrow?: boolean;
   onLaneHover?: () => void;

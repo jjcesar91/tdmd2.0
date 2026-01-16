@@ -23,9 +23,9 @@ interface CombatScreenProps {
   handleProvokeClick: (laneIdx: number) => void;
   previewCard: CardData | null;
   setPreviewCard: (card: CardData | null) => void;
-  onProphetAction?: (unit: Unit) => void;
-  onCrusaderAction?: (unit: Unit) => void;
-  onRangerAction?: (unit: Unit) => void;
+  onProphetAction?: () => void;
+  onCrusaderAction?: () => void;
+  onRangerAction?: () => void;
   setCombatState: React.Dispatch<React.SetStateAction<CombatState | null>>;
 }
 

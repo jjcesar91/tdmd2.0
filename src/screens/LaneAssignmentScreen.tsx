@@ -7,11 +7,11 @@ interface LaneAssignmentScreenProps {
   draggedHeroIndex: number | null;
   heroLevels: {[heroId: string]: number};
   onBack: () => void;
-  onFinalize: () => void;
-  handleDragStart: (index: number) => void;
-  handleDragOver: (e: React.DragEvent) => void;
-  handleDrop: (index: number) => void;
-  handleLevelChange: (heroId: string, amount: number) => void;
+  onStartAdventure: () => void;
+  onDragStart: (index: number) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (index: number) => void;
+  onLevelChange: (heroId: string, amount: number) => void;
 }
 
 export const LaneAssignmentScreen: React.FC<LaneAssignmentScreenProps> = ({
@@ -19,11 +19,11 @@ export const LaneAssignmentScreen: React.FC<LaneAssignmentScreenProps> = ({
   draggedHeroIndex,
   heroLevels,
   onBack,
-  onFinalize,
-  handleDragStart,
-  handleDragOver,
-  handleDrop,
-  handleLevelChange
+  onStartAdventure,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onLevelChange
 }) => {
   const laneNames = ['Front Line', 'Mid Line', 'Rear Line'];
   const laneLabels = ['FRONT', 'MID', 'REAR'];
@@ -94,9 +94,9 @@ export const LaneAssignmentScreen: React.FC<LaneAssignmentScreenProps> = ({
                 <div
                   key={index}
                   draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(index)}
+                  onDragStart={() => onDragStart(index)}
+                  onDragOver={onDragOver}
+                  onDrop={() => onDrop(index)}
                   className={`relative transition-all cursor-move ${
                     isDragging ? 'opacity-50 scale-95' : 'opacity-100 hover:scale-[1.02]'
                   }`}
@@ -181,7 +181,7 @@ export const LaneAssignmentScreen: React.FC<LaneAssignmentScreenProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleLevelChange(heroId, -1);
+                                onLevelChange(heroId, -1);
                               }}
                               disabled={(heroLevels[heroId] || 1) <= 1}
                               className="w-5 h-5 rounded-full bg-amber-800/60 hover:bg-amber-700/80 disabled:opacity-30 disabled:cursor-not-allowed border border-amber-300/50 flex items-center justify-center text-white font-bold text-xs transition-all"
@@ -200,7 +200,7 @@ export const LaneAssignmentScreen: React.FC<LaneAssignmentScreenProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleLevelChange(heroId, 1);
+                                onLevelChange(heroId, 1);
                               }}
                               disabled={(heroLevels[heroId] || 1) >= 5}
                               className="w-5 h-5 rounded-full bg-amber-800/60 hover:bg-amber-700/80 disabled:opacity-30 disabled:cursor-not-allowed border border-amber-300/50 flex items-center justify-center text-white font-bold text-xs transition-all"
@@ -235,7 +235,7 @@ export const LaneAssignmentScreen: React.FC<LaneAssignmentScreenProps> = ({
               Back
             </button>
             <button
-              onClick={onFinalize}
+              onClick={onStartAdventure}
               className="px-8 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 border-amber-300 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white shadow-lg shadow-amber-500/50 hover:shadow-amber-500/70 hover:scale-105 transition-all"
             >
               Start Adventure

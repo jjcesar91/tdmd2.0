@@ -6,14 +6,17 @@ import { Hero } from '../types';
 interface HeroSelectionScreenProps {
   selectedHeroes: string[];
   onHeroSelect: (heroId: string) => void;
-  confirmHeroSelection: () => void;
+  onNext: () => void;
+  onBack: () => void;
+  heroLevels: { [heroId: string]: number };
+  onLevelChange: (heroId: string, delta: number) => void;
   setHeroDetailView: (hero: Hero) => void;
 }
 
 export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
   selectedHeroes,
   onHeroSelect,
-  confirmHeroSelection,
+  onNext,
   setHeroDetailView
 }) => {
   return (
@@ -185,7 +188,7 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
         <div className="relative bg-gradient-to-b from-[#78350F] to-[#451A03] border-t-2 border-amber-700/50 px-4 py-3">
           <div className="flex justify-center">
             <button
-              onClick={confirmHeroSelection}
+              onClick={onNext}
               disabled={selectedHeroes.length !== 3}
               className={`px-8 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 transition-all shadow-lg ${
                 selectedHeroes.length === 3
