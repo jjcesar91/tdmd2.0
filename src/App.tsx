@@ -3,7 +3,8 @@ import { Shield, Sword, Skull, RefreshCw, Play, Crown, Castle, Map as MapIcon, U
 import splashScreenImage from './assets/images/TDMD.png';
 import startScreenImage from './assets/images/TDMD-START.png';
 import rekodeLogo from './assets/images/REKODE.png';
-import clickSfx from './assets/sounds/click1.mp3';
+import clickSfx from './assets/sounds/sfx/click1.mp3';
+import themeMusic from './assets/sounds/theme/main.mp3';
 
 // --- TYPE DEFINITIONS ---
 type CardType = 'ATTACK' | 'DEFENSE' | 'SKILL' | 'FAST';
@@ -1410,6 +1411,7 @@ export default function TheDragonMustDie() {
 
   // Audio Ref
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const themeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const playClick = () => {
     const audio = new Audio(clickSfx);
@@ -1425,7 +1427,19 @@ export default function TheDragonMustDie() {
     if (introPhase === 'SPLASH') {
        // Automatic transition disabled - wait for user tap
        const labelTimer = setTimeout(() => setShowTapLabel(true), 1000);
-       return () => { clearTimeout(labelTimer); };
+
+       const musicTimer = setTimeout(() => {
+         if (!themeAudioRef.current) {
+           themeAudioRef.current = new Audio(themeMusic);
+           themeAudioRef.current.loop = true;
+         }
+         themeAudioRef.current.play().catch(e => console.log("Intro music play failed", e));
+       }, 500);
+
+       return () => { 
+         clearTimeout(labelTimer);
+         clearTimeout(musicTimer);
+       };
     }
   }, [introPhase]);
 
