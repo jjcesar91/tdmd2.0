@@ -228,7 +228,20 @@ export default function TheDragonMustDie() {
            themeAudioRef.current = new Audio(themeMusic);
            themeAudioRef.current.loop = true;
          }
-         themeAudioRef.current.play().catch(e => console.log("Intro music play failed", e));
+         themeAudioRef.current.play().catch(() => {
+            console.log("Audio autoplay prevented. Waiting for interaction to start music.");
+            const playOnInteract = () => {
+                if (themeAudioRef.current) {
+                  themeAudioRef.current.play().catch(e => console.error("Interacted play failed", e));
+                }
+                document.removeEventListener('click', playOnInteract);
+                document.removeEventListener('keydown', playOnInteract);
+                document.removeEventListener('touchstart', playOnInteract);
+            };
+            document.addEventListener('click', playOnInteract);
+            document.addEventListener('keydown', playOnInteract);
+            document.addEventListener('touchstart', playOnInteract);
+         });
        }, 500);
 
        return () => { 
