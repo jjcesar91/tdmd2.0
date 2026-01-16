@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Shield, Sword, Skull, RefreshCw, Play, Crown, Castle, Map as MapIcon, Layers, X, Trash2, Eye, FlaskConical, Target, Swords, Lock } from 'lucide-react';
-import splashScreenImage from './assets/images/TDMD.png';
-import startScreenImage from './assets/images/TDMD-START.png';
-import rekodeLogo from './assets/images/REKODE.png';
 import clickSfx from './assets/sounds/sfx/click1.mp3';
 import themeMusic from './assets/sounds/theme/main.mp3';
 import { Card as CardData, Unit, CombatState, Hero } from './types';
-import { ZONES, POTIONS_DB, HEROES_DB, ENEMIES_DB } from './data';
-import { Card } from './components/Card';
-import { UnitPortrait } from './components/UnitPortrait';
+import { POTIONS_DB, HEROES_DB, ENEMIES_DB } from './data';
 import { HeroDetailView } from './components/HeroDetailView';
+// Screens
+import { IntroScreen } from './screens/IntroScreen';
+import { StartScreen } from './screens/StartScreen';
+import { HeroSelectionScreen } from './screens/HeroSelectionScreen';
+import { LaneAssignmentScreen } from './screens/LaneAssignmentScreen';
+import { MapScreen } from './screens/MapScreen';
+import { CombatScreen } from './screens/CombatScreen';
+import { VictoryScreen } from './screens/VictoryScreen';
+import { GameOverScreen } from './screens/GameOverScreen';
 
 // --- TYPE DEFINITIONS ---
 
@@ -22,157 +25,6 @@ import { HeroDetailView } from './components/HeroDetailView';
 
 
 
-
-
-interface BattleLaneProps {
-  zoneLabel: string;
-  enemyUnit: Unit | null;
-  playerUnit: Unit | null;
-  enemyCard: CardData | null;
-  playerCard: CardData | null;
-  onPlayerSlotClick: () => void;
-  onEnemyCardClick?: () => void;
-  isSelected: boolean;
-  isValidTarget: boolean;
-  onPreviewStart: (card: CardData) => void;
-  onPreviewEnd: () => void;
-  onProphetAction?: () => void;
-  onCrusaderAction?: () => void;
-  onRangerAction?: () => void;
-  showTargetArrow?: boolean;
-  showDefenseArrow?: boolean;
-  onLaneHover?: () => void;
-  onLaneLeave?: () => void;
-  isResolving?: boolean;
-  provokeMode?: boolean;
-}
-
-const BattleLane = ({ zoneLabel, enemyUnit, playerUnit, enemyCard, playerCard, onPlayerSlotClick, onEnemyCardClick, isValidTarget, onPreviewStart, onPreviewEnd, onProphetAction, onCrusaderAction, onRangerAction, showTargetArrow, showDefenseArrow, onLaneHover, onLaneLeave, isResolving, provokeMode }: BattleLaneProps) => {
-  return (
-    <div 
-      className={`
-        flex-1 flex flex-col items-center gap-1 h-full px-1 py-2 border-r border-stone-800/50 last:border-r-0 relative transition-all duration-300
-        ${isValidTarget ? 'bg-sky-900/10 shadow-[inset_0_0_30px_rgba(14,165,233,0.15)]' : ''}
-        ${isResolving ? 'bg-amber-900/20 shadow-[inset_0_0_40px_rgba(251,191,36,0.3)] ring-2 ring-amber-500/50' : ''}
-      `}
-      onMouseEnter={onLaneHover}
-      onMouseLeave={onLaneLeave}
-    >
-      {/* Zone Label Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
-         <span className="text-6xl font-black font-serif text-stone-500">{zoneLabel}</span>
-      </div>
-      
-      {/* Resolving Lane Indicator */}
-      {isResolving && (
-        <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-50">
-          <div className="bg-amber-500 text-black text-[10px] font-bold px-3 py-0.5 rounded-full shadow-lg animate-pulse whitespace-nowrap">
-            RESOLVING
-          </div>
-        </div>
-      )}
-
-      {/* 1. TOP: ENEMY UNIT */}
-      <div className="w-full h-[22%] min-h-[60px] relative">
-         {showTargetArrow && (
-           <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-50 animate-bounce">
-             <div className="flex flex-col items-center">
-               <div className="text-red-500 font-bold text-xs drop-shadow-lg">TARGET</div>
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-red-500">
-                 <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-               </svg>
-             </div>
-           </div>
-         )}
-         <UnitPortrait unit={enemyUnit} isEnemy={true} />
-      </div>
-
-      {/* 2. MIDDLE: CLASH ZONE */}
-      <div className="flex-1 w-full flex flex-col justify-center items-center gap-2 py-2 relative">
-         {/* Vertical Divider */}
-         <div className="absolute top-0 bottom-0 w-px bg-stone-800 z-0" />
-
-         {/* Enemy Card Slot */}
-         <div 
-           onClick={provokeMode && enemyCard ? onEnemyCardClick : undefined}
-           className={`w-full aspect-[2/3] max-h-[80px] z-10 transition-all duration-300 ${
-             isResolving && enemyCard ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''
-           } ${
-             provokeMode && enemyCard ? 'cursor-pointer ring-2 ring-amber-500 animate-pulse' : ''
-           }`}
-         >
-            {enemyCard ? (
-               <Card 
-                 {...enemyCard} 
-                 isHidden={!enemyCard.revealed} 
-                 smallMode={true} 
-                 onPreviewStart={() => onPreviewStart && onPreviewStart(enemyCard)}
-                 onPreviewEnd={onPreviewEnd}
-                 className={`w-full h-full text-[10px] ${
-                   isResolving ? 'ring-2 ring-red-500 shadow-lg' : ''
-                 }`}
-               />
-            ) : (
-               // Empty Enemy Slot - Matches Player Style
-               <div className="w-full h-full border-2 border-dashed border-stone-800 bg-stone-900/20 rounded-lg flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-stone-800" />
-               </div>
-            )}
-         </div>
-
-         {/* VS Icon */}
-         <div className={`z-10 bg-stone-900 border border-stone-700 rounded-full p-1 shadow-md transition-all duration-300 ${isResolving ? 'scale-125 border-amber-500 bg-amber-900/30' : ''}`}>
-            <X size={10} className={`text-stone-500 ${isResolving ? 'text-amber-400' : ''}`} />
-         </div>
-
-         {/* Player Card Slot */}
-         <div 
-            onClick={onPlayerSlotClick}
-            className={`w-full aspect-[2/3] max-h-[80px] z-10 cursor-pointer transition-all duration-300 mt-2
-              ${!playerCard && isValidTarget ? 'scale-105 border-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.4)]' : ''}
-              ${isResolving && playerCard ? 'scale-110 drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]' : ''}
-            `}
-         >
-            {playerCard ? (
-               <Card 
-                 {...playerCard} 
-                 smallMode={true} 
-                 onPreviewStart={() => onPreviewStart && onPreviewStart(playerCard)}
-                 onPreviewEnd={onPreviewEnd}
-                 className={`w-full h-full text-[10px] ${isResolving ? 'ring-2 ring-sky-500 shadow-lg' : ''}`}
-               />
-            ) : (
-               <div className={`w-full h-full border-2 border-dashed rounded-lg flex items-center justify-center transition-colors 
-                  ${isValidTarget ? 'border-sky-500/50 bg-sky-900/20' : 'border-stone-800 bg-stone-900/30 hover:border-stone-600 hover:bg-stone-900/50'}`}>
-                  {isValidTarget ? <Target size={16} className="text-sky-500 animate-pulse" /> : <div className="w-1.5 h-1.5 rounded-full bg-stone-800" />}
-               </div>
-            )}
-         </div>
-      </div>
-
-      {/* 3. BOTTOM: PLAYER UNIT */}
-      <div className="w-full h-[22%] min-h-[60px] relative">
-         {showDefenseArrow && (
-           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 z-50 animate-bounce">
-             <div className="flex flex-col items-center">
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-sky-500">
-                 <path d="M12 20L12 4M12 4L6 10M12 4L18 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-               </svg>
-               <div className="text-sky-500 font-bold text-xs drop-shadow-lg">PROTECT</div>
-             </div>
-           </div>
-         )}
-         <UnitPortrait 
-           unit={playerUnit} 
-           isEnemy={false} 
-           onProphetAction={onProphetAction} 
-           onCrusaderAction={onCrusaderAction}
-           onRangerAction={onRangerAction}
-         />
-      </div>
-    </div>
-  );
-};
 
 
 // --- MAIN APP ---
@@ -1142,46 +994,13 @@ export default function TheDragonMustDie() {
 
   // --- RENDERING ---
 
-  if (introPhase === 'STUDIO') {
+  if (introPhase !== 'NONE') {
     return (
-      <div className="w-full h-screen bg-black flex items-center justify-center overflow-hidden relative z-[200]">
-         <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full relative shadow-2xl bg-black flex items-center justify-center">
-            <img 
-              key="studio-logo"
-              src={rekodeLogo} 
-              alt="Rekode Studio" 
-              className="w-2/3 object-contain opacity-0 animate-fade-in"
-              style={{ animationDuration: '1.5s' }}
-            />
-         </div>
-      </div>
-    );
-  }
-
-  if (introPhase === 'SPLASH') {
-    return (
-      <div 
-        className="w-full h-screen bg-black flex items-center justify-center cursor-pointer overflow-hidden relative z-[200]"
-        onClick={() => { playClick(); setIntroPhase('NONE'); }}
-      >
-         <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full relative shadow-2xl">
-            <img 
-              key="splash-logo"
-              src={splashScreenImage} 
-              alt="The Dragon Must Die" 
-              className="w-full h-full object-cover opacity-0 animate-fade-in"
-              style={{ animationDuration: '1s' }}
-            />
-            {showTapLabel && (
-                <div className="absolute bottom-16 left-0 right-0 text-center animate-pulse z-10">
-                    <span className="text-white font-serif tracking-widest text-xl uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] border-b-2 border-transparent pb-1">
-                        Tap to continue
-                    </span>
-                </div>
-            )}
-         </div>
-         <audio ref={audioRef} src={clickSfx} preload="auto" />
-      </div>
+      <IntroScreen 
+        phase={introPhase as 'STUDIO' | 'SPLASH'} 
+        onSplashClick={() => { playClick(); setIntroPhase('NONE'); }}
+        showTapLabel={showTapLabel}
+      />
     );
   }
 
@@ -1191,757 +1010,82 @@ export default function TheDragonMustDie() {
   }
   
   if (view === 'START') {
-    return (
-       <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-serif">
-          {/* Global Audio for other views */}
-          <audio ref={audioRef} src={clickSfx} preload="auto" /> 
-          <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full flex flex-col items-center justify-end border-4 border-stone-800 bg-stone-950 relative overflow-hidden shadow-2xl pb-24 opacity-0 animate-fade-in">
-             {/* Background */}
-             <div className="absolute inset-0">
-               <img src={startScreenImage} alt="" className="w-full h-full object-cover opacity-80" />
-               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/90"></div>
-             </div>
-             
-             <div className="z-10 text-center w-full px-8 relative">
-                <button onClick={() => { playClick(); startDraft(); }} className="w-full py-4 bg-indigo-950 hover:bg-indigo-900 text-stone-200 font-bold rounded-lg border-2 border-indigo-800/50 shadow-xl shadow-black/50 transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider backdrop-blur-sm">
-                   <Play size={20} className="fill-stone-200" /> Start Game
-                </button>
-             </div>
-          </div>
-       </div>
-    );
+    return <StartScreen onStart={() => { playClick(); startDraft(); }} />;
   }
 
-  // HERO SELECTION VIEW (Step 1: Pick 3 heroes)
   if (view === 'HERO_SELECTION') {
     return (
-      <div className="w-full h-screen bg-[#D4B896] text-stone-800 flex items-center justify-center font-sans">
-        <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full bg-gradient-to-b from-[#E8D4B8] to-[#C4A876] flex flex-col relative overflow-hidden shadow-2xl">
-          
-          {/* Ornamental Header Border */}
-          <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-b from-amber-700/20 to-transparent pointer-events-none z-10" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-8 bg-amber-600/30 rounded-b-full" />
-          
-          {/* Header */}
-          <div className="relative pt-6 pb-4 px-4">
-            <div className="text-center mb-3">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-600/50 to-amber-600/50" />
-                <h2 className="text-2xl font-bold text-amber-800 font-serif tracking-wide drop-shadow-sm">Heroes</h2>
-                <div className="flex-1 h-px bg-gradient-to-l from-transparent via-amber-600/50 to-amber-600/50" />
-              </div>
-              <p className="text-[10px] text-amber-700 uppercase tracking-[0.2em] font-bold">Choose Your Champions</p>
-            </div>
-            
-            {/* Selection Indicators */}
-            <div className="flex justify-center gap-3">
-              {[0, 1, 2].map(i => (
-                <div key={i} className={`w-8 h-8 rounded-full border-3 transition-all flex items-center justify-center ${
-                  selectedHeroes.length > i 
-                    ? 'bg-gradient-to-br from-amber-400 to-amber-600 border-amber-700 shadow-lg scale-110' 
-                    : 'bg-[#C4A876] border-amber-700/40'
-                }`}>
-                  {selectedHeroes.length > i && (
-                    <span className="text-sm font-black text-white drop-shadow">{i + 1}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Heroes Grid - Vertical Columns */}
-          <div className="flex-1 overflow-y-auto px-3 pb-4">
-            <div className="grid grid-cols-3 gap-2">
-              {HEROES_DB.filter(hero => hero.id !== 'lostprince').map(hero => {
-                const isSelected = selectedHeroes.includes(hero.id);
-                const selectionOrder = selectedHeroes.indexOf(hero.id);
-                const isLocked = hero.locked || false;
-                
-                return (
-                  <div key={hero.id} className="flex flex-col relative group">
-                    {/* Hero Banner Card */}
-                    <div
-                      onClick={() => !isLocked && handleHeroSelect(hero.id)}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        setHeroDetailView(hero);
-                      }}
-                      className={`w-full aspect-[1/2] relative rounded-t-3xl rounded-b-lg overflow-hidden transition-all ${
-                        isLocked 
-                          ? 'cursor-not-allowed opacity-60 grayscale' 
-                          : 'cursor-pointer ' + (isSelected
-                            ? 'ring-4 ring-amber-500 shadow-[0_0_25px_rgba(217,119,6,0.6)] scale-[1.02]'
-                            : 'shadow-lg hover:shadow-xl hover:scale-[1.01]')
-                      }`}
-                      style={{
-                        background: isSelected 
-                          ? 'linear-gradient(180deg, #92400E 0%, #78350F 50%, #451A03 100%)'
-                          : 'linear-gradient(180deg, #57534E 0%, #44403C 50%, #292524 100%)'
-                      }}
-                    >
-                      {/* Locked Overlay */}
-                      {isLocked && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-40">
-                          <Lock size={32} className="text-stone-400" />
-                        </div>
-                      )}
-                      
-                      {/* Ornamental Top Border */}
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
-                      
-                      {/* Info Button - Shows on Hover or Selected */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setHeroDetailView(hero);
-                        }}
-                        className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-amber-600 border-2 border-amber-400 flex items-center justify-center transition-all shadow-lg hover:scale-110 z-30 ${
-                          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                        }`}
-                      >
-                        <Eye size={16} className="text-white" />
-                      </button>
-                      
-                      {/* Selection Badge */}
-                      {isSelected && (
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-3 border-white flex items-center justify-center shadow-xl z-20">
-                          <span className="text-lg font-black text-white drop-shadow">{selectionOrder + 1}</span>
-                        </div>
-                      )}
-                      
-                      {/* Side Ornaments */}
-                      <div className="absolute top-8 left-0 w-1 h-16 bg-gradient-to-b from-amber-500/60 to-transparent" />
-                      <div className="absolute top-8 right-0 w-1 h-16 bg-gradient-to-b from-amber-500/60 to-transparent" />
-                      
-                      {/* Main Portrait Area - Top Icon */}
-                      <div className="relative h-[35%] flex items-center justify-center border-b-2 border-amber-700/30">
-                        <div className={`w-16 h-16 rounded-lg flex items-center justify-center ${
-                          isSelected ? 'bg-amber-800/40' : 'bg-stone-800/40'
-                        } border-2 ${isSelected ? 'border-amber-500' : 'border-stone-600'}`}>
-                          {/* Kingdom */}
-                          {hero.id === 'prophet' && <Eye size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'banner' && <Crown size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'princess' && <Crown size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'sentry' && <Shield size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'lostprince' && <Crown size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          
-                          {/* Vengeance */}
-                          {hero.id === 'crusader' && <Shield size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'silenced' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'oathbreaker' && <Sword size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'captive' && <Swords size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'cursed' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          
-                          {/* Balance */}
-                          {hero.id === 'ranger' && <Target size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'gravekeeper' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'druid' && <Layers size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'hunter' && <Target size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'entropy' && <RefreshCw size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          
-                          {/* Power */}
-                          {hero.id === 'alchemist' && <FlaskConical size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'scavenger' && <Sword size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'witch' && <Skull size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'dragonblood' && <Swords size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                          {hero.id === 'fanatic' && <Eye size={40} className={isSelected ? 'text-amber-300' : 'text-stone-400'} />}
-                        </div>
-                      </div>
-                      
-                      {/* Center - Hero Name */}
-                      <div className="relative h-[40%] flex flex-col items-center justify-center px-2">
-                        <div className="text-center">
-                          <div className={`text-base font-bold font-serif leading-tight mb-1 ${
-                            isSelected ? 'text-amber-200' : 'text-stone-300'
-                          }`}>
-                            {hero.name}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Bottom - Archetype */}
-                      <div className="relative h-[25%] flex items-center justify-center border-t-2 border-amber-700/30 pb-2">
-                        <div className="text-center px-1">
-                          <div className={`text-[9px] font-bold uppercase tracking-wider ${
-                            isSelected ? 'text-amber-300' : 'text-stone-400'
-                          }`}>
-                            {hero.archetype}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Bottom ornamental curve */}
-                      <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-amber-600/40 to-transparent" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Bottom Navigation Bar */}
-          <div className="relative bg-gradient-to-b from-[#78350F] to-[#451A03] border-t-2 border-amber-700/50 px-4 py-3">
-            <div className="flex justify-center">
-              <button
-                onClick={confirmHeroSelection}
-                disabled={selectedHeroes.length !== 3}
-                className={`px-8 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 transition-all shadow-lg ${
-                  selectedHeroes.length === 3
-                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 border-amber-300 text-white shadow-amber-500/50 hover:shadow-amber-500/70 hover:scale-105'
-                    : 'bg-stone-700 border-stone-600 text-stone-500 cursor-not-allowed opacity-50'
-                }`}
-              >
-                {selectedHeroes.length === 3 ? 'Continue' : `${selectedHeroes.length}/3 Selected`}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <HeroSelectionScreen 
+        selectedHeroes={selectedHeroes}
+        onHeroSelect={handleHeroSelect}
+        onNext={confirmHeroSelection}
+        onBack={() => setView('START')}
+        heroLevels={heroLevels}
+        onLevelChange={handleLevelChange}
+        setHeroDetailView={setHeroDetailView}
+      />
     );
   }
 
-  // LANE ASSIGNMENT VIEW (Step 2: Drag & drop to assign lanes)
   if (view === 'LANE_ASSIGNMENT') {
-    const laneNames = ['Front Line', 'Mid Line', 'Rear Line'];
-    const laneLabels = ['FRONT', 'MID', 'REAR'];
-    // const laneDescriptions = [
-    //   'Vanguards who charge into the fray first, bearing the brunt of enemy assault',
-    //   'Tactical support maintaining balance between offense and defense',
-    //   'Strategic reserves striking from safety with devastating precision'
-    // ];
-    
     return (
-      <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-sans">
-        <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full bg-gradient-to-b from-[#D4B896] to-[#C4A876] border-4 border-[#8B6F47] flex flex-col relative overflow-hidden shadow-2xl">
-          
-          {/* Header with ornamental design */}
-          <div className="relative p-6 bg-gradient-to-b from-[#78350F] to-[#451A03] border-b-4 border-amber-900/50">
-            {/* Top decorative border */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
-            
-            <div className="relative z-10 text-center">
-              <h2 className="text-2xl font-bold text-amber-300 font-serif mb-1 tracking-wider drop-shadow-lg">
-                Formation
-              </h2>
-              <p className="text-xs text-amber-200/70 uppercase tracking-[0.3em]">Arrange Your Heroes</p>
-            </div>
-            
-            {/* Bottom decorative border */}
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-700/50 to-transparent"></div>
-          </div>
-
-          {/* Instruction Disclaimer */}
-          <div className="px-4 py-4 bg-amber-900/20 border-b border-amber-700/30">
-            <div className="text-center mb-3">
-              <div className="flex items-center justify-center gap-2 text-amber-900 mb-2">
-                <div className="flex gap-0.5">
-                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                </div>
-                <p className="text-xs font-bold tracking-wide uppercase">
-                  Drag to Reorder
-                </p>
-                <div className="flex gap-0.5">
-                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                  <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center text-[9px] leading-tight text-amber-950/80">
-              <div>
-                <div className="font-black uppercase mb-0.5 text-amber-800">Front</div>
-                <div className="font-medium">First into battle</div>
-              </div>
-              <div>
-                <div className="font-black uppercase mb-0.5 text-amber-800">Mid</div>
-                <div className="font-medium">Tactical support</div>
-              </div>
-              <div>
-                <div className="font-black uppercase mb-0.5 text-amber-800">Rear</div>
-                <div className="font-medium">Strategic strikes</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Hero Cards in Horizontal Layout */}
-          <div className="flex-1 flex items-center justify-center px-4 py-6">
-            <div className="grid grid-cols-3 gap-2 w-full max-w-md">
-              {selectedHeroes.map((heroId, index) => {
-                const hero = HEROES_DB.find(h => h.id === heroId)!;
-                const isDragging = draggedHeroIndex === index;
-                
-                return (
-                  <div
-                    key={index}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop(index)}
-                    className={`relative transition-all cursor-move ${
-                      isDragging ? 'opacity-50 scale-95' : 'opacity-100 hover:scale-[1.02]'
-                    }`}
-                  >
-                    {/* Banner-shaped card with shield bottom */}
-                    <div className="relative w-full rounded-t-2xl shadow-2xl overflow-visible">
-                      
-                      {/* Lane position badge at top right */}
-                      <div className="absolute -top-3 -right-2 z-20 px-2 py-1 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 border-2 border-gray-500 flex items-center justify-center shadow-lg">
-                        <span className="text-[8px] font-black text-white uppercase tracking-tight">{laneLabels[index]}</span>
-                      </div>
-
-                      {/* Main card container with rounded top */}
-                      <div className="relative bg-gradient-to-b from-stone-100 to-white rounded-t-2xl border-3 border-stone-200 overflow-hidden" style={{ paddingBottom: '300%' }}>
-                        
-                        {/* Hero illustration section (upper ~65%) */}
-                        <div className="absolute top-0 left-0 right-0" style={{ height: '65%' }}>
-                          <div className="w-full h-full bg-gradient-to-b from-stone-50 to-white flex items-center justify-center p-3">
-                            {/* Placeholder for hero illustration - using icon for now */}
-                            <div className="w-full h-full flex items-center justify-center">
-                              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 border-3 border-amber-300 flex items-center justify-center shadow-lg">
-                                {/* Kingdom */}
-                                {hero.id === 'prophet' && <Eye size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'banner' && <Crown size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'princess' && <Crown size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'sentry' && <Shield size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'lostprince' && <Crown size={32} className="text-white drop-shadow-lg" />}
-                                
-                                {/* Vengeance */}
-                                {hero.id === 'crusader' && <Shield size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'silenced' && <Skull size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'oathbreaker' && <Sword size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'captive' && <Swords size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'cursed' && <Skull size={32} className="text-white drop-shadow-lg" />}
-                                
-                                {/* Balance */}
-                                {hero.id === 'ranger' && <Target size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'gravekeeper' && <Skull size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'druid' && <Layers size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'hunter' && <Target size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'entropy' && <RefreshCw size={32} className="text-white drop-shadow-lg" />}
-                                
-                                {/* Power */}
-                                {hero.id === 'alchemist' && <FlaskConical size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'scavenger' && <Sword size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'witch' && <Skull size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'dragonblood' && <Swords size={32} className="text-white drop-shadow-lg" />}
-                                {hero.id === 'fanatic' && <Eye size={32} className="text-white drop-shadow-lg" />}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Golden banner section with shield point (lower ~35%) */}
-                        <div className="absolute left-0 right-0" style={{ top: '65%', bottom: 0 }}>
-                          {/* Shield-shaped banner with pointed bottom */}
-                          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <defs>
-                              <linearGradient id={`grad-${index}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
-                                <stop offset="50%" style={{ stopColor: '#d97706', stopOpacity: 1 }} />
-                                <stop offset="100%" style={{ stopColor: '#b45309', stopOpacity: 1 }} />
-                              </linearGradient>
-                            </defs>
-                            <path 
-                              d="M 0,0 L 100,0 L 100,70 L 85,80 L 70,90 L 50,100 L 30,90 L 15,80 L 0,70 Z" 
-                              fill={`url(#grad-${index})`}
-                            />
-                          </svg>
-                          
-                          {/* Content over the banner */}
-                          <div className="relative z-10 flex flex-col items-center justify-start h-full pt-3 px-2 pb-4">
-                            <div className="text-xs font-bold text-white text-center mb-1 drop-shadow-md leading-tight">
-                              {hero.name}
-                            </div>
-                            <div className="text-[9px] px-1.5 py-0.5 bg-amber-900/40 border border-amber-300/50 rounded-full text-amber-100 uppercase tracking-wide backdrop-blur-sm mb-2">
-                              {laneNames[index]}
-                            </div>
-                            
-                            {/* Level Selector */}
-                            <div className="flex items-center gap-1 mt-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleLevelChange(heroId, -1);
-                                }}
-                                disabled={(heroLevels[heroId] || 1) <= 1}
-                                className="w-5 h-5 rounded-full bg-amber-800/60 hover:bg-amber-700/80 disabled:opacity-30 disabled:cursor-not-allowed border border-amber-300/50 flex items-center justify-center text-white font-bold text-xs transition-all"
-                              >
-                                -
-                              </button>
-                              <div className={`px-2 py-0.5 rounded-full border-2 font-bold text-[10px] min-w-[2.5rem] text-center ${
-                                (heroLevels[heroId] || 1) === 1 ? 'bg-stone-600 text-stone-100 border-stone-400' :
-                                (heroLevels[heroId] || 1) === 2 ? 'bg-green-600 text-white border-green-400' :
-                                (heroLevels[heroId] || 1) === 3 ? 'bg-blue-600 text-white border-blue-400' :
-                                (heroLevels[heroId] || 1) === 4 ? 'bg-purple-600 text-white border-purple-400' :
-                                'bg-amber-600 text-white border-amber-400'
-                              }`}>
-                                LV {heroLevels[heroId] || 1}
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleLevelChange(heroId, 1);
-                                }}
-                                disabled={(heroLevels[heroId] || 1) >= 5}
-                                className="w-5 h-5 rounded-full bg-amber-800/60 hover:bg-amber-700/80 disabled:opacity-30 disabled:cursor-not-allowed border border-amber-300/50 flex items-center justify-center text-white font-bold text-xs transition-all"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Drag indicator dots below card */}
-                    <div className="flex justify-center gap-1 mt-2">
-                      <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                      <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                      <div className="w-1 h-1 rounded-full bg-amber-700/60"></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Bottom Navigation Bar */}
-          <div className="relative bg-gradient-to-b from-[#78350F] to-[#451A03] border-t-2 border-amber-700/50 px-4 py-4">
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => setView('HERO_SELECTION')}
-                className="px-6 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 border-stone-500 bg-stone-700 hover:bg-stone-600 text-stone-300 transition-all shadow-lg active:scale-95"
-              >
-                Back
-              </button>
-              <button
-                onClick={finalizeDraft}
-                className="px-8 py-3 font-bold text-sm rounded-full uppercase tracking-wider border-2 border-amber-300 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white shadow-lg shadow-amber-500/50 hover:shadow-amber-500/70 hover:scale-105 transition-all"
-              >
-                Start Adventure
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LaneAssignmentScreen
+        selectedHeroes={selectedHeroes}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        draggedHeroIndex={draggedHeroIndex}
+        onBack={() => setView('HERO_SELECTION')}
+        onStartAdventure={finalizeDraft}
+        heroLevels={heroLevels}
+        onLevelChange={handleLevelChange}
+      />
     );
   }
 
   if (view === 'MAP') {
      return (
-      <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-serif">
-        <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full bg-stone-900 border-4 border-stone-700 flex flex-col relative overflow-hidden shadow-2xl">
-           <div className="p-4 text-center bg-stone-950 border-b border-stone-800 shadow-md z-10">
-              <h2 className="text-lg font-bold text-stone-200 tracking-widest uppercase">Kingdom Map</h2>
-           </div>
-           <div className="flex-1 flex flex-col items-center justify-center gap-8 relative bg-[url('https://www.transparenttextures.com/patterns/dark-leather.png')]">
-              <div className="absolute top-10 bottom-10 w-1 bg-stone-700 z-0" />
-              {[4, 3, 2, 1, 0].map(nodeIdx => {
-                 const isCurrent = mapNode === nodeIdx;
-                 const isPast = mapNode > nodeIdx;
-                 const isBoss = nodeIdx === 4;
-                 return (
-                    <div key={nodeIdx} 
-                         onClick={() => isCurrent ? enterCombat(isBoss ? 'boss' : 'normal') : null}
-                         className={`relative z-10 w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all duration-500
-                         ${isCurrent ? 'scale-110 border-amber-500 bg-amber-900 cursor-pointer animate-pulse shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 
-                           (isPast ? 'border-stone-700 bg-stone-800 opacity-40 grayscale' : 'border-stone-600 bg-stone-800 opacity-60')}`}>
-                       {isBoss ? <Castle size={24} className={isCurrent ? "text-amber-100" : "text-stone-500"} /> : <MapIcon size={20} className={isCurrent ? "text-amber-100" : "text-stone-500"} />}
-                       {isCurrent && <div className="absolute -right-24 bg-amber-700 text-[10px] px-3 py-1 rounded-r-full border-l-4 border-amber-400 text-stone-100 font-bold shadow-lg animate-in slide-in-from-left-2">YOU ARE HERE</div>}
-                    </div>
-                 );
-              })}
-           </div>
-           <div className="p-4 bg-stone-950 text-center text-[10px] text-stone-500 border-t border-stone-800 uppercase tracking-widest">
-              Defeat the Dragon to win
-           </div>
-        </div>
-      </div>
+       <MapScreen 
+         mapNode={mapNode}
+         enterCombat={(type) => enterCombat(type)}
+       />
      );
   }
 
   if (view === 'COMBAT' && combatState) {
-    const { turn, phase, playerHand, playerZoneCards, enemyZoneCards, playerUnits, enemyUnits, selectedCardIdx, drawPile, discardPile, resolvingLane } = combatState;
-    const isPlayerTurn = phase === 'planning';
-
     return (
-      <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-sans">
-        <div className="relative h-full w-full max-w-[56.25vh] aspect-[9/16] bg-stone-900 border-4 border-stone-800 flex flex-col shadow-2xl overflow-hidden ring-1 ring-white/10">
-          
-          {/* TOP BAR */}
-          <div className="flex-none bg-stone-950 border-b border-stone-800 p-2 flex justify-between items-center z-20 shadow-md h-12">
-             <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-red-900/20 border border-red-900/50 flex items-center justify-center">
-                   <Sword size={16} className="text-red-500" />
-                </div>
-                <div className="flex flex-col">
-                   <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Turn</span>
-                   <span className="text-sm font-black text-stone-200 leading-none">{turn}</span>
-                </div>
-             </div>
-             
-             {/* Deck Controls */}
-             <div className="flex gap-2">
-                <button onClick={() => setShowDiscardModal(true)} className="flex flex-col items-center justify-center w-10 h-8 rounded bg-stone-800 border border-stone-700 hover:border-stone-500 transition-colors">
-                   <Trash2 size={12} className="text-stone-400" />
-                   <span className="text-[8px] font-bold text-stone-500">{discardPile.length}</span>
-                </button>
-                <button onClick={() => setShowDeckModal(true)} className="flex flex-col items-center justify-center w-10 h-8 rounded bg-stone-800 border border-stone-700 hover:border-stone-500 transition-colors">
-                   <Layers size={12} className="text-sky-500" />
-                   <span className="text-[8px] font-bold text-sky-700">{drawPile.length}</span>
-                </button>
-                <button 
-                  onClick={() => setShowLogs(!showLogs)}
-                  className="relative flex flex-col items-center justify-center w-10 h-8 rounded bg-stone-800 border border-stone-700 hover:border-amber-500 transition-colors"
-                >
-                  <Eye size={12} className="text-amber-500" />
-                  <span className="text-[8px] font-bold text-amber-700">{logs.length}</span>
-                  {logs.length > 0 && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 border border-red-800 rounded-full animate-pulse" />
-                  )}
-                </button>
-             </div>
-          </div>
-
-          {/* PROVOKE MODE BANNER */}
-          {provokeMode && (
-            <div className="absolute top-12 left-0 right-0 z-50 bg-amber-900/95 border-y-2 border-amber-500 shadow-2xl backdrop-blur-md py-2 px-4 flex justify-between items-center animate-pulse">
-              <div className="flex items-center gap-2">
-                <Target size={16} className="text-amber-200" />
-                <span className="text-sm font-bold text-amber-100 uppercase tracking-wider">Provoke Mode: Select Enemy Card</span>
-              </div>
-              <button 
-                onClick={() => setProvokeMode(false)}
-                className="px-3 py-1 bg-stone-800 hover:bg-stone-700 border border-stone-600 rounded text-xs font-bold text-stone-200 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {/* LOG PANEL */}
-          {showLogs && (
-            <div className="absolute top-14 right-2 z-50 w-64 max-h-96 bg-stone-900/95 border-2 border-stone-700 rounded-lg shadow-2xl backdrop-blur-md overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200">
-              <div className="p-3 bg-stone-950 border-b border-stone-800 flex justify-between items-center">
-                <h3 className="text-xs font-bold text-amber-500 uppercase tracking-wider">Battle Log</h3>
-                <button onClick={() => setShowLogs(false)}>
-                  <X size={16} className="text-stone-500 hover:text-stone-200" />
-                </button>
-              </div>
-              <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
-                {logs.length === 0 ? (
-                  <div className="text-center text-stone-600 text-xs italic py-4">No events yet</div>
-                ) : (
-                  logs.map((log, i) => (
-                    <div key={i} className={`px-3 py-2 rounded border text-[10px] font-bold uppercase tracking-wide ${i===0 ? 'bg-amber-900/20 border-amber-900/50 text-amber-100' : 'bg-stone-950/50 border-stone-800 text-stone-400'}`}>
-                      {log}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* BATTLEFIELD - 3 LANES */}
-          <div className="flex-1 flex min-h-0 bg-stone-900 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] relative">
-             {/* CENTER ACTION BUTTON */}
-             <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none">
-                <button 
-                  onClick={handleEndTurn}
-                  disabled={!isPlayerTurn}
-                  className={`pointer-events-auto w-12 h-12 rounded-full border-4 flex items-center justify-center shadow-2xl transition-all active:scale-90
-                    ${isPlayerTurn 
-                      ? 'bg-red-900 border-red-700 text-stone-100 hover:bg-red-800 hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] animate-pulse' 
-                      : 'bg-stone-800 border-stone-700 text-stone-600 cursor-not-allowed'}
-                  `}
-                >
-                  {isPlayerTurn ? <Swords size={20} /> : <RefreshCw size={20} className="animate-spin" />}
-                </button>
-             </div>
-
-             {(() => {
-                const selectedCard = selectedCardIdx !== null ? playerHand[selectedCardIdx] : null;
-                
-                // Calculate target lane once for hovered lane
-                let calculatedTargetLane: number | null = null;
-                let calculatedDefenseLane: number | null = null;
-                
-                if (hoveredLane !== null && selectedCard && !selectedCard.isPotion) {
-                    calculatedTargetLane = hoveredLane;
-                    
-                    // Check if card has Tank/Defense effects that protect adjacent/all lanes
-                    if (selectedCard.effect === 'TANK_ALL') {
-                        // TANK_ALL: Show defense arrow on all lanes (we'll show arrows on all)
-                        // For simplicity, we'll handle this in the render loop
-                    } else if (selectedCard.effect === 'TANK_RIGHT' || selectedCard.effect === 'ATTACK_DEF_RIGHT') {
-                        // Show defense arrow on the lane to the right (hoveredLane + 1)
-                        if (hoveredLane < 2) {
-                            calculatedDefenseLane = hoveredLane + 1;
-                        }
-                    }
-                    
-                    // Use same logic as damage resolution
-                    if (!enemyUnits[hoveredLane] || enemyUnits[hoveredLane]!.dead) {
-                        // Priority 1: Left adjacent
-                        if (hoveredLane > 0 && enemyUnits[hoveredLane-1] && !enemyUnits[hoveredLane-1]!.dead) {
-                            calculatedTargetLane = hoveredLane - 1;
-                        }
-                        // Priority 2: Right adjacent
-                        else if (hoveredLane < 2 && enemyUnits[hoveredLane+1] && !enemyUnits[hoveredLane+1]!.dead) {
-                            calculatedTargetLane = hoveredLane + 1;
-                        }
-                        // Priority 3: Farthest alive enemy
-                        else {
-                            const candidates = [0,1,2].filter(idx => enemyUnits[idx] && !enemyUnits[idx]!.dead);
-                            if (candidates.length > 0) {
-                                calculatedTargetLane = candidates.reduce((farthest, current) => 
-                                    Math.abs(current - hoveredLane) > Math.abs(farthest - hoveredLane) ? current : farthest
-                                );
-                            }
-                        }
-                    }
-                }
-
-                return [0, 1, 2].map(laneIdx => {
-                    // Highlight logic with Range
-                    const pUnit = playerUnits[laneIdx];
-                    const cardOwner = playerUnits.find((u: Unit | null) => u && u.id === selectedCard?.ownerId);
-                    const ownerIdx = playerUnits.indexOf(cardOwner!);
-                    
-                    let isValidTarget = false;
-                    if (selectedCard) {
-                        if (selectedCard.isPotion) {
-                            isValidTarget = !!pUnit;
-                        } else if (cardOwner) {
-                            const dist = Math.abs(laneIdx - ownerIdx);
-                            const range = selectedCard.range || 0;
-                            isValidTarget = dist <= range;
-                        }
-                    }
-                    
-                    // Check if this lane should show defense arrow
-                    let shouldShowDefenseArrow = false;
-                    if (hoveredLane !== null && selectedCard && !selectedCard.isPotion) {
-                        if (selectedCard.effect === 'TANK_ALL') {
-                            // TANK_ALL: Show defense arrow on all lanes except the hovered one
-                            shouldShowDefenseArrow = laneIdx !== hoveredLane;
-                        } else {
-                            // TANK_RIGHT: Show arrow on calculated defense lane
-                            shouldShowDefenseArrow = calculatedDefenseLane === laneIdx;
-                        }
-                    }
-                    
-                    return (
-                      <BattleLane 
-                         key={laneIdx}
-                         zoneLabel={ZONES[laneIdx]}
-                         enemyUnit={enemyUnits[laneIdx]}
-                         playerUnit={playerUnits[laneIdx]}
-                         enemyCard={enemyZoneCards[laneIdx]}
-                         playerCard={playerZoneCards[laneIdx]}
-                         onPlayerSlotClick={() => { handleZoneClick(laneIdx); setHoveredLane(null); }}
-                         onEnemyCardClick={() => handleProvokeClick(laneIdx)}
-                         isSelected={false}
-                         isValidTarget={isValidTarget}
-                         onPreviewStart={setPreviewCard}
-                         onPreviewEnd={() => setPreviewCard(null)}
-                         onProphetAction={onProphetAction}
-                         onCrusaderAction={onCrusaderAction}
-                         onRangerAction={onRangerAction}
-                         showTargetArrow={calculatedTargetLane === laneIdx && hoveredLane !== null}
-                         showDefenseArrow={shouldShowDefenseArrow}
-                         onLaneHover={() => setHoveredLane(laneIdx)}
-                         onLaneLeave={() => setHoveredLane(null)}
-                         isResolving={resolvingLane === laneIdx}
-                         provokeMode={provokeMode}
-                      />
-                    );
-                });
-             })()}
-          </div>
-
-          {/* PLAYER HAND AREA */}
-          <div className="flex-none h-[22%] bg-stone-950 border-t border-stone-800 flex flex-col relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-             {/* Cards Fan Layout */}
-             <div className="flex-1 relative flex items-end justify-center pb-2 overflow-visible px-4">
-                {playerHand.length === 0 && <div className="w-full text-center text-[10px] text-stone-600 font-bold uppercase tracking-widest absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">No Cards Available</div>}
-                <div className="relative h-full w-full max-w-full">
-                  {playerHand.map((card: CardData, i: number) => {
-                    const totalCards = playerHand.length;
-                    const centerIndex = (totalCards - 1) / 2;
-                    const offset = i - centerIndex;
-                    const rotation = offset * 2; // Cards lean outward
-                    const cardSpacing = Math.max(30, Math.min(60, 400 / totalCards)); // Dynamic spacing based on card count
-                    const translateX = offset * cardSpacing; // Overlapping cards with dynamic spacing
-                    const translateY = Math.abs(offset) * 5; // Subtle concave curve
-                    const isNewlyDrawn = combatState?.newlyDrawnCards?.has(card.uid || i) || false;
-                    
-                    return (
-                      <div 
-                        key={card.uid || i} 
-                        className="absolute bottom-0 left-1/2 transition-all duration-300 ease-out"
-                        style={{
-                          transform: `translateX(calc(-50% + ${translateX}px)) translateY(${translateY}px) rotate(${rotation}deg)`,
-                          zIndex: selectedCardIdx === i ? 50 : 10 + i,
-                          transformOrigin: 'bottom center'
-                        }}
-                      >
-                        <div 
-                          className={`aspect-[2/3] h-[140px] transition-transform duration-300 ${
-                            selectedCardIdx === i ? 'scale-110 -translate-y-4' : 'hover:scale-105 hover:-translate-y-2'
-                          } ${isNewlyDrawn ? 'animate-[flipIn_0.6s_ease-out]' : ''}`}
-                          style={{ cursor: isPlayerTurn ? 'pointer' : 'not-allowed' }}
-                        >
-                          <Card 
-                            {...card}
-                            isSelected={selectedCardIdx === i}
-                            onClick={() => { if (isPlayerTurn) setCombatState(p => ({...p!, selectedCardIdx: p!.selectedCardIdx === i ? null : i})); }}
-                            disabled={!isPlayerTurn}
-                            onPreviewStart={() => setPreviewCard(card)}
-                            onPreviewEnd={() => setPreviewCard(null)}
-                            className="w-full h-full text-[10px]"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-             </div>
-          </div>
-
-          {/* CARD PREVIEW OVERLAY */}
-          {previewCard && (
-             <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none animate-in fade-in zoom-in-95 duration-200">
-                <div className="w-64 aspect-[2/3] pointer-events-auto shadow-2xl">
-                   <Card {...previewCard} disabled={false} previewMode={true} className="w-full h-full" />
-                </div>
-             </div>
-          )}
-
-          {/* MODALS */}
-          {(showDeckModal || showDiscardModal) && (
-            <div className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6">
-              <div className="bg-stone-900 border-2 border-stone-700 rounded-xl w-full h-[70%] flex flex-col shadow-2xl overflow-hidden">
-                <div className="p-3 bg-stone-950 border-b border-stone-800 flex justify-between items-center">
-                   <h3 className="font-bold text-stone-200 flex items-center gap-2 uppercase tracking-wider text-xs">
-                     {showDeckModal ? <><Layers size={14}/> Draw Pile</> : <><Trash2 size={14}/> Discard Pile</>}
-                   </h3>
-                   <button onClick={()=>{setShowDeckModal(false);setShowDiscardModal(false)}}><X size={20} className="text-stone-500 hover:text-stone-200"/></button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 grid grid-cols-4 gap-2 content-start bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
-                   {(showDeckModal ? drawPile : discardPile).map((c: CardData, i: number) => (
-                      <div key={i} className="aspect-[2/3]"><Card {...c} smallMode disabled className="w-full h-full text-[8px]" /></div>
-                   ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-      </div>
+      <CombatScreen
+        combatState={combatState}
+        showDeckModal={showDeckModal}
+        setShowDeckModal={setShowDeckModal}
+        showDiscardModal={showDiscardModal}
+        setShowDiscardModal={setShowDiscardModal}
+        showLogs={showLogs}
+        setShowLogs={setShowLogs}
+        logs={logs}
+        provokeMode={provokeMode}
+        setProvokeMode={setProvokeMode}
+        hoveredLane={hoveredLane}
+        setHoveredLane={setHoveredLane}
+        handleEndTurn={handleEndTurn}
+        handleZoneClick={handleZoneClick}
+        handleProvokeClick={handleProvokeClick}
+        previewCard={previewCard}
+        setPreviewCard={setPreviewCard}
+        onProphetAction={onProphetAction}
+        onCrusaderAction={onCrusaderAction}
+        onRangerAction={onRangerAction}
+        setCombatState={setCombatState}
+      />
     );
+  }
+
+  if (view === 'VICTORY') {
+    return <VictoryScreen onRestart={() => setView('START')} />;
+  }
+
+  if (view === 'GAMEOVER' || view === 'GAME_OVER') {
+    return <GameOverScreen onRestart={() => setView('START')} />;
   }
 
   return (
