@@ -7,6 +7,8 @@ import prophetPortrait from '../assets/images/heroes/madprophet/madprophet-portr
 import bucketheadPortrait from '../assets/images/heroes/alchemist/alchemist-portrait.png';
 import crusaderIcon from '../assets/images/heroes/crusader/crusader-icon.png';
 import rangerIcon from '../assets/images/heroes/loneranger/loneranger-icon.png';
+import prophetIcon from '../assets/images/heroes/madprophet/madprophet-icon.png';
+import alchemistIcon from '../assets/images/heroes/alchemist/alchemist-icon.png';
 import { HEROES_DB } from '../data';
 import { Hero } from '../types';
 
@@ -67,7 +69,7 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                         }`}>
                             {selectedHero && (
                                 <div className="text-white drop-shadow-md animate-fade-in">
-                                    {selectedHero.id === 'prophet' && <Scroll size={24} />}
+                                    {selectedHero.id === 'prophet' && <img src={prophetIcon} alt="Prophet" className="w-6 h-6 object-contain" />}
                                     {selectedHero.id === 'banner' && <Flag size={24} />}
                                     {selectedHero.id === 'princess' && <Gem size={24} />}
                                     {selectedHero.id === 'sentry' && <ShieldCheck size={24} />}
@@ -84,7 +86,7 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                                     {selectedHero.id === 'hunter' && <Target size={24} />}
                                     {selectedHero.id === 'entropy' && <Shuffle size={24} />}
                                     
-                                    {selectedHero.id === 'alchemist' && <FlaskConical size={24} />}
+                                    {selectedHero.id === 'alchemist' && <img src={alchemistIcon} alt="Alchemist" className="w-6 h-6 object-contain" />}
                                     {selectedHero.id === 'scavenger' && <Hammer size={24} />}
                                     {selectedHero.id === 'witch' && <Moon size={24} />}
                                     {selectedHero.id === 'dragonblood' && <Flame size={24} />}
@@ -151,7 +153,7 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                              <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 shadow-lg transition-colors duration-300 ${
                                  isSelected ? 'bg-indigo-900 border-indigo-400 shadow-indigo-500/50' : 'bg-stone-900 border-stone-600 shadow-black/50'
                              }`}>
-                                {hero.id === 'prophet' && <Scroll size={20} className="text-indigo-200" />}
+                                {hero.id === 'prophet' && <img src={prophetIcon} alt="Prophet" className="w-5 h-5 object-contain" />}
                                 {hero.id === 'banner' && <Flag size={20} className="text-amber-200" />}
                                 {hero.id === 'princess' && <Gem size={20} className="text-pink-200" />}
                                 {hero.id === 'sentry' && <ShieldCheck size={20} className="text-slate-200" />}
@@ -168,7 +170,7 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                                 {hero.id === 'hunter' && <Target size={20} className="text-lime-200" />}
                                 {hero.id === 'entropy' && <Shuffle size={20} className="text-cyan-200" />}
                                 
-                                {hero.id === 'alchemist' && <FlaskConical size={20} className="text-yellow-200" />}
+                                {hero.id === 'alchemist' && <img src={alchemistIcon} alt="Alchemist" className="w-5 h-5 object-contain" />}
                                 {hero.id === 'scavenger' && <Hammer size={20} className="text-orange-200" />}
                                 {hero.id === 'witch' && <Moon size={20} className="text-violet-200" />}
                                 {hero.id === 'dragonblood' && <Flame size={20} className="text-red-300" />}
