@@ -1,6 +1,6 @@
 import React from 'react';
-import splashScreenImage from '../assets/images/TDMD.png';
-import rekodeLogo from '../assets/images/REKODE.png';
+import splashScreenImage from '../assets/images/splashes/TDMD.png';
+import rekodeLogo from '../assets/images/splashes/REKODE.png';
 
 interface IntroScreenProps {
   phase: 'STUDIO' | 'SPLASH';

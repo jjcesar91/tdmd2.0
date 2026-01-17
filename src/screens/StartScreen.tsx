@@ -1,6 +1,6 @@
 import React from 'react';
 import { Play } from 'lucide-react';
-import startScreenImage from '../assets/images/TDMD-START.png';
+import startScreenImage from '../assets/images/splashes/TDMD-START.png';
 
 interface StartScreenProps {
   onStart: () => void;
