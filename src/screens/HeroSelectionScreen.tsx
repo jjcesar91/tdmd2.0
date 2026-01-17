@@ -3,7 +3,10 @@ import { Lock, Eye, Skull, Target, FlaskConical, Flag, ShieldCheck, Axe, Link, C
 import startScreenImage from '../assets/images/splashes/TDMD-START.png';
 import crusaderPortrait from '../assets/images/heroes/crusader/crusader-portrait.png';
 import rangerPortrait from '../assets/images/heroes/loneranger/loneranger-portrait.png';
+import prophetPortrait from '../assets/images/heroes/madprophet/madprophet-portrait.png';
+import bucketheadPortrait from '../assets/images/heroes/alchemist/alchemist-portrait.png';
 import crusaderIcon from '../assets/images/heroes/crusader/crusader-icon.png';
+import rangerIcon from '../assets/images/heroes/loneranger/loneranger-icon.png';
 import { HEROES_DB } from '../data';
 import { Hero } from '../types';
 
@@ -75,7 +78,7 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                                     {selectedHero.id === 'captive' && <Link size={24} />}
                                     {selectedHero.id === 'cursed' && <Skull size={24} />}
                                     
-                                    {selectedHero.id === 'ranger' && <Crosshair size={24} />}
+                                    {selectedHero.id === 'ranger' && <img src={rangerIcon} alt="Ranger" className="w-6 h-6 object-contain" />}
                                     {selectedHero.id === 'gravekeeper' && <Shovel size={24} />}
                                     {selectedHero.id === 'druid' && <Leaf size={24} />}
                                     {selectedHero.id === 'hunter' && <Target size={24} />}
@@ -114,8 +117,8 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                         isLocked 
                             ? 'cursor-not-allowed opacity-50 grayscale contrast-125' 
                             : 'cursor-pointer ' + (isSelected
-                            ? 'ring-2 ring-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-[1.02] z-10 brightness-110'
-                            : 'hover:shadow-lg hover:shadow-black/60 hover:scale-[1.02] border border-stone-800/50 hover:border-stone-600 brightness-50 group-hover:brightness-100')
+                            ? 'ring-2 ring-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-[1.02] z-10'
+                            : 'hover:shadow-lg hover:shadow-black/60 hover:scale-[1.02] border border-stone-800/50 hover:border-stone-600')
                         }`}
                         style={{
                         background: isSelected 
@@ -159,7 +162,7 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                                 {hero.id === 'captive' && <Link size={20} className="text-rose-200" />}
                                 {hero.id === 'cursed' && <Skull size={20} className="text-purple-200" />}
                                 
-                                {hero.id === 'ranger' && <Crosshair size={20} className="text-emerald-200" />}
+                                {hero.id === 'ranger' && <img src={rangerIcon} alt="Ranger" className="w-5 h-5 object-contain" />}
                                 {hero.id === 'gravekeeper' && <Shovel size={20} className="text-teal-200" />}
                                 {hero.id === 'druid' && <Leaf size={20} className="text-green-200" />}
                                 {hero.id === 'hunter' && <Target size={20} className="text-lime-200" />}
@@ -184,6 +187,18 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                             ) : hero.id === 'ranger' ? (
                                 <img 
                                     src={rangerPortrait} 
+                                    alt={hero.name} 
+                                    className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}
+                                />
+                            ) : hero.id === 'prophet' ? (
+                                <img 
+                                    src={prophetPortrait} 
+                                    alt={hero.name} 
+                                    className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}
+                                />
+                            ) : hero.id === 'alchemist' ? (
+                                <img 
+                                    src={bucketheadPortrait} 
                                     alt={hero.name} 
                                     className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}
                                 />

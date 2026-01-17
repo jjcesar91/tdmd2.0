@@ -49,7 +49,7 @@ export const HEROES_DB: Hero[] = [
   },
   {
     id: 'prophet',
-    name: 'Prophet',
+    name: 'Mad Prophet',
     role: 'SUPP',
     desc: 'Passive: Map Vision. Active: Scry All (Cooldown 2)',
     hp: 3,
