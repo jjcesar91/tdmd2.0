@@ -2,6 +2,7 @@ import React from 'react';
 import { Lock, Eye, Skull, Target, FlaskConical, Flag, ShieldCheck, Axe, Link, Crosshair, Shovel, Shuffle, Hammer, Moon, Flame, Zap, Gem, Scroll, Ghost, Leaf } from 'lucide-react';
 import startScreenImage from '../assets/images/splashes/TDMD-START.png';
 import crusaderPortrait from '../assets/images/heroes/crusader/crusader-portrait.png';
+import rangerPortrait from '../assets/images/heroes/loneranger/loneranger-portrait.png';
 import crusaderIcon from '../assets/images/heroes/crusader/crusader-icon.png';
 import { HEROES_DB } from '../data';
 import { Hero } from '../types';
@@ -177,6 +178,12 @@ export const HeroSelectionScreen: React.FC<HeroSelectionScreenProps> = ({
                             {hero.id === 'crusader' ? (
                                 <img 
                                     src={crusaderPortrait} 
+                                    alt={hero.name} 
+                                    className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}
+                                />
+                            ) : hero.id === 'ranger' ? (
+                                <img 
+                                    src={rangerPortrait} 
                                     alt={hero.name} 
                                     className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}
                                 />
