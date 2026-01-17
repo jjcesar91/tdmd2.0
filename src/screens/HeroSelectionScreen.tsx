@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, Eye, Crown, Shield, Sword, Swords, Skull, Target, Layers, RefreshCw, FlaskConical, Flag, ShieldCheck, Axe, Link, Crosshair, Shovel, Shuffle, Hammer, Moon, Flame, Zap, Gem, Scroll, Ghost, Leaf } from 'lucide-react';
+import { Lock, Eye, Skull, Target, FlaskConical, Flag, ShieldCheck, Axe, Link, Crosshair, Shovel, Shuffle, Hammer, Moon, Flame, Zap, Gem, Scroll, Ghost, Leaf } from 'lucide-react';
 import startScreenImage from '../assets/images/splashes/TDMD-START.png';
 import crusaderPortrait from '../assets/images/heroes/crusader/crusader-portrait.png';
 import crusaderIcon from '../assets/images/heroes/crusader/crusader-icon.png';
