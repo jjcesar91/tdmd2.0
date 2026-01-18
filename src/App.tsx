@@ -80,7 +80,7 @@ export default function TheDragonMustDie() {
   const [showTapLabel, setShowTapLabel] = useState<boolean>(false);
 
   // Audio Hook
-  const { playClick } = useAudioManager(introPhase);
+  const { playClick, startMusic } = useAudioManager(introPhase);
 
   useEffect(() => {
     if (introPhase === 'STUDIO') {
@@ -121,7 +121,7 @@ export default function TheDragonMustDie() {
     return (
       <IntroScreen 
         phase={introPhase as 'STUDIO' | 'SPLASH'} 
-        onSplashClick={() => { playClick(); setIntroPhase('NONE'); }}
+        onSplashClick={() => { playClick(); startMusic(); setIntroPhase('NONE'); }}
         showTapLabel={showTapLabel}
       />
     );
@@ -133,7 +133,7 @@ export default function TheDragonMustDie() {
   }
   
   if (view === 'START') {
-    return <StartScreen onStart={() => { playClick(); startDraft(); }} />;
+    return <StartScreen onStart={() => { playClick(); startMusic(); startDraft(); }} />;
   }
 
   if (view === 'HERO_SELECTION') {

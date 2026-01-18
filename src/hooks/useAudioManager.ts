@@ -10,6 +10,14 @@ export const useAudioManager = (introPhase: string) => {
         audio.play().catch(e => console.log("Audio play failed", e));
     };
 
+    const startMusic = () => {
+        if (!themeAudioRef.current) {
+            themeAudioRef.current = new Audio(themeMusic);
+            themeAudioRef.current.loop = true;
+        }
+        themeAudioRef.current.play().catch(e => console.log("Manual music start failed", e));
+    };
+
     useEffect(() => {
         if (introPhase === 'SPLASH') {
            const musicTimer = setTimeout(() => {
@@ -39,5 +47,5 @@ export const useAudioManager = (introPhase: string) => {
         }
     }, [introPhase]);
 
-    return { playClick };
+    return { playClick, startMusic };
 };
