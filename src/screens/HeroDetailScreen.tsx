@@ -1,13 +1,14 @@
 import { Heart, Sword, Shield, Eye, Crown, Skull, Swords, Target, Layers, RefreshCw, FlaskConical, X, Lock } from 'lucide-react';
+import startScreenImage from '../assets/images/splashes/TDMD-START.png';
 import { Hero } from '../types';
-import { Card } from './Card';
+import { Card } from '../components/Card';
 
-interface HeroDetailViewProps {
+interface HeroDetailScreenProps {
   hero: Hero;
   onClose: () => void;
 }
 
-export const HeroDetailView = ({ hero, onClose }: HeroDetailViewProps) => {
+export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
   const getLevelProgression = (heroId: string) => {
     if (heroId === 'crusader') {
       return [
@@ -161,22 +162,31 @@ export const HeroDetailView = ({ hero, onClose }: HeroDetailViewProps) => {
   const passiveUpgradeLevel = hero.id === 'crusader' ? 4 : (hero.id === 'prophet' ? 4 : (hero.id === 'ranger' ? 2 : undefined));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-2xl bg-gradient-to-br from-stone-900 via-stone-950 to-black border-2 border-amber-600/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] overflow-y-auto custom-scrollbar relative">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/90 backdrop-blur-sm animate-fade-in font-serif"
+      style={{ animationDuration: '0.3s' }}
+    >
+      <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full flex flex-col relative overflow-hidden shadow-2xl border-x-4 border-stone-900 bg-stone-950">
+        
+        {/* Background Image & Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img src={startScreenImage} alt="" className="w-full h-full object-cover opacity-50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-stone-950/90 via-stone-950/40 to-stone-950/90"></div>
+        </div>
+
         {/* Top Decorative Bar */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent z-20" />
+        <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent z-20" />
 
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-stone-900/90 border-2 border-amber-600/40 hover:border-amber-500 flex items-center justify-center transition-all hover:scale-110 group"
+          className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-stone-900/90 border-2 border-indigo-500/40 hover:border-indigo-400 flex items-center justify-center transition-all hover:scale-110 group"
         >
-          <X size={20} className="text-amber-600 group-hover:text-amber-400" />
+          <X size={20} className="text-indigo-400 group-hover:text-indigo-300" />
         </button>
 
-        {/* Content Container */}
-        <div className="relative z-10 p-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 p-6 pt-12">
           {/* Stats Bar */}
           <div className="flex justify-center gap-4 mb-6">
             <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-950/80 to-red-900/60 border-2 border-red-700/50 rounded-lg shadow-lg">
@@ -253,13 +263,13 @@ export const HeroDetailView = ({ hero, onClose }: HeroDetailViewProps) => {
               <div className="text-center">
                 <div className="inline-block relative">
                   {/* Banner background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-900/50 to-transparent blur-sm" />
-                  <h2 className="relative text-3xl font-black font-serif text-amber-400 tracking-wider px-8 py-2">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-900/50 to-transparent blur-sm" />
+                  <h2 className="relative text-3xl font-black font-serif text-indigo-400 tracking-wider px-8 py-2">
                     {hero.name}
                   </h2>
                   {/* Decorative lines */}
-                  <div className="absolute left-0 top-1/2 w-6 h-0.5 bg-gradient-to-r from-transparent to-amber-600" />
-                  <div className="absolute right-0 top-1/2 w-6 h-0.5 bg-gradient-to-l from-transparent to-amber-600" />
+                  <div className="absolute left-0 top-1/2 w-6 h-0.5 bg-gradient-to-r from-transparent to-indigo-600" />
+                  <div className="absolute right-0 top-1/2 w-6 h-0.5 bg-gradient-to-l from-transparent to-indigo-600" />
                 </div>
                 <div className="text-sm text-stone-400 uppercase tracking-widest mt-1">{hero.archetype}</div>
               </div>

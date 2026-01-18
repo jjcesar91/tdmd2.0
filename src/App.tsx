@@ -5,7 +5,7 @@ import { useRunState } from './hooks/useRunState';
 import { useCombatState } from './hooks/useCombatState';
 import { useDraftLogic } from './hooks/useDraftLogic';
 import { useGameLoop } from './hooks/useGameLoop';
-import { HeroDetailView } from './components/HeroDetailView';
+import { HeroDetailScreen } from './screens/HeroDetailScreen';
 // Screens
 import { IntroScreen } from './screens/IntroScreen';
 import { StartScreen } from './screens/StartScreen';
@@ -127,17 +127,14 @@ export default function TheDragonMustDie() {
     );
   }
 
-  // Hero Detail View Modal (renders on top of any view)
-  if (heroDetailView) {
-    return <HeroDetailView hero={heroDetailView} onClose={() => setHeroDetailView(null)} />;
-  }
-  
+  let mainContent;
+
   if (view === 'START') {
-    return <StartScreen onStart={() => { playClick(); startMusic(); startDraft(); }} />;
+    mainContent = <StartScreen onStart={() => { playClick(); startMusic(); startDraft(); }} />;
   }
 
-  if (view === 'HERO_SELECTION') {
-    return (
+  else if (view === 'HERO_SELECTION') {
+    mainContent = (
       <HeroSelectionScreen 
         selectedHeroes={selectedHeroes}
         onHeroSelect={handleHeroSelect}
@@ -150,8 +147,8 @@ export default function TheDragonMustDie() {
     );
   }
 
-  if (view === 'LANE_ASSIGNMENT') {
-    return (
+  else if (view === 'LANE_ASSIGNMENT') {
+    mainContent = (
       <LaneAssignmentScreen
         selectedHeroes={selectedHeroes}
         onDragStart={handleDragStart}
@@ -166,8 +163,8 @@ export default function TheDragonMustDie() {
     );
   }
 
-  if (view === 'MAP') {
-     return (
+  else if (view === 'MAP') {
+    mainContent = (
        <MapScreen 
          mapNode={mapNode}
          enterCombat={(type) => enterCombat(type)}
@@ -175,8 +172,8 @@ export default function TheDragonMustDie() {
      );
   }
 
-  if (view === 'COMBAT' && combatState) {
-    return (
+  else if (view === 'COMBAT' && combatState) {
+    mainContent = (
       <CombatScreen
         combatState={combatState}
         showDeckModal={showDeckModal}
@@ -203,17 +200,31 @@ export default function TheDragonMustDie() {
     );
   }
 
-  if (view === 'VICTORY') {
-    return <VictoryScreen onRestart={() => setView('START')} />;
+  else if (view === 'VICTORY') {
+    mainContent = <VictoryScreen onRestart={() => setView('START')} />;
   }
 
-  if (view === 'GAMEOVER' || view === 'GAME_OVER') {
-    return <GameOverScreen onRestart={() => setView('START')} />;
+  else if (view === 'GAMEOVER' || view === 'GAME_OVER') {
+    mainContent = <GameOverScreen onRestart={() => setView('START')} />;
+  }
+
+  else {
+    mainContent = (
+      <div className="w-full h-screen bg-black text-white flex items-center justify-center">
+         <button onClick={() => setView('START')} className="px-6 py-2 border rounded">Reset Game</button>
+      </div>
+    );
   }
 
   return (
-    <div className="w-full h-screen bg-black text-white flex items-center justify-center">
-       <button onClick={() => setView('START')} className="px-6 py-2 border rounded">Reset Game</button>
-    </div>
+    <>
+      {mainContent}
+      {heroDetailView && (
+        <HeroDetailScreen 
+          hero={heroDetailView} 
+          onClose={() => setHeroDetailView(null)} 
+        />
+      )}
+    </>
   );
 }
