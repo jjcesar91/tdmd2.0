@@ -20,7 +20,9 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: false,
     lore: 'An old veteran, back to action to avenge its family',
-    cards: []
+    cards: [
+      { id: 'c_cleave', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Cleave', desc: 'Deal 2. Also deal 2 to adjacent lanes.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL' },
+    ]
   },
   {
     id: 'ranger',
@@ -87,8 +89,8 @@ export const HEROES_DB: Hero[] = [
     locked: true,
     lore: "Daughter of crown distant relative, tend to few land survivor aside the Governor",
     cards: [
-      { id: 'pri_1', type: 'SKILL', value: 1, name: 'Grace', desc: 'Heal 1.', range: 1 },
-      { id: 'pri_2', type: 'DEFENSE', value: 1, name: 'Protect', desc: 'Prevent 1.', range: 1 },
+      { id: 'pri_1', type: 'BASIC', actionType: 'SKILL', value: 1, name: 'Grace', desc: 'Heal 1.', range: 1 },
+      { id: 'pri_2', type: 'BASIC', actionType: 'DEFENSE', value: 1, name: 'Protect', desc: 'Prevent 1.', range: 1 },
     ]
   },
   {

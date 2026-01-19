@@ -120,7 +120,7 @@ export function useGameLoop({
             if (heroLevel >= 5) {
               // Level 5: Add 1x Nothing to Lose
               levelCards.push(
-                { id: 'c_nothing', type: 'SKILL', value: 0, name: 'Nothing to Lose', desc: 'Tank all lanes this turn.', effect: 'TANK_ALL', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
+                { id: 'c_nothing', type: 'BASIC', actionType: 'SKILL', value: 0, name: 'Nothing to Lose', desc: 'Tank all lanes this turn.', effect: 'TANK_ALL', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
               );
             }
           }
@@ -140,8 +140,8 @@ export function useGameLoop({
             if (heroLevel >= 4) {
               // Level 4: Add 2x Mark of Hunter
               levelCards.push(
-                { id: 'r_mark', type: 'FAST', value: 0, name: 'Mark of Hunter', desc: 'Enemy gets double damage this round.', effect: 'MARK_HUNTER', ownerId: 'ranger', archetype: 'BALANCE' as const, uid: Math.random() },
-                { id: 'r_mark', type: 'FAST', value: 0, name: 'Mark of Hunter', desc: 'Enemy gets double damage this round.', effect: 'MARK_HUNTER', ownerId: 'ranger', archetype: 'BALANCE' as const, uid: Math.random() }
+                { id: 'r_mark', type: 'BASIC', speed: 'FAST', value: 0, name: 'Mark of Hunter', desc: 'Enemy gets double damage this round.', effect: 'MARK_HUNTER', ownerId: 'ranger', archetype: 'BALANCE' as const, uid: Math.random() },
+                { id: 'r_mark', type: 'BASIC', speed: 'FAST', value: 0, name: 'Mark of Hunter', desc: 'Enemy gets double damage this round.', effect: 'MARK_HUNTER', ownerId: 'ranger', archetype: 'BALANCE' as const, uid: Math.random() }
               );
             }
           }
@@ -152,16 +152,16 @@ export function useGameLoop({
               // Level 2: Add 2x Foretell
               const improveValue = heroLevel >= 4 ? 2 : 1; // Level 4 increases Improve by 1
               levelCards.push(
-                { id: 'p_foretell', type: 'FAST', value: improveValue, name: 'Foretell', desc: `Improve ${improveValue}; Range 1`, effect: 'IMPROVE', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() },
-                { id: 'p_foretell', type: 'FAST', value: improveValue, name: 'Foretell', desc: `Improve ${improveValue}; Range 1`, effect: 'IMPROVE', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() }
+                { id: 'p_foretell', type: 'BASIC', speed: 'FAST', value: improveValue, name: 'Foretell', desc: `Improve ${improveValue}; Range 1`, effect: 'IMPROVE', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() },
+                { id: 'p_foretell', type: 'BASIC', speed: 'FAST', value: improveValue, name: 'Foretell', desc: `Improve ${improveValue}; Range 1`, effect: 'IMPROVE', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() }
               );
             }
             if (heroLevel >= 3) {
               // Level 3: Add 2x Mending
               const healValue = heroLevel >= 4 ? 2 : 1; // Level 4 increases Heal by 1
               levelCards.push(
-                { id: 'p_mending', type: 'FAST', value: healValue, name: 'Mending', desc: `Heal ${healValue}; Range 1`, effect: 'HEAL', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() },
-                { id: 'p_mending', type: 'FAST', value: healValue, name: 'Mending', desc: `Heal ${healValue}; Range 1`, effect: 'HEAL', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() }
+                { id: 'p_mending', type: 'BASIC', speed: 'FAST', value: healValue, name: 'Mending', desc: `Heal ${healValue}; Range 1`, effect: 'HEAL', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() },
+                { id: 'p_mending', type: 'BASIC', speed: 'FAST', value: healValue, name: 'Mending', desc: `Heal ${healValue}; Range 1`, effect: 'HEAL', range: 1, ownerId: 'prophet', archetype: 'KINGDOM' as const, uid: Math.random() }
               );
             }
             if (heroLevel >= 5) {
@@ -212,10 +212,19 @@ export function useGameLoop({
               const distance = Math.abs(idx - ownerIndex);
               const range = card.range || 0;
               if (distance > range) { addLog(range > 0 ? `Out of Range (${range})` : "Must play in Hero's lane"); return; }
+
+              // Lane restriction check
+              if (card.lanes && card.lanes !== 'ALL') {
+                  const allowedIdx = card.lanes === 'FRONT' ? 0 : card.lanes === 'MID' ? 1 : 2;
+                  if (idx !== allowedIdx) {
+                      addLog(`Must be played in ${card.lanes} lane`);
+                      return;
+                  }
+              }
           } else { if (!playerUnits[idx]) return; }
     
           // Handle FAST cards - activate immediately and discard
-          if (card.type === 'FAST') {
+          if (card.speed === 'FAST') {
               const result = processCardEffect(combatState, card, selectedCardIdx, idx);
               
               if (result.logs && result.logs.length > 0) {

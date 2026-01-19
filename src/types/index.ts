@@ -16,6 +16,8 @@ export interface Card {
   effect?: string;
   revealed?: boolean;
   archetype?: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
+  speed?: 'NORMAL' | 'FAST';
+  lanes?: 'ALL' | 'FRONT' | 'MID' | 'REAR';
 }
 
 export interface Buffs {

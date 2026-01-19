@@ -84,6 +84,22 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
 
   const scheme = hero.archetype && theme[hero.archetype] ? theme[hero.archetype] : theme.KINGDOM;
 
+  // Calculate card counts for display
+  const cardCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (hero.cards) {
+       hero.cards.forEach(c => {
+           // BASIC cards are always x6
+           if (c.type === 'BASIC') {
+             counts.set(c.id, 6);
+           } else {
+             counts.set(c.id, (counts.get(c.id) || 0) + 1);
+           }
+       });
+    }
+    return counts;
+  }, [hero.cards]);
+
   // Filter cards logic - simulation
   // In a real scenario, you'd filter `hero.cards` based on `visualLevel`.
   // For now, we just list unique cards.
@@ -201,7 +217,7 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                              >
                                  <span className="text-sm font-medium truncate">{card.name}</span>
                                  <span className="text-[10px] bg-stone-950 px-1.5 rounded text-stone-500 font-mono">
-                                     {card.value}
+                                     x{cardCounts.get(card.id) || 1}
                                  </span>
                              </div>
                          ))}
@@ -217,6 +233,7 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                                         {...activeCard} 
                                         smallMode={false}
                                         previewMode={true}
+                                        compactPreview={true}
                                         className="h-full w-auto aspect-[2/3] max-w-full shadow-2xl hover:scale-[1.02] transition-transform duration-200"
                                     />
                                </div>

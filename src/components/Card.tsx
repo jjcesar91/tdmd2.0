@@ -1,6 +1,20 @@
 import React, { useRef } from 'react';
-import { Sword, Sparkles, Crown, FlaskConical } from 'lucide-react';
+import { Sword, Sparkles, Crown, FlaskConical, Zap } from 'lucide-react';
 import { Card as CardModel } from '../types';
+
+import crusaderIcon from '../assets/images/heroes/crusader/crusader-icon.png';
+import rangerIcon from '../assets/images/heroes/loneranger/loneranger-icon.png';
+import prophetIcon from '../assets/images/heroes/madprophet/madprophet-icon.png';
+import alchemistIcon from '../assets/images/heroes/alchemist/alchemist-icon.png';
+
+const HERO_ICONS: Record<string, string> = {
+  crusader: crusaderIcon,
+  ranger: rangerIcon,
+  loneranger: rangerIcon,
+  prophet: prophetIcon,
+  madprophet: prophetIcon,
+  alchemist: alchemistIcon
+};
 
 interface CardProps extends Partial<CardModel> {
   isHidden?: boolean;
@@ -12,9 +26,10 @@ interface CardProps extends Partial<CardModel> {
   className?: string;
   smallMode?: boolean;
   previewMode?: boolean;
+  compactPreview?: boolean;
 }
 
-export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, className = "", smallMode = false, previewMode = false }: CardProps) => {
+export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, speed, className = "", smallMode = false, previewMode = false, compactPreview = false }: CardProps) => {
   const timerRef = useRef<number | null>(null);
 
   const handleStart = (_e: React.MouseEvent | React.TouchEvent) => {
@@ -61,7 +76,6 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
     );
   }
 
-  const isBasic = type === 'BASIC';
   const isSignature = type === 'SIGNATURE';
   const isUltimate = type === 'ULTIMATE';
   
@@ -99,56 +113,76 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
         backgroundSize: '20px 20px'
       }} />
 
-      {/* Top corner indicator */}
-      {!smallMode && range !== undefined && range > 0 && (
-        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-stone-950/80 border border-stone-600 flex items-center justify-center z-10">
-          <span className={`${previewMode ? 'text-sm' : 'text-[8px]'} font-bold text-stone-300`}>R{range}</span>
-        </div>
+
+      {/* Top corner indicators - Speed & Range */}
+      {!smallMode && (
+         <div className="absolute top-2 right-2 z-10 flex gap-1 items-start">
+             {/* Speed Icon (only if FAST) */}
+             {speed === 'FAST' && (
+                <div className="w-6 h-6 rounded-full bg-yellow-950/90 border border-yellow-500/50 flex items-center justify-center shadow-[0_0_10px_rgba(234,179,8,0.3)] backdrop-blur-sm" title="FAST Speed">
+                   <Zap size={previewMode ? (compactPreview ? 12 : 14) : 10} className="text-yellow-400 fill-yellow-400/20" />
+                </div>
+             )}
+
+             {/* Range Badge */}
+             {range !== undefined && range > 0 && (
+                <div className="w-6 h-6 rounded-full bg-stone-950/80 border border-stone-600 flex items-center justify-center shadow-lg backdrop-blur-sm">
+                  <span className={`${previewMode ? (compactPreview ? 'text-[10px]' : 'text-sm') : 'text-[8px]'} font-bold text-stone-300`}>R{range}</span>
+                </div>
+             )}
+         </div>
       )}
 
-      {/* Main content - centered vertically */}
-      <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
-         {/* Icon above name */}
-         {!smallMode && (
-           <div className={`${iconColor} drop-shadow-lg mb-2`}>
-              {isPotion ? <FlaskConical size={32}/> : (isUltimate ? <Crown size={32} /> : (isSignature ? <Sparkles size={32}/> : <Sword size={32} />))}
+      {/* Card Content - Icon Area (Top) */}
+      {!smallMode ? (
+        <>
+           <div className="flex-1 flex items-center justify-center relative z-10">
+               <div className={`${iconColor} drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform duration-300`}>
+                  {isPotion ? <FlaskConical size={compactPreview ? 48 : 64}/> : (isUltimate ? <Crown size={compactPreview ? 48 : 64} /> : (isSignature ? <Sparkles size={compactPreview ? 48 : 64}/> : <Sword size={compactPreview ? 48 : 64} />))}
+               </div>
            </div>
-         )}
-         
-         {/* Icon for small mode */}
-         {smallMode && (
+
+           {/* Card Content - Text Area (Bottom) - Solid Background */}
+           <div className="relative z-20 w-full bg-stone-950/95 border-t border-stone-700 flex flex-col">
+              
+              {/* Name Strip */}
+              <div className="w-full bg-stone-900 border-b border-stone-800 py-0.5 px-2 text-center shadow-inner">
+                <span className={`${previewMode ? (compactPreview ? 'text-[9px]' : 'text-xs') : 'text-[5px]'} font-bold text-stone-100 uppercase tracking-widest font-serif block`}>{name}</span>
+              </div>
+
+              {/* Description Body */}
+              <div className={`w-full px-2 py-2 flex items-center justify-center min-h-[50px] ${previewMode ? '' : 'line-clamp-3'}`}>
+                  <p className={`${previewMode ? (compactPreview ? 'text-[8px]' : 'text-xs') : 'text-[7px]'} text-center text-stone-300 leading-relaxed font-medium`}>
+                    {desc}
+                  </p>
+              </div>
+
+               {/* Stats / Footer - Integrated into bottom block */}
+               <div className="w-full px-2 py-1.5 bg-black/60 border-t border-stone-800 flex justify-between items-center">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`${previewMode ? (compactPreview ? 'text-[8px]' : 'text-xs') : 'text-[7px]'} ${isUltimate ? 'text-amber-500 font-bold' : (isSignature ? 'text-cyan-500 font-bold' : 'text-stone-400')} uppercase tracking-wider`}>{typeLabel}</span>
+                  </div>
+
+                  {ownerId && HERO_ICONS[ownerId] && (
+                     <div className="flex items-center justify-center bg-stone-800 rounded-full p-0.5 border border-stone-600">
+                       <img 
+                         src={HERO_ICONS[ownerId]} 
+                         alt={ownerId} 
+                         className={`${previewMode ? (compactPreview ? 'w-2.5 h-2.5' : 'w-4 h-4') : 'w-2.5 h-2.5'} object-contain`}
+                         style={{ imageRendering: 'pixelated' }}
+                       />
+                     </div>
+                  )}
+               </div>
+           </div>
+        </>
+      ) : (
+         /* Small Mode (Hand/Pile) - Kept simple */
+         <div className="flex-1 flex flex-col items-center justify-center px-3 py-2 relative z-10">
            <div className={`${iconColor} drop-shadow-lg`}>
               {isPotion ? <FlaskConical size={20}/> : (isUltimate ? <Crown size={20} /> : (isSignature ? <Sparkles size={20}/> : <Sword size={20} />))}
            </div>
-         )}
-
-         {/* Card Name - Always centered */}
-         {!smallMode && (
-           <div className="px-1 py-0.5 bg-stone-950/90 border border-stone-700 mb-1">
-             <span className={`${previewMode ? 'text-sm' : 'text-[5px]'} font-bold text-stone-100 uppercase tracking-wide font-serif`}>{name}</span>
-           </div>
-         )}
-          
-         {/* Description below name */}
-         {!smallMode && (
-           <div className={`${previewMode ? 'text-base' : 'text-[7px]'} text-center text-stone-300 leading-tight w-full px-2 ${previewMode ? '' : 'line-clamp-3'}`}>
-             {desc}
-           </div>
-         )}
-      </div>
-
-      {/* Bottom Info Bar */}
-      {!smallMode && (
-        <div className="w-full px-2 py-1 bg-black/40 border-t border-stone-800 flex justify-between items-center relative z-10">
-          <div className="flex items-center gap-1">
-            <span className={`${previewMode ? 'text-xs' : 'text-[7px]'} ${isUltimate ? 'text-amber-500 font-bold' : (isSignature ? 'text-cyan-500 font-bold' : 'text-stone-400')} uppercase tracking-wider`}>{typeLabel}</span>
-          </div>
-          {ownerId && (
-            <div className={`${previewMode ? 'text-xs' : 'text-[7px]'} font-bold text-stone-500 uppercase tracking-wider`}>
-              {ownerId === 'crusader' ? 'KNIGHT' : ownerId.toUpperCase()}
-            </div>
-          )}
-        </div>
+         </div>
       )}
     </div>
   );

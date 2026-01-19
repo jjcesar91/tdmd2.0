@@ -112,6 +112,26 @@ export const resolveLane = (
             }
             msg += `Hit ${finalDmg}! `;
         }
+
+        // CLEAVE: Splash damage to adjacent lanes relative to TARGET
+        if (pCard.effect === 'CLEAVE') {
+            const adjIndices = [targetIdx - 1, targetIdx + 1];
+            adjIndices.forEach(adjIdx => {
+                if (adjIdx >= 0 && adjIdx <= 2 && eUnits[adjIdx] && !eUnits[adjIdx]!.dead) {
+                     let adjReduction = (enemyZones[adjIdx]?.actionType === 'DEFENSE') ? (enemyZones[adjIdx]?.value || 0) : 0;
+                     let adjFinalDmg = Math.max(0, dmg - adjReduction);
+                     
+                     if (adjFinalDmg > 0) {
+                         eUnits[adjIdx]!.hp -= adjFinalDmg;
+                         if (eUnits[adjIdx]!.hp <= 0) {
+                             eUnits[adjIdx]!.dead = true;
+                             eUnits[adjIdx]!.hp = 0;
+                         }
+                         msg += `Cleave ${adjFinalDmg}! `;
+                     }
+                }
+            });
+        }
     }
 
     // --- Enemy Attack Phase ---
