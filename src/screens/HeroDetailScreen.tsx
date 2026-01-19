@@ -1,7 +1,17 @@
-import { Heart, Sword, Shield, Eye, Crown, Skull, Swords, Target, Layers, RefreshCw, FlaskConical, X, Lock } from 'lucide-react';
-import startScreenImage from '../assets/images/splashes/TDMD-START.png';
-import { Hero } from '../types';
-import { Card } from '../components/Card';
+import { X, Sword, Zap, Flame, Plus } from 'lucide-react';
+import { Hero, Card } from '../types';
+import { useState, useMemo } from 'react';
+import { Card as CardComponent } from '../components/Card';
+
+const getHeroImage = (heroId: string) => {
+  const map: Record<string, string> = {
+    'alchemist': '/src/assets/images/heroes/alchemist/alchemist-portrait.png',
+    'crusader': '/src/assets/images/heroes/crusader/crusader-portrait.png',
+    'ranger': '/src/assets/images/heroes/loneranger/loneranger-portrait.png',
+    'prophet': '/src/assets/images/heroes/madprophet/madprophet-portrait.png',
+  };
+  return map[heroId] || `/src/assets/images/heroes/${heroId}/${heroId}-portrait.png`;
+};
 
 interface HeroDetailScreenProps {
   hero: Hero;
@@ -9,396 +19,208 @@ interface HeroDetailScreenProps {
 }
 
 export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
-  const getLevelProgression = (heroId: string) => {
-    if (heroId === 'crusader') {
-      return [
-        { level: 1, unlock: 'Base kit: 3x Vanguard, 2x Behind Me', locked: false },
-        { level: 2, unlock: 'Unlock Provoke active ability', locked: false },
-        { level: 3, unlock: 'Add 2x Eye for an Eye to deck', locked: false },
-        { level: 4, unlock: 'Passive: +2 Gray HP per turn (was +1)', locked: false },
-        { level: 5, unlock: 'Add 1x Nothing to Lose to deck', locked: false }
-      ];
-    }
-    if (heroId === 'prophet') {
-      return [
-        { level: 1, unlock: 'Base kit: 2x Divination', locked: false },
-        { level: 2, unlock: 'Add 2x Foretell to deck', locked: false },
-        { level: 3, unlock: 'Add 2x Mending to deck', locked: false },
-        { level: 4, unlock: 'Improve and Heal increased by 1', locked: false },
-        { level: 5, unlock: 'Divination becomes Pick', locked: false }
-      ];
-    }
-    if (heroId === 'ranger') {
-      return [
-        { level: 1, unlock: 'Base kit: 3x Arrow Shot, 2x Track, Camouflage active', locked: false },
-        { level: 2, unlock: 'Passive: Revealed enemies take +1 damage', locked: false },
-        { level: 3, unlock: 'Arrow Shot damage increased to 2', locked: false },
-        { level: 4, unlock: 'Add 2x Mark of Hunter to deck', locked: false },
-        { level: 5, unlock: 'Camouflage grants CRIT (2x damage)', locked: false }
-      ];
-    }
-    // Default progression for other heroes
-    return [
-      { level: 1, unlock: 'Base abilities unlocked', locked: false },
-      { level: 2, unlock: 'Enhanced passive', locked: true },
-      { level: 3, unlock: 'New card added to deck', locked: true },
-      { level: 4, unlock: 'Ability upgrade', locked: true },
-      { level: 5, unlock: 'Ultimate card unlocked', locked: true }
-    ];
-  };
+  // Use local state to simulate/scale stats based on selected star level.
+  const [visualLevel, setVisualLevel] = useState<number>(hero.level || 1);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
-  const getActiveAbility = (heroId: string) => {
-    if (heroId === 'crusader') return { name: 'Provoke', desc: 'Force an enemy card to attack. The attack is revealed and stays face-up.', cooldown: 0 };
-    if (heroId === 'prophet') return { name: 'Scry All', desc: 'Reveal all enemy cards for this turn.', cooldown: 2 };
-    if (heroId === 'ranger') return { name: 'Camouflage', desc: 'Become immune to all damage this turn.', cooldown: 2 };
-    return { name: 'Unknown', desc: 'No active ability.', cooldown: 0 };
-  };
-
-  // Get all unique cards including level-unlocked ones
-  const getAllUniqueCards = (heroId: string) => {
-    const cardsWithLevel: { card: any; unlockLevel: number }[] = [];
-    
-    // Add base cards (level 1)
-    if (hero.cards) {
-      const seenIds = new Set<string>();
-      hero.cards.forEach((card: any) => {
-        if (!seenIds.has(card.id)) {
-          seenIds.add(card.id);
-          cardsWithLevel.push({ card: { ...card }, unlockLevel: 1 });
-        }
-      });
-    }
-    
-    // Add level-specific cards
-    if (heroId === 'crusader') {
-      // Level 3: Eye for an Eye
-      cardsWithLevel.push({
-        card: {
-          id: 'c_eye',
-          type: 'ATTACK',
-          value: 0,
-          name: 'Eye for an Eye',
-          desc: 'Deal X equal to your missing hearts.',
-          effect: 'EYE_FOR_EYE',
-          ownerId: 'crusader',
-          archetype: 'VENGEANCE' as const
-        },
-        unlockLevel: 3
-      });
-      
-      // Level 5: Nothing to Lose
-      cardsWithLevel.push({
-        card: {
-          id: 'c_nothing',
-          type: 'SKILL',
-          value: 0,
-          name: 'Nothing to Lose',
-          desc: 'All allies become Immune this turn. Exhaust.',
-          effect: 'NON_RESISTANT', // Placeholder
-          ownerId: 'crusader',
-          archetype: 'VENGEANCE' as const
-        },
-        unlockLevel: 5
-      });
-    }
-    else if (heroId === 'prophet') {
-      // Level 2: Foretell
-      cardsWithLevel.push({
-        card: {
-          id: 'p_fore',
-          type: 'SKILL',
-          value: 0,
-          name: 'Foretell',
-          desc: 'Scry 1. Draw 1.',
-          effect: 'SCRY_DRAW',
-          ownerId: 'prophet',
-          archetype: 'KINGDOM' as const
-        },
-        unlockLevel: 2
-      });
-      
-      // Level 3: Mending
-       cardsWithLevel.push({
-        card: {
-          id: 'p_mend',
-          type: 'SKILL',
-          value: 2,
-          name: 'Mending',
-          desc: 'Heal 2.',
-          effect: 'HEAL',
-          ownerId: 'prophet',
-          archetype: 'KINGDOM' as const
-        },
-        unlockLevel: 3
-      });
-    }
-    else if (heroId === 'ranger') {
-       // Level 4: Mark of Hunter
-       cardsWithLevel.push({
-        card: {
-          id: 'r_mark',
-          type: 'SKILL',
-          value: 0,
-          name: 'Mark',
-          desc: 'Enemy takes double damage next hit.',
-          effect: 'MARK',
-          ownerId: 'ranger',
-          archetype: 'BALANCE' as const
-        },
-        unlockLevel: 4
-      });
-    }
-
-    return cardsWithLevel;
-  };
-
-  const currentLevel = hero.level || 1;
-  const progression = getLevelProgression(hero.id);
-  const activeAbility = getActiveAbility(hero.id);
-  const uniqueCards = getAllUniqueCards(hero.id);
+  const heroImage = getHeroImage(hero.id);
   
-  const activeUnlockLevel = hero.id === 'crusader' ? 2 : (hero.id === 'ranger' ? 1 : (hero.id === 'prophet' ? 1 : 1));
-  const passiveUnlockLevel = 1;
-  const passiveUpgradeLevel = hero.id === 'crusader' ? 4 : (hero.id === 'prophet' ? 4 : (hero.id === 'ranger' ? 2 : undefined));
+  // Theme logic based on archetype
+  const theme = {
+    VENGEANCE: {
+      primary: 'red',
+      secondary: 'pink',
+      border: 'border-red-900/50',
+      bannerBg: 'bg-[#5e1c1c]',
+      bannerBorder: 'border-red-500',
+      textMain: 'text-red-100',
+      textAccent: 'text-pink-400',
+      gradient: 'from-red-900/30',
+      skillRing: 'border-red-600',
+      cardHighlight: 'ring-pink-500',
+    },
+    BALANCE: {
+      primary: 'indigo',
+      secondary: 'green',
+      border: 'border-indigo-900/50',
+      bannerBg: 'bg-[#1c2e5e]',
+      bannerBorder: 'border-green-500',
+      textMain: 'text-indigo-100',
+      textAccent: 'text-green-400',
+      gradient: 'from-indigo-900/30',
+      skillRing: 'border-green-600',
+      cardHighlight: 'ring-green-500',
+    },
+    KINGDOM: {
+      primary: 'slate',
+      secondary: 'amber',
+      border: 'border-slate-800',
+      bannerBg: 'bg-[#292524]',
+      bannerBorder: 'border-amber-400',
+      textMain: 'text-slate-100',
+      textAccent: 'text-amber-400',
+      gradient: 'from-slate-700/30',
+      skillRing: 'border-amber-500',
+      cardHighlight: 'ring-amber-500',
+    },
+    POWER: {
+      primary: 'purple',
+      secondary: 'yellow',
+      border: 'border-purple-900/50',
+      bannerBg: 'bg-[#3b0764]',
+      bannerBorder: 'border-yellow-500',
+      textMain: 'text-purple-100',
+      textAccent: 'text-yellow-400',
+      gradient: 'from-purple-900/30',
+      skillRing: 'border-purple-600',
+      cardHighlight: 'ring-yellow-500',
+    }
+  };
+
+  const scheme = hero.archetype && theme[hero.archetype] ? theme[hero.archetype] : theme.KINGDOM;
+
+  // Filter cards logic - simulation
+  // In a real scenario, you'd filter `hero.cards` based on `visualLevel`.
+  // For now, we just list unique cards.
+  const cards = useMemo(() => {
+    if (!hero.cards) return [];
+    
+    // Deduplicate cards by ID
+    const uniqueMap = new Map<string, Card>();
+    hero.cards.forEach(c => {
+        if (!uniqueMap.has(c.id)) {
+            uniqueMap.set(c.id, c);
+        }
+    });
+    
+    // Add logic here if you want to filter cards that only unlock at `visualLevel`
+    // For now, returning all unique cards creates a better "deck list" feel.
+    return Array.from(uniqueMap.values());
+  }, [hero.cards, visualLevel]);
+
+  // Set default selected card
+  const activeCard = useMemo(() => {
+     if (selectedCardId) {
+         return cards.find(c => c.id === selectedCardId) || cards[0];
+     }
+     return cards.length > 0 ? cards[0] : null;
+  }, [cards, selectedCardId]);
+
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/90 backdrop-blur-sm animate-fade-in font-serif"
-      style={{ animationDuration: '0.3s' }}
-    >
-      <div className="h-full max-w-[56.25vh] aspect-[9/16] w-full flex flex-col relative overflow-hidden shadow-2xl border-x-4 border-stone-900 bg-stone-950">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+      <div className={`relative w-full h-full max-w-md bg-stone-900 overflow-hidden shadow-2xl flex flex-col border-[1px] ${scheme.border}`}>
         
-        {/* Background Image & Overlay */}
-        <div className="absolute inset-0 z-0">
-          <img src={startScreenImage} alt="" className="w-full h-full object-cover opacity-50" />
-          <div className="absolute inset-0 bg-gradient-to-b from-stone-950/90 via-stone-950/40 to-stone-950/90"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-stone-800 via-stone-900 to-black opacity-80" />
+
+        <div className="relative z-20 pt-2 flex justify-center">
+            <div className={`${scheme.bannerBg} border-2 ${scheme.bannerBorder} rounded-md px-12 py-1 shadow-lg transform skew-x-[-10deg]`}>
+                <h1 className={`${scheme.textMain} font-serif text-2xl font-bold tracking-widest transform skew-x-[10deg] uppercase drop-shadow-md flex gap-2`}>
+                    <span>The {hero.name}</span>
+                </h1>
+            </div>
         </div>
 
-        {/* Top Decorative Bar */}
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent z-20" />
-        <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent z-20" />
-
-        {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-stone-900/90 border-2 border-indigo-500/40 hover:border-indigo-400 flex items-center justify-center transition-all hover:scale-110 group"
+          className={`absolute top-2 right-2 z-50 w-10 h-10 bg-black/40 hover:bg-black/60 rounded-full flex items-center justify-center border-2 ${scheme.bannerBorder} shadow-lg ${scheme.textMain} transition-colors`}
         >
-          <X size={20} className="text-indigo-400 group-hover:text-indigo-300" />
+          <X size={24} strokeWidth={3} />
         </button>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10 p-6 pt-12">
-          {/* Stats Bar */}
-          <div className="flex justify-center gap-4 mb-6">
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-950/80 to-red-900/60 border-2 border-red-700/50 rounded-lg shadow-lg">
-              <Heart size={16} className="text-red-500" />
-              <div className="text-sm">
-                <span className="text-[10px] text-red-400 uppercase tracking-wider">HP</span>
-                <div className="text-lg font-black text-red-100">{hero.maxHp}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-950/80 to-amber-900/60 border-2 border-amber-700/50 rounded-lg shadow-lg">
-              <Sword size={16} className="text-amber-500" />
-              <div className="text-sm">
-                <span className="text-[10px] text-amber-400 uppercase tracking-wider">Cards</span>
-                <div className="text-lg font-black text-amber-100">{hero.cards?.length || 0}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-950/80 to-sky-900/60 border-2 border-sky-700/50 rounded-lg shadow-lg">
-              <Shield size={16} className="text-sky-500" />
-              <div className="text-sm">
-                <span className="text-[10px] text-sky-400 uppercase tracking-wider">Role</span>
-                <div className="text-lg font-black text-sky-100">{hero.role}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Hero Portrait Section */}
-          <div className="relative mb-6">
-            {/* Ornamental Frame */}
-            <div className="relative mx-auto w-48 h-48">
-              {/* Background glow */}
-              <div className="absolute inset-0 bg-gradient-to-b from-amber-600/20 via-amber-800/10 to-transparent rounded-full blur-2xl" />
-              
-              {/* Portrait Circle */}
-              <div className="relative w-full h-full rounded-full border-4 border-amber-600/60 bg-gradient-to-b from-stone-800 to-stone-950 flex items-center justify-center overflow-hidden shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-t from-amber-900/20 to-transparent" />
-                {/* Kingdom */}
-                {hero.id === 'prophet' && <Eye size={80} className="text-violet-500/80 relative z-10" />}
-                {hero.id === 'banner' && <Crown size={80} className="text-amber-500/80 relative z-10" />}
-                {hero.id === 'princess' && <Crown size={80} className="text-pink-500/80 relative z-10" />}
-                {hero.id === 'sentry' && <Shield size={80} className="text-slate-500/80 relative z-10" />}
-                {hero.id === 'lostprince' && <Crown size={80} className="text-gold-500/80 relative z-10" />}
-                
-                {/* Vengeance */}
-                {hero.id === 'crusader' && <Shield size={80} className="text-amber-500/80 relative z-10" />}
-                {hero.id === 'silenced' && <Skull size={80} className="text-red-500/80 relative z-10" />}
-                {hero.id === 'oathbreaker' && <Sword size={80} className="text-red-500/80 relative z-10" />}
-                {hero.id === 'captive' && <Swords size={80} className="text-red-500/80 relative z-10" />}
-                {hero.id === 'cursed' && <Skull size={80} className="text-purple-500/80 relative z-10" />}
-                
-                {/* Balance */}
-                {hero.id === 'ranger' && <Target size={80} className="text-green-500/80 relative z-10" />}
-                {hero.id === 'gravekeeper' && <Skull size={80} className="text-teal-500/80 relative z-10" />}
-                {hero.id === 'druid' && <Layers size={80} className="text-green-500/80 relative z-10" />}
-                {hero.id === 'hunter' && <Target size={80} className="text-brown-500/80 relative z-10" />}
-                {hero.id === 'entropy' && <RefreshCw size={80} className="text-indigo-500/80 relative z-10" />}
-                
-                {/* Power */}
-                {hero.id === 'alchemist' && <FlaskConical size={80} className="text-orange-500/80 relative z-10" />}
-                {hero.id === 'scavenger' && <Sword size={80} className="text-yellow-500/80 relative z-10" />}
-                {hero.id === 'witch' && <Skull size={80} className="text-purple-500/80 relative z-10" />}
-                {hero.id === 'dragonblood' && <Swords size={80} className="text-red-500/80 relative z-10" />}
-                {hero.id === 'fanatic' && <Eye size={80} className="text-red-500/80 relative z-10" />}
-              </div>
-
-              {/* Corner decorations */}
-              <div className="absolute -top-2 -left-2 w-8 h-8 border-l-4 border-t-4 border-amber-500/60 rounded-tl-lg" />
-              <div className="absolute -top-2 -right-2 w-8 h-8 border-r-4 border-t-4 border-amber-500/60 rounded-tr-lg" />
-              <div className="absolute -bottom-2 -left-2 w-8 h-8 border-l-4 border-b-4 border-amber-500/60 rounded-bl-lg" />
-              <div className="absolute -bottom-2 -right-2 w-8 h-8 border-r-4 border-b-4 border-amber-500/60 rounded-br-lg" />
+        <div className="relative flex-1 min-h-0 flex flex-col">
+            <div className="absolute inset-0 z-0">
+               <img 
+                 src={heroImage} 
+                 alt={hero.name}
+                 className="w-full h-full object-cover object-top opacity-90"
+                 onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://placehold.co/400x600/333/999?text=' + hero.name;
+                 }}
+               />
+               <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-stone-900/40" />
             </div>
 
-            {/* Name Banner */}
-            <div className="relative mt-4">
-              <div className="text-center">
-                <div className="inline-block relative">
-                  {/* Banner background */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-900/50 to-transparent blur-sm" />
-                  <h2 className="relative text-3xl font-black font-serif text-indigo-400 tracking-wider px-8 py-2">
-                    {hero.name}
-                  </h2>
-                  {/* Decorative lines */}
-                  <div className="absolute left-0 top-1/2 w-6 h-0.5 bg-gradient-to-r from-transparent to-indigo-600" />
-                  <div className="absolute right-0 top-1/2 w-6 h-0.5 bg-gradient-to-l from-transparent to-indigo-600" />
-                </div>
-                <div className="text-sm text-stone-400 uppercase tracking-widest mt-1">{hero.archetype}</div>
-              </div>
+            <div className="absolute top-20 left-4 flex flex-col gap-1 z-10">
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <div 
+                        key={i} 
+                        className="relative w-8 h-8 cursor-pointer hover:scale-110 transition-transform"
+                        onClick={() => setVisualLevel(i)}
+                    >
+                         <svg viewBox="0 0 24 24" fill={i <= visualLevel ? '#fbbf24' : '#44403c'} className="w-full h-full drop-shadow-md stroke-black stroke-2">
+                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                         </svg>
+                    </div>
+                ))}
             </div>
-          </div>
+        </div>
 
-          {/* Abilities Section */}
-          <div className="grid grid-cols-1 gap-4 mb-6">
-            {/* Passive Ability */}
-            <div className="bg-stone-900/60 border-2 border-stone-700/50 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-amber-800 border-2 border-amber-400/50 flex items-center justify-center shadow-lg">
-                  <Layers size={20} className="text-amber-100" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="text-xs text-amber-500 uppercase tracking-wider font-bold">Passive Ability</div>
-                    {currentLevel < passiveUnlockLevel && (
-                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-amber-600 rounded-full text-amber-400">
-                        Unlocks at Level {passiveUnlockLevel}
+        <div className={`relative z-10 bg-stone-900 border-t-4 ${scheme.border} pb-6 pt-12 px-4 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] h-[45%]`}>
+             
+             <div className="absolute -top-8 left-0 right-0 flex justify-center gap-3 z-30">
+                 {[0, 1, 2, 3, 4].map((i) => (
+                     <div key={i} className={`w-14 h-14 rounded-full bg-stone-800 border-2 ${scheme.skillRing} shadow-lg flex items-center justify-center relative overflow-hidden group`}>
+                         <div className={`absolute inset-0 bg-gradient-to-b ${scheme.gradient} to-stone-900 pointer-events-none`} />
+                         
+                         {i === 0 && <Flame className={scheme.textAccent} size={24} />}
+                         {i === 1 && <Sword className={scheme.textMain} size={24} />}
+                         {i === 2 && <Zap className={scheme.textAccent} size={24} />}
+                         {i >= 3 && <Plus className="text-stone-500" size={28} strokeWidth={4} />}
+
+                         {/* Selection ring */}
+                         {i === 2 && <div className={`absolute inset-0 border-2 ${scheme.textAccent} rounded-full animate-pulse opacity-50`} />}
+                     </div>
+                 ))}
+             </div>
+
+             <div className="flex h-full mt-4">
+
+                 {/* LEFT: Card List */}
+                 <div className="w-1/2 pr-2 flex flex-col h-full overflow-hidden border-r border-stone-700/50">
+                     <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${scheme.textAccent} border-b border-stone-700 pb-1`}>
+                         Deck Cards
+                     </div>
+                     <div className="flex-1 overflow-y-auto pr-1 gap-1 flex flex-col custom-scrollbar">
+                         {cards.map((card) => (
+                             <div 
+                                key={card.id}
+                                onClick={() => setSelectedCardId(card.id)}
+                                className={`
+                                    cursor-pointer p-2 rounded border transition-all flex items-center justify-between
+                                    ${activeCard?.id === card.id 
+                                        ? `bg-stone-800 border-l-4 ${scheme.bannerBorder}` 
+                                        : 'bg-stone-900/50 border-stone-800 hover:bg-stone-800'}
+                                    ${activeCard?.id === card.id ? scheme.textMain : 'text-stone-400'}
+                                `}
+                             >
+                                 <span className="text-sm font-medium truncate">{card.name}</span>
+                                 <span className="text-[10px] bg-stone-950 px-1.5 rounded text-stone-500 font-mono">
+                                     {card.value}
+                                 </span>
+                             </div>
+                         ))}
+                     </div>
+                 </div>
+                 
+                 {/* RIGHT: Card Preview */}
+                 <div className="w-1/2 flex items-center justify-center pl-2">
+                      <div className="relative w-full h-full flex items-center justify-center">
+                           {activeCard ? (
+                               <div className="h-full w-full flex items-center justify-center py-1">
+                                    <CardComponent 
+                                        {...activeCard} 
+                                        smallMode={false}
+                                        previewMode={true}
+                                        className="h-full w-auto aspect-[2/3] max-w-full shadow-2xl hover:scale-[1.02] transition-transform duration-200"
+                                    />
+                               </div>
+                           ) : (
+                               <div className={`text-sm ${scheme.textMain} opacity-50 italic`}>No cards available</div>
+                           )}
                       </div>
-                    )}
-                    {passiveUpgradeLevel && currentLevel < passiveUpgradeLevel && currentLevel >= passiveUnlockLevel && (
-                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-green-600 rounded-full text-green-400">
-                        Upgrade at Level {passiveUpgradeLevel}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-sm text-stone-300">
-                    {hero.id === 'crusader' && 'Gain Gray Hearts each turn'}
-                    {hero.id === 'prophet' && 'Map Vision - See all enemy encounters'}
-                    {hero.id === 'ranger' && 'Level 5: CRIT while immune (2x damage)'}
-                    {hero.id === 'alchemist' && 'Craft Potion on Draw'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Active Ability */}
-            <div className="bg-stone-900/60 border-2 border-stone-700/50 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-600 to-red-800 border-2 border-red-400/50 flex items-center justify-center shadow-lg">
-                  <Swords size={20} className="text-red-100" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="text-xs text-red-500 uppercase tracking-wider font-bold">Active Ability</div>
-                    {currentLevel < activeUnlockLevel && (
-                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-amber-600 rounded-full text-amber-400">
-                        Unlocks at Level {activeUnlockLevel}
-                      </div>
-                    )}
-                    {currentLevel >= activeUnlockLevel && activeAbility.cooldown > 0 && (
-                      <div className="text-[10px] px-2 py-0.5 bg-stone-800 border border-stone-600 rounded-full text-stone-400">
-                        Cooldown: {activeAbility.cooldown}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-lg font-bold text-stone-100 font-serif">{activeAbility.name}</div>
-                </div>
-              </div>
-              <div className="text-sm text-stone-400 leading-relaxed">
-                {activeAbility.desc}
-              </div>
-            </div>
-          </div>
-
-          {/* Cards Section */}
-          <div className="mb-6">
-            <div className="text-center mb-3">
-              <div className="inline-block px-4 py-1 bg-stone-800/80 border-2 border-amber-700/40 rounded-full">
-                <span className="text-xs text-amber-500 uppercase tracking-wider font-bold">Cards</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {uniqueCards.map((cardInfo, idx) => (
-                <div key={idx} className="aspect-[2/3] relative">
-                  <Card {...cardInfo.card} smallMode={false} className="h-full" />
-                  {/* Level Unlock Badge */}
-                  <div className={`absolute -top-1 -right-1 z-20 rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-black border-2 shadow-lg ${
-                    cardInfo.unlockLevel === 1 ? 'bg-stone-700 text-stone-300 border-stone-500' :
-                    cardInfo.unlockLevel === 2 ? 'bg-green-700 text-stone-100 border-green-500' :
-                    cardInfo.unlockLevel === 3 ? 'bg-blue-700 text-stone-100 border-blue-500' :
-                    cardInfo.unlockLevel === 4 ? 'bg-purple-700 text-stone-100 border-purple-500' :
-                    'bg-amber-700 text-stone-100 border-amber-500'
-                  }`}>
-                    {cardInfo.unlockLevel}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Level Progression */}
-          <div>
-            <div className="text-center mb-3">
-              <div className="inline-block px-4 py-1 bg-stone-800/80 border-2 border-amber-700/40 rounded-full">
-                <span className="text-xs text-amber-500 uppercase tracking-wider font-bold">Level Progression</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {progression.map((prog, idx) => (
-                <div 
-                  key={idx}
-                  className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
-                    prog.locked 
-                      ? 'bg-stone-900/40 border-stone-800/50 opacity-60' 
-                      : 'bg-gradient-to-r from-amber-950/30 to-stone-900/40 border-amber-700/30'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black border-2 ${
-                    prog.level === 1 ? 'bg-stone-700 text-stone-300 border-stone-500' :
-                    prog.level === 2 ? 'bg-green-700 text-stone-100 border-green-500' :
-                    prog.level === 3 ? 'bg-blue-700 text-stone-100 border-blue-500' :
-                    prog.level === 4 ? 'bg-purple-700 text-stone-100 border-purple-500' :
-                    'bg-amber-700 text-stone-100 border-amber-500'
-                  }`}>
-                    {prog.level}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm text-stone-300">{prog.unlock}</div>
-                  </div>
-                  {prog.locked && (
-                    <Lock size={16} className="text-stone-600" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+                 </div>
+             </div>
         </div>
       </div>
     </div>
