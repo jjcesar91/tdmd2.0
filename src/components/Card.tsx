@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Shield, Sword, Eye, FlaskConical, Target } from 'lucide-react';
+import { Sword, Sparkles, Crown, FlaskConical } from 'lucide-react';
 import { Card as CardModel } from '../types';
 
 interface CardProps extends Partial<CardModel> {
@@ -61,19 +61,21 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
     );
   }
 
-  const isAttack = type === 'ATTACK';
-  const isSkill = type === 'SKILL';
-  const isFast = type === 'FAST';
+  const isBasic = type === 'BASIC';
+  const isSignature = type === 'SIGNATURE';
+  const isUltimate = type === 'ULTIMATE';
   
-  // Neutral card design - only icon has color
-  let iconColor = isPotion ? "text-emerald-400" : (isAttack ? "text-red-400" : (isFast ? "text-amber-400" : (isSkill ? "text-indigo-400" : "text-blue-400")));
-  let highlightColor = isPotion ? "shadow-emerald-500/30" : (isAttack ? "shadow-red-500/30" : (isFast ? "shadow-amber-500/30" : (isSkill ? "shadow-indigo-500/30" : "shadow-blue-500/30")));
+  // Colors based on Tiers
+  let iconColor = isPotion ? "text-emerald-400" : (isUltimate ? "text-amber-400" : (isSignature ? "text-cyan-400" : "text-stone-300"));
+  let highlightColor = isPotion ? "shadow-emerald-500/30" : (isUltimate ? "shadow-amber-500/30" : (isSignature ? "shadow-cyan-500/30" : "shadow-stone-500/30"));
+  let borderColor = isUltimate ? "border-amber-600" : (isSignature ? "border-cyan-700" : "border-stone-600");
 
   if (disabled) {
       iconColor = "text-stone-500";
+      borderColor = "border-stone-700";
   }
 
-  const typeLabel = isAttack ? 'ATTACK' : (isFast ? 'FAST' : (isSkill ? 'SKILL' : 'DEFENSE'));
+  const typeLabel = type || 'CARD';
 
   return (
     <div
@@ -85,7 +87,7 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
       onTouchEnd={handleEnd}
       className={`
         relative rounded-xl shadow-2xl border-2 transition-all duration-200 overflow-hidden flex flex-col select-none
-        bg-gradient-to-br from-stone-800 via-stone-900 to-black border-stone-700
+        bg-gradient-to-br from-stone-800 via-stone-900 to-black ${borderColor}
         ${isSelected ? `ring-4 ring-amber-400/80 scale-105 z-20 ${highlightColor}` : 'active:scale-95'}
         ${disabled ? 'opacity-60 cursor-not-allowed grayscale' : 'hover:-translate-y-2 hover:shadow-2xl'}
         ${className}
@@ -109,14 +111,14 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
          {/* Icon above name */}
          {!smallMode && (
            <div className={`${iconColor} drop-shadow-lg mb-2`}>
-              {isPotion ? <FlaskConical size={32}/> : (isAttack ? <Sword size={32} /> : (isFast ? <Target size={32}/> : (isSkill ? <Eye size={32}/> : <Shield size={32} />)))}
+              {isPotion ? <FlaskConical size={32}/> : (isUltimate ? <Crown size={32} /> : (isSignature ? <Sparkles size={32}/> : <Sword size={32} />))}
            </div>
          )}
          
          {/* Icon for small mode */}
          {smallMode && (
            <div className={`${iconColor} drop-shadow-lg`}>
-              {isPotion ? <FlaskConical size={20}/> : (isAttack ? <Sword size={20} /> : (isFast ? <Target size={20}/> : (isSkill ? <Eye size={20}/> : <Shield size={20} />)))}
+              {isPotion ? <FlaskConical size={20}/> : (isUltimate ? <Crown size={20} /> : (isSignature ? <Sparkles size={20}/> : <Sword size={20} />))}
            </div>
          )}
 
@@ -139,7 +141,7 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
       {!smallMode && (
         <div className="w-full px-2 py-1 bg-black/40 border-t border-stone-800 flex justify-between items-center relative z-10">
           <div className="flex items-center gap-1">
-            <span className={`${previewMode ? 'text-xs' : 'text-[7px]'} text-stone-400 uppercase tracking-wider`}>{typeLabel}</span>
+            <span className={`${previewMode ? 'text-xs' : 'text-[7px]'} ${isUltimate ? 'text-amber-500 font-bold' : (isSignature ? 'text-cyan-500 font-bold' : 'text-stone-400')} uppercase tracking-wider`}>{typeLabel}</span>
           </div>
           {ownerId && (
             <div className={`${previewMode ? 'text-xs' : 'text-[7px]'} font-bold text-stone-500 uppercase tracking-wider`}>

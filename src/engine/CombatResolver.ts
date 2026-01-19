@@ -47,7 +47,7 @@ export const resolveLane = (
 
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && pCard) {
-        let dmg = (pCard.type === 'ATTACK' ? pCard.value : 0) + (pUnit.buffs.strength || 0);
+        let dmg = (pCard.actionType === 'ATTACK' ? pCard.value : 0) + (pUnit.buffs.strength || 0);
         
         // Eye for an Eye
         if (pCard.effect === 'EYE_FOR_EYE') {
@@ -84,7 +84,7 @@ export const resolveLane = (
         }
 
         // Defense Calculation
-        let reduction = (enemyZones[targetIdx]?.type === 'DEFENSE') ? (enemyZones[targetIdx]?.value || 0) : 0;
+        let reduction = (enemyZones[targetIdx]?.actionType === 'DEFENSE') ? (enemyZones[targetIdx]?.value || 0) : 0;
         let finalDmg = Math.max(0, dmg - reduction);
 
         // Ranger Level 2: Revealed Bonus
@@ -116,7 +116,7 @@ export const resolveLane = (
 
     // --- Enemy Attack Phase ---
     if (eUnit && !eUnit.dead && eCard) {
-        let dmg = (eCard.type === 'ATTACK' ? eCard.value : 0);
+        let dmg = (eCard.actionType === 'ATTACK' ? eCard.value : 0);
         
         // Target Selection
         let targetIdx = laneIdx;
@@ -150,7 +150,7 @@ export const resolveLane = (
             if (targetUnit.buffs.immune) { 
                 msg += "Immune! "; 
             } else {
-                let reduction = (playerZones[targetIdx]?.type === 'DEFENSE') ? (playerZones[targetIdx]?.value || 0) : 0;
+                let reduction = (playerZones[targetIdx]?.actionType === 'DEFENSE') ? (playerZones[targetIdx]?.value || 0) : 0;
                 
                 // DEF_RIGHT Support
                 if (targetIdx > 0 && playerZones[targetIdx-1]?.effect === 'DEF_RIGHT') {

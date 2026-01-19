@@ -1,8 +1,9 @@
-export type CardType = 'ATTACK' | 'DEFENSE' | 'SKILL' | 'FAST';
+export type CardType = 'BASIC' | 'SIGNATURE' | 'ULTIMATE';
 
 export interface Card {
   id: string;
   type: CardType;
+  actionType?: 'ATTACK' | 'DEFENSE' | 'SKILL'; // Added to support combat logic
   value: number;
   name: string;
   desc: string;

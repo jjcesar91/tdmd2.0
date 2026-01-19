@@ -118,6 +118,18 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
         
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-stone-800 via-stone-900 to-black opacity-80" />
 
+        <div className="absolute inset-0 z-0">
+           <img 
+             src={heroImage} 
+             alt={hero.name}
+             className="w-full h-full object-cover object-top opacity-90"
+             onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://placehold.co/400x600/333/999?text=' + hero.name;
+             }}
+           />
+           <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-stone-900/40" />
+        </div>
+
         <div className="relative z-20 pt-2 flex justify-center">
             <div className={`${scheme.bannerBg} border-2 ${scheme.bannerBorder} rounded-md px-12 py-1 shadow-lg transform skew-x-[-10deg]`}>
                 <h1 className={`${scheme.textMain} font-serif text-2xl font-bold tracking-widest transform skew-x-[10deg] uppercase drop-shadow-md flex gap-2`}>
@@ -134,18 +146,6 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
         </button>
 
         <div className="relative flex-1 min-h-0 flex flex-col">
-            <div className="absolute inset-0 z-0">
-               <img 
-                 src={heroImage} 
-                 alt={hero.name}
-                 className="w-full h-full object-cover object-top opacity-90"
-                 onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://placehold.co/400x600/333/999?text=' + hero.name;
-                 }}
-               />
-               <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-stone-900/40" />
-            </div>
-
             <div className="absolute top-20 left-4 flex flex-col gap-1 z-10">
                 {[1, 2, 3, 4, 5].map((i) => (
                     <div 
@@ -161,7 +161,7 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
             </div>
         </div>
 
-        <div className={`relative z-10 bg-stone-900 border-t-4 ${scheme.border} pb-6 pt-12 px-4 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] h-[45%]`}>
+        <div className={`relative z-10 bg-stone-900/40 border-t-4 ${scheme.border} pb-6 pt-12 px-4 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] h-[40%]`}>
              
              <div className="absolute -top-8 left-0 right-0 flex justify-center gap-3 z-30">
                  {[0, 1, 2, 3, 4].map((i) => (
