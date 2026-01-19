@@ -3,14 +3,19 @@ import { Hero, Card } from '../types';
 import { useState, useMemo } from 'react';
 import { Card as CardComponent } from '../components/Card';
 
+import alchemistPortrait from '../assets/images/heroes/alchemist/alchemist-portrait.png';
+import crusaderPortrait from '../assets/images/heroes/crusader/crusader-portrait.png';
+import rangerPortrait from '../assets/images/heroes/loneranger/loneranger-portrait.png';
+import prophetPortrait from '../assets/images/heroes/madprophet/madprophet-portrait.png';
+
 const getHeroImage = (heroId: string) => {
   const map: Record<string, string> = {
-    'alchemist': '/src/assets/images/heroes/alchemist/alchemist-portrait.png',
-    'crusader': '/src/assets/images/heroes/crusader/crusader-portrait.png',
-    'ranger': '/src/assets/images/heroes/loneranger/loneranger-portrait.png',
-    'prophet': '/src/assets/images/heroes/madprophet/madprophet-portrait.png',
+    'alchemist': alchemistPortrait,
+    'crusader': crusaderPortrait,
+    'ranger': rangerPortrait,
+    'prophet': prophetPortrait,
   };
-  return map[heroId] || `/src/assets/images/heroes/${heroId}/${heroId}-portrait.png`;
+  return map[heroId] || '';
 };
 
 interface HeroDetailScreenProps {
