@@ -80,9 +80,9 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
   const isUltimate = type === 'ULTIMATE';
   
   // Colors based on Tiers
-  let iconColor = isPotion ? "text-emerald-400" : (isUltimate ? "text-amber-400" : (isSignature ? "text-cyan-400" : "text-stone-300"));
-  let highlightColor = isPotion ? "shadow-emerald-500/30" : (isUltimate ? "shadow-amber-500/30" : (isSignature ? "shadow-cyan-500/30" : "shadow-stone-500/30"));
-  let borderColor = isUltimate ? "border-amber-600" : (isSignature ? "border-cyan-700" : "border-stone-600");
+  let iconColor = isPotion ? "text-emerald-400" : "text-stone-300";
+  let highlightColor = isPotion ? "shadow-emerald-500/30" : "shadow-stone-500/30";
+  let borderColor = "border-stone-600";
 
   if (disabled) {
       iconColor = "text-stone-500";
@@ -119,8 +119,8 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
          <div className="absolute top-2 right-2 z-10 flex gap-1 items-start">
              {/* Speed Icon (only if FAST) */}
              {speed === 'FAST' && (
-                <div className="w-6 h-6 rounded-full bg-yellow-950/90 border border-yellow-500/50 flex items-center justify-center shadow-[0_0_10px_rgba(234,179,8,0.3)] backdrop-blur-sm" title="FAST Speed">
-                   <Zap size={previewMode ? (compactPreview ? 12 : 14) : 10} className="text-yellow-400 fill-yellow-400/20" />
+                <div className="w-6 h-6 rounded-full bg-stone-950/90 border border-stone-600 flex items-center justify-center backdrop-blur-sm" title="FAST Speed">
+                   <Zap size={previewMode ? (compactPreview ? 12 : 14) : 10} className="text-white" />
                 </div>
              )}
 
@@ -160,7 +160,7 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
                {/* Stats / Footer - Integrated into bottom block */}
                <div className="w-full px-2 py-1.5 bg-black/60 border-t border-stone-800 flex justify-between items-center">
                   <div className="flex items-center gap-1.5">
-                    <span className={`${previewMode ? (compactPreview ? 'text-[8px]' : 'text-xs') : 'text-[7px]'} ${isUltimate ? 'text-amber-500 font-bold' : (isSignature ? 'text-cyan-500 font-bold' : 'text-stone-400')} uppercase tracking-wider`}>{typeLabel}</span>
+                    <span className={`${previewMode ? (compactPreview ? 'text-[8px]' : 'text-xs') : 'text-[7px]'} text-stone-400 uppercase tracking-wider`}>{typeLabel}</span>
                   </div>
 
                   {ownerId && HERO_ICONS[ownerId] && (

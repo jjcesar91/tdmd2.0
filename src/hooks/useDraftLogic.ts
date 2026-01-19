@@ -81,13 +81,21 @@ export function useDraftLogic({ setParty, setPartyLanes, setGlobalDeck, setMapNo
     let deck: CardData[] = [];
     finalParty.forEach(hero => {
       if (hero.cards) { 
-        const heroCards = hero.cards.map(c => ({
-          ...c, 
-          ownerId: hero.id, 
-          archetype: hero.archetype, 
-          uid: Math.random()
-        })); 
-        deck = [...deck, ...heroCards]; 
+        hero.cards.forEach(c => {
+          // Determine quantity based on card type
+          let quantity = 6;
+          if (c.type === 'SIGNATURE') quantity = 3;
+          if (c.type === 'ULTIMATE') quantity = 1;
+          
+          for(let i=0; i<quantity; i++) {
+             deck.push({
+               ...c,
+               ownerId: hero.id,
+               archetype: hero.archetype,
+               uid: Math.random()
+             });
+          }
+        });
       }
     });
     

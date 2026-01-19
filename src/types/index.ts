@@ -24,6 +24,7 @@ export interface Buffs {
   immune: boolean;
   tanking: boolean;
   strength: number;
+  anger?: number;
 }
 
 export interface Unit {
@@ -73,4 +74,5 @@ export type Hero = {
   level: number;
   locked?: boolean;
   lore?: string;
+  passiveName?: string;
 };

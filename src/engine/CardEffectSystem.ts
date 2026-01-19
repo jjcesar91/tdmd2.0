@@ -139,7 +139,45 @@ export const processCardEffect = (
         }
     }
 
-    // 5. SCRY_LANE (Fast Play)
+    // 5. BLOOD OATH: Crusader self-damage for permanent buff
+    if (card.effect === 'BLOOD_OATH') {
+        const newPlayerUnits = [...state.playerUnits];
+        // Find Crusader - assumption: he is in the party
+        const crusaderIndex = newPlayerUnits.findIndex(u => u && u.id === 'crusader');
+        
+        if (crusaderIndex >= 0) {
+            const crusader = newPlayerUnits[crusaderIndex]!;
+            const newHp = Math.max(0, crusader.hp - 2); 
+            
+            newPlayerUnits[crusaderIndex] = {
+                ...crusader,
+                hp: newHp,
+                dead: newHp === 0,
+                buffs: {
+                    ...crusader.buffs,
+                    anger: (crusader.buffs.anger || 0) + 2
+                }
+            };
+            
+            logs.push(`Blood Oath: Crusader sacrificed 2 HP for 2 Anger!`);
+
+            return {
+                newState: { 
+                    ...newState, 
+                    playerUnits: newPlayerUnits,
+                    playerHand: removePlayedCard(state, cardIdx),
+                    discardPile: [...state.discardPile, card]
+                },
+                logs
+            };
+        } else {
+             logs.push("Crusader is not in party!"); // Should not happen if card is in deck
+             return { newState: { selectedCardIdx: null }, logs };
+        }
+    }
+
+    // 6. DEFAULT: Place card in lane
+
     if (card.effect === 'SCRY_LANE') {
         const newEnemyZones = [...state.enemyZoneCards];
         if (newEnemyZones[targetLaneIdx]) {

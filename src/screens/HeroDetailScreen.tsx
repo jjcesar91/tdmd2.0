@@ -1,4 +1,4 @@
-import { X, Sword, Zap, Flame, Plus } from 'lucide-react';
+import { X, Plus, Shield } from 'lucide-react';
 import { Hero, Card } from '../types';
 import { useState, useMemo } from 'react';
 import { Card as CardComponent } from '../components/Card';
@@ -27,6 +27,7 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
   // Use local state to simulate/scale stats based on selected star level.
   const [visualLevel, setVisualLevel] = useState<number>(hero.level || 1);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [showPassiveModal, setShowPassiveModal] = useState(false);
 
   const heroImage = getHeroImage(hero.id);
   
@@ -89,12 +90,17 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
     const counts = new Map<string, number>();
     if (hero.cards) {
        hero.cards.forEach(c => {
-           // BASIC cards are always x6
-           if (c.type === 'BASIC') {
-             counts.set(c.id, 6);
-           } else {
-             counts.set(c.id, (counts.get(c.id) || 0) + 1);
-           }
+         // Determine quantity based on card type to match draft logic
+         let q = 6;
+         if (c.type === 'SIGNATURE') q = 3;
+         if (c.type === 'ULTIMATE') q = 1;
+         
+         // Since we iterate unique definitions but logic copies them, 
+         // we just set the count directly if it's the first time we see it, 
+         // or if duplicate definitions exist in DB, we'd accumulate. 
+         // But HEROES_DB usually has unique entries. 
+         // Let's assume HEROES_DB has unique entries per ID.
+         counts.set(c.id, q);
        });
     }
     return counts;
@@ -179,18 +185,35 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
 
         <div className={`relative z-10 bg-stone-900/40 border-t-4 ${scheme.border} pb-6 pt-12 px-4 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] h-[40%]`}>
              
-             <div className="absolute -top-8 left-0 right-0 flex justify-center gap-3 z-30">
-                 {[0, 1, 2, 3, 4].map((i) => (
-                     <div key={i} className={`w-14 h-14 rounded-full bg-stone-800 border-2 ${scheme.skillRing} shadow-lg flex items-center justify-center relative overflow-hidden group`}>
-                         <div className={`absolute inset-0 bg-gradient-to-b ${scheme.gradient} to-stone-900 pointer-events-none`} />
-                         
-                         {i === 0 && <Flame className={scheme.textAccent} size={24} />}
-                         {i === 1 && <Sword className={scheme.textMain} size={24} />}
-                         {i === 2 && <Zap className={scheme.textAccent} size={24} />}
-                         {i >= 3 && <Plus className="text-stone-500" size={28} strokeWidth={4} />}
+             <div className="absolute -top-9 left-0 right-0 flex justify-center gap-3 z-30">
+                 {[0, 1, 2].map((i) => (
+                     <div 
+                         key={i} 
+                         className="relative group"
+                         onClick={i === 0 ? () => setShowPassiveModal(true) : undefined}
+                     >
+                         {/* Circle */}
+                         <div className={`
+                             w-[4.5rem] h-[4.5rem] rounded-full bg-stone-800 border-2 ${scheme.skillRing} shadow-lg flex items-center justify-center relative overflow-hidden transition-transform
+                             ${i === 0 ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default'}
+                         `}>
+                             <div className={`absolute inset-0 bg-gradient-to-b ${scheme.gradient} to-stone-900 pointer-events-none`} />
+                             
+                             {i === 0 ? (
+                                <Shield className={scheme.textMain} size={32} />
+                             ) : (
+                                <Plus className="text-stone-500" size={28} strokeWidth={4} />
+                             )}
+                         </div>
 
-                         {/* Selection ring */}
-                         {i === 2 && <div className={`absolute inset-0 border-2 ${scheme.textAccent} rounded-full animate-pulse opacity-50`} />}
+                         {/* Tooltip */}
+                         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-stone-950/95 border border-stone-700 text-stone-200 text-xs p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center">
+                            {i === 0 ? (
+                                <span>{hero.passiveName || "Passive Ability"}</span>
+                            ) : (
+                                <span className="text-stone-500 italic">Empty Ability Slot</span>
+                            )}
+                         </div>
                      </div>
                  ))}
              </div>
@@ -245,6 +268,38 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
              </div>
         </div>
       </div>
+      
+      {/* Passive Detail Modal */}
+      {showPassiveModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setShowPassiveModal(false)}>
+              <div 
+                  className={`bg-stone-900 border-2 ${scheme.border} p-8 rounded-xl max-w-sm w-full relative shadow-2xl flex flex-col items-center gap-4`}
+                  onClick={(e) => e.stopPropagation()}
+              >
+                   <button 
+                      onClick={() => setShowPassiveModal(false)}
+                      className="absolute top-2 right-2 text-stone-500 hover:text-stone-100 transition-colors"
+                   >
+                       <X size={24} />
+                   </button>
+
+                   <div className={`w-48 h-48 rounded-full bg-stone-800 border-4 ${scheme.skillRing} shadow-[0_0_30px_rgba(0,0,0,0.5)] flex items-center justify-center relative overflow-hidden`}>
+                         <div className={`absolute inset-0 bg-gradient-to-b ${scheme.gradient} to-stone-900 pointer-events-none`} />
+                         <Shield className={scheme.textMain} size={96} />
+                   </div>
+                   
+                   <div className="text-center">
+                        <h2 className={`text-lg font-bold font-serif uppercase tracking-widest ${scheme.textAccent} mb-2`}>
+                            {hero.passiveName || "Passive Ability"}
+                        </h2>
+                        <div className="w-16 h-0.5 bg-stone-700 mx-auto mb-4" />
+                        <p className="text-stone-300 text-sm leading-relaxed text-center px-2">
+                            {hero.desc}
+                        </p>
+                   </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };

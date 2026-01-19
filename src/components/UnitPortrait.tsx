@@ -1,4 +1,4 @@
-import { Skull, Shield, Crown, User, RefreshCw, Sword, Heart, Eye, Lock, Target } from 'lucide-react';
+import { Skull, Shield, Crown, User, RefreshCw, Sword, Heart, Eye, Lock, Target, Flame } from 'lucide-react';
 import { Unit } from '../types';
 import { StatBadge } from './StatBadge';
 
@@ -67,6 +67,7 @@ export const UnitPortrait = ({ unit, isEnemy, onProphetAction, onCrusaderAction,
         <div className="flex justify-center gap-1 pb-1 px-1 relative z-10">
            {unit.buffs?.tanking && <StatBadge icon={Shield} value="" color="text-sky-400 border-sky-800" />}
            {unit.buffs?.strength > 0 && <StatBadge icon={Sword} value={unit.buffs.strength} color="text-amber-500 border-amber-800" />}
+           {(unit.buffs?.anger || 0) > 0 && <StatBadge icon={Flame} value={unit.buffs?.anger || 0} color="text-orange-500 border-orange-800" />}
            {unit.buffs?.immune && <StatBadge icon={RefreshCw} value="" color="text-indigo-400 border-indigo-800" />}
         </div>
       )}
