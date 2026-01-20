@@ -200,7 +200,11 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                              <div className={`absolute inset-0 bg-gradient-to-b ${scheme.gradient} to-stone-900 pointer-events-none`} />
                              
                              {i === 0 ? (
-                                <Shield className={scheme.textMain} size={32} />
+                                hero.passiveIcon ? (
+                                   <img src={hero.passiveIcon} className="w-full h-full object-cover z-10" alt="Passive" />
+                                ) : (
+                                   <Shield className={scheme.textMain} size={32} />
+                                )
                              ) : (
                                 <Plus className="text-stone-500" size={28} strokeWidth={4} />
                              )}
@@ -285,7 +289,11 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
 
                    <div className={`w-48 h-48 rounded-full bg-stone-800 border-4 ${scheme.skillRing} shadow-[0_0_30px_rgba(0,0,0,0.5)] flex items-center justify-center relative overflow-hidden`}>
                          <div className={`absolute inset-0 bg-gradient-to-b ${scheme.gradient} to-stone-900 pointer-events-none`} />
-                         <Shield className={scheme.textMain} size={96} />
+                         {hero.passiveIcon ? (
+                             <img src={hero.passiveIcon} className="w-full h-full object-cover z-10" alt="Passive" />
+                         ) : (
+                             <Shield className={scheme.textMain} size={96} />
+                         )}
                    </div>
                    
                    <div className="text-center">

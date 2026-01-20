@@ -27,9 +27,10 @@ interface CardProps extends Partial<CardModel> {
   smallMode?: boolean;
   previewMode?: boolean;
   compactPreview?: boolean;
+  image?: string;
 }
 
-export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, speed, className = "", smallMode = false, previewMode = false, compactPreview = false }: CardProps) => {
+export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, speed, className = "", smallMode = false, previewMode = false, compactPreview = false, image }: CardProps) => {
   const timerRef = useRef<number | null>(null);
 
   const handleStart = (_e: React.MouseEvent | React.TouchEvent) => {
@@ -136,10 +137,14 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
       {/* Card Content - Icon Area (Top) */}
       {!smallMode ? (
         <>
-           <div className="flex-1 flex items-center justify-center relative z-10">
-               <div className={`${iconColor} drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform duration-300`}>
-                  {isPotion ? <FlaskConical size={compactPreview ? 48 : 64}/> : (isUltimate ? <Crown size={compactPreview ? 48 : 64} /> : (isSignature ? <Sparkles size={compactPreview ? 48 : 64}/> : <Sword size={compactPreview ? 48 : 64} />))}
-               </div>
+            <div className="flex-1 flex items-center justify-center relative z-10 overflow-hidden">
+               {image ? (
+                   <img src={image} alt={name} className="w-full h-full object-cover" />
+               ) : (
+                   <div className={`${iconColor} drop-shadow-[0_0_15px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform duration-300`}>
+                      {isPotion ? <FlaskConical size={compactPreview ? 48 : 64}/> : (isUltimate ? <Crown size={compactPreview ? 48 : 64} /> : (isSignature ? <Sparkles size={compactPreview ? 48 : 64}/> : <Sword size={compactPreview ? 48 : 64} />))}
+                   </div>
+               )}
            </div>
 
            {/* Card Content - Text Area (Bottom) - Solid Background */}

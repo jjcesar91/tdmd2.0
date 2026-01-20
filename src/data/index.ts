@@ -1,4 +1,8 @@
 import { Card, Hero } from '../types';
+import stalwartIcon from '../assets/images/heroes/crusader/skills/stalwart-skill.png';
+import cleaveCardImage from '../assets/images/heroes/crusader/cards/cleave-card.png';
+import bloodOathCardImage from '../assets/images/heroes/crusader/cards/bloodoath-card.png';
+import purgeCardImage from '../assets/images/heroes/crusader/cards/purge-card.png';
 
 export const ZONES = ['F', 'M', 'R'];
 
@@ -15,6 +19,7 @@ export const HEROES_DB: Hero[] = [
     role: 'TANK',
     desc: 'Passive: Gain 1 Gray Heart each round.',
     passiveName: 'Stalwart',
+    passiveIcon: stalwartIcon,
     hp: 5,
     maxHp: 5,
     archetype: 'VENGEANCE',
@@ -22,9 +27,9 @@ export const HEROES_DB: Hero[] = [
     locked: false,
     lore: 'An old veteran, back to action to avenge its family',
     cards: [
-      { id: 'c_cleave', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Cleave', desc: 'Deal 2. Also deal 2 to adjacent lanes.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL' },
-      { id: 'c_blood_oath', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Blood Oath', desc: 'Lose 2 hearts. Gain Anger 2.', effect: 'BLOOD_OATH', ownerId: 'crusader', speed: 'FAST' },
-      { id: 'c_purge', type: 'ULTIMATE', actionType: 'ATTACK', value: 0, name: 'Purge', desc: 'Deal X. (X equals to missing hearts)', effect: 'PURGE', ownerId: 'crusader', speed: 'NORMAL' },
+      { id: 'c_cleave', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Cleave', desc: 'Deal 2. Also deal 2 to adjacent lanes.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL', image: cleaveCardImage },
+      { id: 'c_blood_oath', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Blood Oath', desc: 'Lose 2 hearts. Gain Anger 2.', effect: 'BLOOD_OATH', ownerId: 'crusader', speed: 'FAST', image: bloodOathCardImage },
+      { id: 'c_purge', type: 'ULTIMATE', actionType: 'ATTACK', value: 0, name: 'Purge', desc: 'Deal X. (X equals to missing hearts)', effect: 'PURGE', ownerId: 'crusader', speed: 'NORMAL', image: purgeCardImage },
     ]
   },
   {

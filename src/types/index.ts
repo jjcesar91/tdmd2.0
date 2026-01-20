@@ -18,6 +18,7 @@ export interface Card {
   archetype?: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
   speed?: 'NORMAL' | 'FAST';
   lanes?: 'ALL' | 'FRONT' | 'MID' | 'REAR';
+  image?: string;
 }
 
 export interface Buffs {
@@ -75,4 +76,5 @@ export type Hero = {
   locked?: boolean;
   lore?: string;
   passiveName?: string;
+  passiveIcon?: string;
 };
