@@ -4,6 +4,7 @@ interface ResolutionResult {
     playerUnits: (Unit | null)[];
     enemyUnits: (Unit | null)[];
     logs: string[];
+    enemyZones?: (CardData | null)[];
 }
 
 export const applyRoundBuffs = (
@@ -47,6 +48,23 @@ export const resolveLane = (
 
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && pCard) {
+        // DETAIN (Pietrifying Curse)
+        if (pCard.effect === 'DETAIN') {
+             // Find target (same logic as attack)
+             let targetIdx = laneIdx; 
+             if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
+                 const candidates = [0,1,2].filter(idx => eUnits[idx] && !eUnits[idx]!.dead).sort((a,b) => Math.abs(a-laneIdx) - Math.abs(b-laneIdx));
+                 if (candidates.length > 0) targetIdx = candidates[0];
+             }
+             
+             if (enemyZones[targetIdx]) {
+                 enemyZones[targetIdx] = { ...enemyZones[targetIdx]!, detained: (enemyZones[targetIdx]!.detained || 0) + 2 };
+                 msg += `Detained ${eUnits[targetIdx]?.name || 'Target'}! `;
+             } else {
+                 msg += "Detain whiffed! ";
+             }
+        }
+
         let dmg = (pCard.actionType === 'ATTACK' ? pCard.value : 0) + (pUnit.buffs.strength || 0) + (pUnit.buffs.anger || 0);
         
         // Eye for an Eye / Purge
@@ -87,13 +105,12 @@ export const resolveLane = (
         let reduction = (enemyZones[targetIdx]?.actionType === 'DEFENSE') ? (enemyZones[targetIdx]?.value || 0) : 0;
         let finalDmg = Math.max(0, dmg - reduction);
 
-        // Ranger Level 2: Revealed Bonus
+        // Ranger Passive: Hunter's Mark (Double DMG vs Revealed)
         const targetEnemy = eUnits[targetIdx];
-        if (targetEnemy && enemyZones[targetIdx]?.revealed) {
-            const hasRangerLevel2 = pUnits.some(u => u && u.id === 'ranger' && !u.dead && (u.level || 1) >= 2);
-            if (hasRangerLevel2 && finalDmg > 0) {
-                finalDmg += 1;
-                msg += "+1 Revealed! ";
+        if (pUnit.id === 'ranger' && targetEnemy && enemyZones[targetIdx]?.revealed) {
+            if (finalDmg > 0) {
+                finalDmg *= 2;
+                msg += "Hunter's Mark! ";
             }
         }
 
@@ -136,65 +153,73 @@ export const resolveLane = (
 
     // --- Enemy Attack Phase ---
     if (eUnit && !eUnit.dead && eCard) {
-        let dmg = (eCard.actionType === 'ATTACK' ? eCard.value : 0);
-        
-        // Target Selection
-        let targetIdx = laneIdx;
-        if (!pUnits[laneIdx] || pUnits[laneIdx]!.dead) {
-            const candidates = [0,1,2].filter(idx => pUnits[idx] && !pUnits[idx]!.dead);
-            if (candidates.length > 0) targetIdx = candidates[0];
-        }
-        let targetUnit = pUnits[targetIdx];
-
-        // Tanking Logic
-        // Find if anyone is tanking for this specific targetIdx
-        // TANK_RIGHT tanks for laneIdx+1 === targetIdx
-        const tankingUnit = pUnits.find((u, idx) => {
-            if (!u || u.dead || !u.buffs.tanking) return false;
+        // Skip if detained
+        if (eCard.detained && eCard.detained > 0) {
+            msg += `Enemy ${eUnit.name} is Detained! `;
+        } else {
+            let dmg = (eCard.actionType === 'ATTACK' ? eCard.value : 0);
             
-            // TANK_ALL: check if any player zone card has TANK_ALL effect for this unit
-            const hasTankAll = playerZones.some(c => c?.effect === 'TANK_ALL' && c.ownerId === u.id);
-            if (hasTankAll) return true;
-            
-            // TANK_RIGHT
-            return idx + 1 === targetIdx;
-        });
-
-        if (tankingUnit) { 
-            targetUnit = tankingUnit; 
-            msg += "Tank! "; 
-        }
-
-        // Apply Damage
-        if (targetUnit) {
-            if (targetUnit.buffs.immune) { 
-                msg += "Immune! "; 
-            } else {
-                let reduction = (playerZones[targetIdx]?.actionType === 'DEFENSE') ? (playerZones[targetIdx]?.value || 0) : 0;
+            // Target Selection
+            let targetIdx = laneIdx;
+            if (!pUnits[laneIdx] || pUnits[laneIdx]!.dead) {
+                const candidates = [0,1,2].filter(idx => pUnits[idx] && !pUnits[idx]!.dead);
+                if (candidates.length > 0) targetIdx = candidates[0];
+            }
+            let targetUnit = pUnits[targetIdx];
+    
+            // Tanking Logic
+            // Find if anyone is tanking for this specific targetIdx
+            // TANK_RIGHT tanks for laneIdx+1 === targetIdx
+            const tankingUnit = pUnits.find((u, idx) => {
+                if (!u || u.dead || !u.buffs.tanking) return false;
                 
-                // DEF_RIGHT Support
-                if (targetIdx > 0 && playerZones[targetIdx-1]?.effect === 'DEF_RIGHT') {
-                    reduction += (playerZones[targetIdx-1]?.value || 0);
-                }
+                // TANK_ALL: check if any player zone card has TANK_ALL effect for this unit
+                const hasTankAll = playerZones.some(c => c?.effect === 'TANK_ALL' && c.ownerId === u.id);
+                if (hasTankAll) return true;
                 
-                let finalDmg = Math.max(0, dmg - reduction);
-
-                // Gray HP Logic
-                if (finalDmg > 0 && (targetUnit.grayHp || 0) > 0) { 
-                    const abs = Math.min(finalDmg, targetUnit.grayHp || 0); 
-                    targetUnit.grayHp = (targetUnit.grayHp || 0) - abs; 
-                    finalDmg -= abs; 
-                }
-
-                if (finalDmg > 0) {
-                    targetUnit.hp -= finalDmg;
-                    if (targetUnit.hp <= 0) { 
-                        targetUnit.dead = true; 
-                        targetUnit.hp = 0; 
-                        msg += "Down! "; 
-                    } else {
-                        msg += `Took ${finalDmg}. `;
+                // TANK_RIGHT
+                return idx + 1 === targetIdx;
+            });
+    
+            if (tankingUnit) { 
+                targetUnit = tankingUnit; 
+                msg += "Tank! "; 
+            }
+    
+            // Apply Damage
+            if (targetUnit) {
+                if (targetUnit.buffs.immune) { 
+                    msg += "Immune! "; 
+                } else {
+                    let reduction = (playerZones[targetIdx]?.actionType === 'DEFENSE') ? (playerZones[targetIdx]?.value || 0) : 0;
+                    
+                    // DEF_RIGHT Support
+                    if (targetIdx > 0 && playerZones[targetIdx-1]?.effect === 'DEF_RIGHT') {
+                        reduction += (playerZones[targetIdx-1]?.value || 0);
                     }
+                    
+                    let finalDmg = Math.max(0, dmg - reduction);
+    
+                    // Gray HP Logic
+                    if (finalDmg > 0 && (targetUnit.grayHp || 0) > 0) { 
+                        const abs = Math.min(finalDmg, targetUnit.grayHp || 0); 
+                        targetUnit.grayHp = (targetUnit.grayHp || 0) - abs; 
+                        finalDmg -= abs; 
+                    }
+    
+                    if (finalDmg > 0) {
+                        targetUnit.hp -= finalDmg;
+                        if (targetUnit.hp <= 0) { 
+                            targetUnit.dead = true; 
+                            targetUnit.hp = 0; 
+                        } else {
+                             msg += `Hit ${finalDmg}! `;
+                        }
+                    }
+                    
+                    // Update PUnits reference
+                    const tIndex = pUnits.findIndex(u => u && u.id === targetUnit!.id);
+                    if (tIndex !== -1) pUnits[tIndex] = targetUnit;
                 }
             }
         }
@@ -202,9 +227,5 @@ export const resolveLane = (
 
     if (msg) logs.push(msg);
 
-    return {
-        playerUnits: pUnits,
-        enemyUnits: eUnits,
-        logs
-    };
+    return { playerUnits: pUnits, enemyUnits: eUnits, logs, enemyZones: enemyZones };
 };

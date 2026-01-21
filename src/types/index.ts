@@ -19,6 +19,7 @@ export interface Card {
   speed?: 'NORMAL' | 'FAST';
   lanes?: 'ALL' | 'FRONT' | 'MID' | 'REAR';
   image?: string;
+  detained?: number;
 }
 
 export interface Buffs {

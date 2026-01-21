@@ -67,7 +67,7 @@ export function useGameLoop({
           eHand.push(card);
         }
         
-        let enemyZones: (CardData | null)[] = [null, null, null];
+        let enemyZones: (CardData | null)[] = state.enemyZoneCards ? [...state.enemyZoneCards] : [null, null, null];
         const indices = [0, 1, 2].sort(() => Math.random() - 0.5);
         for (let idx of indices) { 
             if (eHand.length > 0 && !enemyZones[idx] && state.enemyUnits && state.enemyUnits[idx] && !state.enemyUnits[idx]!.dead) {
@@ -256,7 +256,7 @@ export function useGameLoop({
         let pUnits = [...combatState.playerUnits]; 
         let eUnits = [...combatState.enemyUnits];
         let pZones = combatState.playerZoneCards; 
-        let eZones = combatState.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null);
+        let eZones: (CardData | null)[] = combatState.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null);
     
         // Apply start-of-turn buffs (potions, tanking)
         pUnits = applyRoundBuffs(pUnits, pZones);
@@ -272,6 +272,7 @@ export function useGameLoop({
             // Update local state for next iteration
             pUnits = result.playerUnits;
             eUnits = result.enemyUnits;
+            if (result.enemyZones) eZones = result.enemyZones;
             
             // Add logs
             if (result.logs.length > 0) {
@@ -288,7 +289,23 @@ export function useGameLoop({
     
         const deadHeroes = pUnits.filter((u): u is Unit => u !== null && u.dead);
         let newGlobalDeck = [...globalDeck];
-        let newDiscard = [...combatState.discardPile, ...pZones.filter((c): c is CardData => c !== null), ...combatState.playerHand];
+        
+        // Filter detained enemy cards
+        let keptEnemyZones: (CardData | null)[] = [null, null, null];
+        let enemyCardsToDiscard: CardData[] = [];
+        
+        eZones.forEach((c, i) => {
+            if (c) {
+                if (c.detained && c.detained > 0) {
+                   // Keep card, decrement counter
+                   keptEnemyZones[i] = { ...c, detained: c.detained - 1 };
+                } else {
+                   enemyCardsToDiscard.push(c);
+                }
+            }
+        });
+
+        let newDiscard = [...combatState.discardPile, ...pZones.filter((c): c is CardData => c !== null), ...combatState.playerHand, ...enemyCardsToDiscard];
         let newDrawPile = [...combatState.drawPile];
         pUnits = pUnits.map(u => u ? {...u, grayHp: 0} : null);
     
@@ -311,7 +328,7 @@ export function useGameLoop({
         }
     
         setCombatState({ ...combatState, drawPile: newDrawPile, discardPile: newDiscard, playerUnits: pUnits, enemyUnits: eUnits, playerHand: [], turn: combatState.turn + 1 });
-        startTurnLogic({ turn: combatState.turn + 1, playerUnits: pUnits, enemyUnits: eUnits, drawPile: newDrawPile, discardPile: newDiscard, enemyHand: [] });
+        startTurnLogic({ turn: combatState.turn + 1, playerUnits: pUnits, enemyUnits: eUnits, drawPile: newDrawPile, discardPile: newDiscard, enemyHand: [], enemyZoneCards: keptEnemyZones });
         setGlobalDeck(newGlobalDeck);
     };
 

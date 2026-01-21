@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Sword, Sparkles, Crown, FlaskConical, Zap } from 'lucide-react';
 import { Card as CardModel } from '../types';
+import { KEYWORDS } from '../data';
 
 import crusaderIcon from '../assets/images/heroes/crusader/crusader-icon.png';
 import rangerIcon from '../assets/images/heroes/loneranger/loneranger-icon.png';
@@ -92,6 +93,22 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
 
   const typeLabel = type || 'CARD';
 
+  const renderDescription = () => {
+    if (!desc) return null;
+    const parts = desc.split(new RegExp(`(${Object.keys(KEYWORDS).join('|')})`, 'g'));
+    return (
+        <>
+            {parts.map((part, i) => {
+                const match = Object.keys(KEYWORDS).find(k => k === part);
+                if (match && (previewMode || !smallMode)) {
+                     return <span key={i} className="text-amber-400 font-bold drop-shadow-sm">{part}</span>;
+                }
+                return part;
+            })}
+        </>
+    );
+  };
+
   return (
     <div
       onClick={!disabled ? onClick : undefined}
@@ -117,7 +134,7 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
 
       {/* Top corner indicators - Speed & Range */}
       {!smallMode && (
-         <div className="absolute top-2 right-2 z-10 flex gap-1 items-start">
+         <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-center">
              {/* Speed Icon (only if FAST) */}
              {speed === 'FAST' && (
                 <div className="w-6 h-6 rounded-full bg-stone-950/90 border border-stone-600 flex items-center justify-center backdrop-blur-sm" title="FAST Speed">
@@ -158,7 +175,7 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
               {/* Description Body */}
               <div className={`w-full px-2 py-2 flex items-center justify-center min-h-[50px] ${previewMode ? '' : 'line-clamp-3'}`}>
                   <p className={`${previewMode ? (compactPreview ? 'text-[8px]' : 'text-xs') : 'text-[7px]'} text-center text-stone-300 leading-relaxed font-medium`}>
-                    {desc}
+                    {renderDescription()}
                   </p>
               </div>
 

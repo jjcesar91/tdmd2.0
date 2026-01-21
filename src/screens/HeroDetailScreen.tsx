@@ -1,7 +1,9 @@
-import { X, Plus, Shield } from 'lucide-react';
+import { X, Plus, Shield, Info } from 'lucide-react';
 import { Hero, Card } from '../types';
 import { useState, useMemo } from 'react';
 import { Card as CardComponent } from '../components/Card';
+import { CardPreviewModal } from '../components/CardPreviewModal';
+import { KEYWORDS } from '../data';
 
 import alchemistPortrait from '../assets/images/heroes/alchemist/alchemist-portrait.png';
 import crusaderPortrait from '../assets/images/heroes/crusader/crusader-portrait.png';
@@ -28,6 +30,7 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
   const [visualLevel, setVisualLevel] = useState<number>(hero.level || 1);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [showPassiveModal, setShowPassiveModal] = useState(false);
+  const [zoomedCard, setZoomedCard] = useState<Card | null>(null);
 
   const heroImage = getHeroImage(hero.id);
   
@@ -261,7 +264,8 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                                         smallMode={false}
                                         previewMode={true}
                                         compactPreview={true}
-                                        className="h-full w-auto aspect-[2/3] max-w-full shadow-2xl hover:scale-[1.02] transition-transform duration-200"
+                                        className="h-full w-auto aspect-[2/3] max-w-full shadow-2xl hover:scale-[1.02] transition-transform duration-200 cursor-zoom-in"
+                                        onClick={() => setZoomedCard(activeCard)}
                                     />
                                </div>
                            ) : (
@@ -296,17 +300,71 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                          )}
                    </div>
                    
-                   <div className="text-center">
+                   <div className="text-center w-full">
                         <h2 className={`text-lg font-bold font-serif uppercase tracking-widest ${scheme.textAccent} mb-2`}>
                             {hero.passiveName || "Passive Ability"}
                         </h2>
                         <div className="w-16 h-0.5 bg-stone-700 mx-auto mb-4" />
-                        <p className="text-stone-300 text-sm leading-relaxed text-center px-2">
-                            {hero.desc}
+                        <p className="text-stone-300 text-sm leading-relaxed text-center px-2 mb-4">
+                            {(() => {
+                                if (!hero.desc) return null;
+                                // Simple text replacement for specific keyword styling if strictly needed,
+                                // but for now keeping the generic highlighter logic but prioritizing longer matches.
+                                // However, user specifically asked to ONLY highlight Revealed, not Reveal.
+                                // We can filter the keywords we use for this hero desc check.
+                                
+                                const specificKeywords = ['Revealed']; // Add others here if needed for other heroes
+                                
+                                const parts = hero.desc.split(new RegExp(`(${specificKeywords.join('|')})`, 'g'));
+                                return parts.map((part, i) => {
+                                    if (specificKeywords.includes(part)) {
+                                        return <span key={i} className="text-amber-400 font-bold drop-shadow-sm">{part}</span>;
+                                    }
+                                    return <span key={i}>{part}</span>;
+                                });
+                            })()}
                         </p>
+
+                        {(() => {
+                            // Filter valid keywords: Only show tooltip for 'Revealed' if present, ignore 'Reveal' substring issues
+                            const foundKeywords = Object.keys(KEYWORDS).filter(k => {
+                                // Specific override for Ranger Passive context
+                                if (k === 'Reveal') return false; 
+                                return hero.desc.includes(k);
+                            });
+                            
+                            if (foundKeywords.length === 0) return null;
+                            return (
+                                <div className="w-full bg-stone-950/80 border border-stone-700/50 rounded-lg p-3 relative overflow-hidden text-left shadow-inner">
+                                   <div className="absolute top-1 right-1 opacity-20">
+                                      <Info size={24} />
+                                   </div>
+                                   
+                                   <div className="space-y-2 relative z-10">
+                                       {foundKeywords.map(k => (
+                                          <div key={k} className="flex flex-col gap-0.5">
+                                             <span className="text-amber-400 font-bold text-xs uppercase tracking-wider">{k}</span>
+                                             <span className="text-stone-400 text-[10px] leading-snug">{KEYWORDS[k]}</span>
+                                          </div>
+                                       ))}
+                                   </div>
+                                </div>
+                            );
+                        })()}
                    </div>
               </div>
           </div>
+      )}
+
+      {/* Zoomed Card Modal */}
+      {zoomedCard && (
+         <div className="fixed inset-0 z-[70] flex items-center justify-center">
+             <CardPreviewModal 
+                 card={zoomedCard} 
+                 interactive={true} 
+                 onClose={() => setZoomedCard(null)} 
+             />
+         </div>
       )}
     </div>
   );

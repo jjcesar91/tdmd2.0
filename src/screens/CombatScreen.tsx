@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sword, Trash2, Layers, Eye, X, Target, Swords, RefreshCw } from 'lucide-react';
 import { Card } from '../components/Card';
+import { CardPreviewModal } from '../components/CardPreviewModal';
 import { BattleLane } from '../components/BattleLane';
 import { CombatState, Card as CardData, Unit } from '../types';
 import { ZONES } from '../data';
@@ -302,11 +303,7 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
 
         {/* CARD PREVIEW OVERLAY */}
         {previewCard && (
-           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-none animate-in fade-in zoom-in-95 duration-200">
-              <div className="w-64 aspect-[2/3] pointer-events-auto shadow-2xl">
-                 <Card {...previewCard} disabled={false} previewMode={true} className="w-full h-full" />
-              </div>
-           </div>
+           <CardPreviewModal card={previewCard} interactive={false} />
         )}
 
         {/* MODALS */}

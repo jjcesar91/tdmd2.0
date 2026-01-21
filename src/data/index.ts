@@ -6,6 +6,30 @@ import purgeCardImage from '../assets/images/heroes/crusader/cards/purge-card.pn
 
 export const ZONES = ['F', 'M', 'R'];
 
+export const KEYWORDS: Record<string, string> = {
+  'Immune': 'Prevents all damage and effects for the round.',
+  'Heal': 'Restores Health Points (HP).',
+  'Mending': 'Restores Health Points (HP).',
+  'Reveal': 'Flips a face-down enemy card face up.',
+  'Scry': 'Flips an enemy card face up, revealing their intent.',
+  'Detain': 'Target card cannot be flip, discarded or resolved for X turns.',
+  'Tank': 'Redirects attacks from other lanes to this unit.',
+  'Marked': 'The target takes double (2x) damage this round.',
+  'Cleave': 'Deals damage to the target lane AND adjacent lanes.',
+  'Improve': 'Permanently increases the value of a card or unit stat.',
+  'Pick': 'Choose a specific card from a selection.',
+  'Anger': 'Increases Attack Damage.',
+  'Gray Heart': 'Temporary HP that absorbs damage before real HP is touched.',
+  'Prevent': 'Reduces incoming damage by a flat amount.',
+  'Stalwart': 'Gain 1 Gray Heart each round.',
+  'Camouflage': 'Immune this turn.',
+  'Map Vision': 'See adjacent nodes.',
+  'Scry All': 'Reveal all enemy cards.',
+  'Range': 'Can target enemies X lanes away.',
+  'Ranged': 'Can target enemies X lanes away.',
+  'Revealed': 'Target character has a face up card on its lane.'
+};
+
 export const POTIONS_DB: Card[] = [
   { id: 'pot_heal', type: 'BASIC', value: 3, name: 'Healing Potion', desc: 'Heal 3 HP', isPotion: true, color: 'bg-emerald-950', border: 'border-emerald-700' },
   { id: 'pot_inv', type: 'BASIC', value: 0, name: 'Invis. Potion', desc: 'Immune 1 round', isPotion: true, color: 'bg-indigo-950', border: 'border-indigo-700' },
@@ -36,14 +60,19 @@ export const HEROES_DB: Hero[] = [
     id: 'ranger',
     name: 'Lone Ranger',
     role: 'DPS',
-    desc: 'Active: Camouflage (Immune this turn; Cooldown 2)',
+    desc: "Passive: Deal double damage against Revealed enemies.",
+    passiveName: "Hunter's Mark",
     hp: 3,
     maxHp: 3,
     archetype: 'BALANCE' as const,
     level: 1,
     locked: false,
     lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
-    cards: []
+    cards: [
+      { id: 'r_arrow_shot', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL' },
+      { id: 'r_eye_above', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Eye from above', desc: 'Reveal this lane.', range: 1, effect: 'SCRY_LANE', ownerId: 'ranger', speed: 'FAST' },
+      { id: 'r_pietrifying_curse', type: 'ULTIMATE', actionType: 'SKILL', value: 2, name: 'Pietrifying Curse', desc: 'Detain 2', range: 2, effect: 'DETAIN', ownerId: 'ranger', speed: 'NORMAL' }
+    ]
   },
   {
     id: 'prophet',
