@@ -3,6 +3,9 @@ import stalwartIcon from '../assets/images/heroes/crusader/skills/stalwart-skill
 import cleaveCardImage from '../assets/images/heroes/crusader/cards/cleave-card.png';
 import bloodOathCardImage from '../assets/images/heroes/crusader/cards/bloodoath-card.png';
 import purgeCardImage from '../assets/images/heroes/crusader/cards/purge-card.png';
+import arrowShotCardImage from '../assets/images/heroes/loneranger/cards/arrowshot-card.png';
+import eyeFromAboveCardImage from '../assets/images/heroes/loneranger/cards/eyefromabove-card.png';
+import pietrifyingCurseCardImage from '../assets/images/heroes/loneranger/cards/pietrifyingcurse-card.png';
 
 export const ZONES = ['F', 'M', 'R'];
 
@@ -69,9 +72,9 @@ export const HEROES_DB: Hero[] = [
     locked: false,
     lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
     cards: [
-      { id: 'r_arrow_shot', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL' },
-      { id: 'r_eye_above', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Eye from above', desc: 'Reveal this lane.', range: 1, effect: 'SCRY_LANE', ownerId: 'ranger', speed: 'FAST' },
-      { id: 'r_pietrifying_curse', type: 'ULTIMATE', actionType: 'SKILL', value: 2, name: 'Pietrifying Curse', desc: 'Detain 2', range: 2, effect: 'DETAIN', ownerId: 'ranger', speed: 'NORMAL' }
+      { id: 'r_arrow_shot', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL', image: arrowShotCardImage },
+      { id: 'r_eye_above', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Eye from above', desc: 'Reveal this lane.', range: 1, effect: 'SCRY_LANE', ownerId: 'ranger', speed: 'FAST', image: eyeFromAboveCardImage },
+      { id: 'r_pietrifying_curse', type: 'ULTIMATE', actionType: 'SKILL', value: 2, name: 'Pietrifying Curse', desc: 'Detain 2', range: 2, effect: 'DETAIN', ownerId: 'ranger', speed: 'NORMAL', image: pietrifyingCurseCardImage }
     ]
   },
   {
