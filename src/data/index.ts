@@ -6,6 +6,7 @@ import purgeCardImage from '../assets/images/heroes/crusader/cards/purge-card.pn
 import arrowShotCardImage from '../assets/images/heroes/loneranger/cards/arrowshot-card.png';
 import eyeFromAboveCardImage from '../assets/images/heroes/loneranger/cards/eyefromabove-card.png';
 import pietrifyingCurseCardImage from '../assets/images/heroes/loneranger/cards/pietrifyingcurse-card.png';
+import huntersMarkIcon from '../assets/images/heroes/loneranger/skills/huntersmark-skill.png';
 
 export const ZONES = ['F', 'M', 'R'];
 
@@ -65,6 +66,7 @@ export const HEROES_DB: Hero[] = [
     role: 'DPS',
     desc: "Passive: Deal double damage against Revealed enemies.",
     passiveName: "Hunter's Mark",
+    passiveIcon: huntersMarkIcon,
     hp: 3,
     maxHp: 3,
     archetype: 'BALANCE' as const,
