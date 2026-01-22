@@ -27,6 +27,7 @@ export interface Buffs {
   tanking: boolean;
   strength: number;
   anger?: number;
+  vulnerable?: number;
 }
 
 export interface Unit {

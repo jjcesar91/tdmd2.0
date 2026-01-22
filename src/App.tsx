@@ -16,19 +16,6 @@ import { CombatScreen } from './screens/CombatScreen';
 import { VictoryScreen } from './screens/VictoryScreen';
 import { GameOverScreen } from './screens/GameOverScreen';
 
-// --- TYPE DEFINITIONS ---
-
-
-
-
-
-
-// --- CONFIGURAZIONE ---
-
-
-
-
-
 // --- MAIN APP ---
 
 export default function TheDragonMustDie() {

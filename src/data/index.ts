@@ -31,7 +31,8 @@ export const KEYWORDS: Record<string, string> = {
   'Scry All': 'Reveal all enemy cards.',
   'Range': 'Can target enemies X lanes away.',
   'Ranged': 'Can target enemies X lanes away.',
-  'Revealed': 'Target character has a face up card on its lane.'
+  'Revealed': 'Target character has a face up card on its lane.',
+  'Vulnerable': 'For X turn, when damage is dealt to the character, it lose 2 more hearts (ignore defenses).'
 };
 
 export const POTIONS_DB: Card[] = [
@@ -90,7 +91,11 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: false,
     lore: "Once king's high priest, it bears a prophecy of restoration",
-    cards: []
+    cards: [
+      { id: 'p_foresee', type: 'BASIC', actionType: 'SKILL', value: 1, name: 'Foresee', desc: 'Detain 1. Play on Revealed only.', range: 1, effect: 'DETAIN', ownerId: 'prophet', speed: 'NORMAL' },
+      { id: 'p_omen', type: 'SIGNATURE', actionType: 'SKILL', value: 2, name: 'Omen', desc: 'Vulnerable 2.', range: 1, effect: 'VULNERABLE', ownerId: 'prophet', speed: 'NORMAL' },
+      { id: 'p_epiphany', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Epiphany', desc: 'Reveal all lanes.', effect: 'SCRY_ALL', ownerId: 'prophet', speed: 'FAST' }
+    ]
   },
   {
     id: 'alchemist',

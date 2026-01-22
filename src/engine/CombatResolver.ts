@@ -48,7 +48,7 @@ export const resolveLane = (
 
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && pCard) {
-        // DETAIN (Pietrifying Curse)
+        // DETAIN (Pietrifying Curse & Foresee)
         if (pCard.effect === 'DETAIN') {
              // Find target (same logic as attack)
              let targetIdx = laneIdx; 
@@ -58,10 +58,26 @@ export const resolveLane = (
              }
              
              if (enemyZones[targetIdx]) {
-                 enemyZones[targetIdx] = { ...enemyZones[targetIdx]!, detained: (enemyZones[targetIdx]!.detained || 0) + 2 };
+                 enemyZones[targetIdx] = { ...enemyZones[targetIdx]!, detained: (enemyZones[targetIdx]!.detained || 0) + (pCard.value || 0) };
                  msg += `Detained ${eUnits[targetIdx]?.name || 'Target'}! `;
              } else {
                  msg += "Detain whiffed! ";
+             }
+        }
+
+        // VULNERABLE (Omen)
+        if (pCard.effect === 'VULNERABLE') {
+             // Find target (same logic as attack)
+             let targetIdx = laneIdx;
+             if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
+                 const candidates = [0,1,2].filter(idx => eUnits[idx] && !eUnits[idx]!.dead).sort((a,b) => Math.abs(a-laneIdx) - Math.abs(b-laneIdx));
+                 if (candidates.length > 0) targetIdx = candidates[0];
+             }
+             
+             if (eUnits[targetIdx]) {
+                 const currentVal = eUnits[targetIdx]!.buffs.vulnerable || 0;
+                 eUnits[targetIdx]!.buffs.vulnerable = currentVal + (pCard.value || 0);
+                 msg += `Vulnerable ${eUnits[targetIdx]?.name}! `;
              }
         }
 
@@ -104,6 +120,11 @@ export const resolveLane = (
         // Defense Calculation
         let reduction = (enemyZones[targetIdx]?.actionType === 'DEFENSE') ? (enemyZones[targetIdx]?.value || 0) : 0;
         let finalDmg = Math.max(0, dmg - reduction);
+
+        if (finalDmg > 0 && eUnits[targetIdx]?.buffs.vulnerable) {
+             finalDmg += 2;
+             msg += "Vuln! ";
+        }
 
         // Ranger Passive: Hunter's Mark (Double DMG vs Revealed)
         const targetEnemy = eUnits[targetIdx];
@@ -200,6 +221,11 @@ export const resolveLane = (
                     
                     let finalDmg = Math.max(0, dmg - reduction);
     
+                    if (finalDmg > 0 && targetUnit.buffs.vulnerable) {
+                        finalDmg += 2;
+                        msg += "Vuln! ";
+                    }
+
                     // Gray HP Logic
                     if (finalDmg > 0 && (targetUnit.grayHp || 0) > 0) { 
                         const abs = Math.min(finalDmg, targetUnit.grayHp || 0); 

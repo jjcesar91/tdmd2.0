@@ -195,6 +195,20 @@ export const processCardEffect = (
              logs
         };
     }
+
+    if (card.effect === 'SCRY_ALL') {
+        const newEnemyZones = state.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null);
+        logs.push("Revealed all enemy lanes!");
+        return {
+             newState: {
+                 ...newState,
+                 enemyZoneCards: newEnemyZones,
+                 playerHand: removePlayedCard(state, cardIdx),
+                 discardPile: [...state.discardPile, card]
+             },
+             logs
+        };
+    }
     
     // Default FAST card behavior (just discard)
     return {

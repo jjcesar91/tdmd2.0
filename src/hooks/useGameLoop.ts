@@ -31,6 +31,11 @@ export function useGameLoop({
         let newPUnits = (state.playerUnits || []).map((u: Unit | null) => {
             if (!u || u.dead) return u;
             let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false, strength: 0 } };
+            // Decrement Vulnerable
+            if (unit.buffs.vulnerable) {
+                 unit.buffs.vulnerable -= 1;
+                 if (unit.buffs.vulnerable <= 0) delete unit.buffs.vulnerable;
+            }
             // Crusader passive: Gain Gray HP based on level
             if (unit.id === 'crusader') {
               const grayHpGain = (unit.level && unit.level >= 4) ? 2 : 1;
@@ -42,6 +47,17 @@ export function useGameLoop({
             }
             return unit;
         });
+
+        let newEUnits = (state.enemyUnits || []).map((u: Unit | null) => {
+            if (!u || u.dead) return u;
+            let unit = { ...u, buffs: { ...u.buffs } };
+            if (unit.buffs.vulnerable) {
+                 unit.buffs.vulnerable -= 1;
+                 if (unit.buffs.vulnerable <= 0) delete unit.buffs.vulnerable;
+            }
+            return unit;
+        });
+
         let newDraw = [...(state.drawPile || [])]; let newDiscard = [...(state.discardPile || [])]; let newHand: CardData[] = [];
         const newlyDrawnSet = new Set<number>();
         const alchemist = newPUnits.find((u: Unit | null) => u && !u.dead && u.id === 'alchemist');
@@ -54,7 +70,7 @@ export function useGameLoop({
         }
         // Generate enemy cards based on enemy types for strategic variety
         const eHand: CardData[] = [];
-        const aliveEnemies = (state.enemyUnits || []).filter((e: Unit | null) => e && !e.dead);
+        const aliveEnemies = (newEUnits || []).filter((e: Unit | null) => e && !e.dead);
         const count = aliveEnemies.length + 1;
         
         // Generate cards matching enemy deck types for flavor and strategy
@@ -70,13 +86,13 @@ export function useGameLoop({
         let enemyZones: (CardData | null)[] = state.enemyZoneCards ? [...state.enemyZoneCards] : [null, null, null];
         const indices = [0, 1, 2].sort(() => Math.random() - 0.5);
         for (let idx of indices) { 
-            if (eHand.length > 0 && !enemyZones[idx] && state.enemyUnits && state.enemyUnits[idx] && !state.enemyUnits[idx]!.dead) {
+            if (eHand.length > 0 && !enemyZones[idx] && newEUnits && newEUnits[idx] && !newEUnits[idx]!.dead) {
                 enemyZones[idx] = { ...eHand.pop()!, revealed: false }; 
             }
         }
   
         setCombatState(prev => ({
-            ...prev!, ...state, phase: 'planning', playerUnits: newPUnits, playerHand: newHand, drawPile: newDraw, discardPile: newDiscard, enemyHand: eHand, playerZoneCards: [null, null, null], enemyZoneCards: enemyZones, scryActive: false, newlyDrawnCards: newlyDrawnSet, resolvingLane: null
+            ...prev!, ...state, phase: 'planning', playerUnits: newPUnits, enemyUnits: newEUnits, playerHand: newHand, drawPile: newDraw, discardPile: newDiscard, enemyHand: eHand, playerZoneCards: [null, null, null], enemyZoneCards: enemyZones, scryActive: false, newlyDrawnCards: newlyDrawnSet, resolvingLane: null
         }));
     };
 
@@ -212,6 +228,14 @@ export function useGameLoop({
               const distance = Math.abs(idx - ownerIndex);
               const range = card.range || 0;
               if (distance > range) { addLog(range > 0 ? `Out of Range (${range})` : "Must play in Hero's lane"); return; }
+
+              // Foresee Restriction
+              if (card.id === 'p_foresee') {
+                  if (!enemyZoneCards[idx] || !enemyZoneCards[idx]!.revealed) {
+                      addLog("Target lane must be revealed!");
+                      return;
+                  }
+              }
 
               // Lane restriction check
               if (card.lanes && card.lanes !== 'ALL') {
