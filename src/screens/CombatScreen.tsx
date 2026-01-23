@@ -24,7 +24,6 @@ interface CombatScreenProps {
   handleProvokeClick: (laneIdx: number) => void;
   previewCard: CardData | null;
   setPreviewCard: (card: CardData | null) => void;
-  onProphetAction?: () => void;
   onCrusaderAction?: () => void;
   onRangerAction?: () => void;
   setCombatState: React.Dispatch<React.SetStateAction<CombatState | null>>;
@@ -48,7 +47,6 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
   handleProvokeClick,
   previewCard,
   setPreviewCard,
-  onProphetAction,
   onCrusaderAction,
   onRangerAction,
   setCombatState
@@ -237,7 +235,6 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                        isValidTarget={isValidTarget}
                        onPreviewStart={setPreviewCard}
                        onPreviewEnd={() => setPreviewCard(null)}
-                       onProphetAction={onProphetAction}
                        onCrusaderAction={onCrusaderAction}
                        onRangerAction={onRangerAction}
                        showTargetArrow={calculatedTargetLane === laneIdx && hoveredLane !== null}

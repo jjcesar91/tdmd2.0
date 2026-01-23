@@ -308,16 +308,12 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                         <p className="text-stone-300 text-sm leading-relaxed text-center px-2 mb-4">
                             {(() => {
                                 if (!hero.desc) return null;
-                                // Simple text replacement for specific keyword styling if strictly needed,
-                                // but for now keeping the generic highlighter logic but prioritizing longer matches.
-                                // However, user specifically asked to ONLY highlight Revealed, not Reveal.
-                                // We can filter the keywords we use for this hero desc check.
+                                // Use sorted keys to correctly handle overlapping keywords (e.g. "Revealed" vs "Reveal")
+                                const sortedKeys = Object.keys(KEYWORDS).sort((a, b) => b.length - a.length);
+                                const parts = hero.desc.split(new RegExp(`(${sortedKeys.join('|')})`, 'g'));
                                 
-                                const specificKeywords = ['Revealed']; // Add others here if needed for other heroes
-                                
-                                const parts = hero.desc.split(new RegExp(`(${specificKeywords.join('|')})`, 'g'));
                                 return parts.map((part, i) => {
-                                    if (specificKeywords.includes(part)) {
+                                    if (KEYWORDS[part]) {
                                         return <span key={i} className="text-amber-400 font-bold drop-shadow-sm">{part}</span>;
                                     }
                                     return <span key={i}>{part}</span>;
@@ -326,12 +322,11 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                         </p>
 
                         {(() => {
-                            // Filter valid keywords: Only show tooltip for 'Revealed' if present, ignore 'Reveal' substring issues
-                            const foundKeywords = Object.keys(KEYWORDS).filter(k => {
-                                // Specific override for Ranger Passive context
-                                if (k === 'Reveal') return false; 
-                                return hero.desc.includes(k);
-                            });
+                            // Extract keywords ensuring we match the longest ones first (same logic as Cards)
+                            const sortedKeys = Object.keys(KEYWORDS).sort((a, b) => b.length - a.length);
+                            const regex = new RegExp(`(${sortedKeys.join('|')})`, 'g');
+                            const matches = hero.desc.match(regex) || [];
+                            const foundKeywords = Array.from(new Set(matches));
                             
                             if (foundKeywords.length === 0) return null;
                             return (

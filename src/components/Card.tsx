@@ -95,11 +95,12 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
 
   const renderDescription = () => {
     if (!desc) return null;
-    const parts = desc.split(new RegExp(`(${Object.keys(KEYWORDS).join('|')})`, 'g'));
+    const sortedKeys = Object.keys(KEYWORDS).sort((a, b) => b.length - a.length);
+    const parts = desc.split(new RegExp(`(${sortedKeys.join('|')})`, 'g'));
     return (
         <>
             {parts.map((part, i) => {
-                const match = Object.keys(KEYWORDS).find(k => k === part);
+                const match = KEYWORDS[part];
                 if (match && (previewMode || !smallMode)) {
                      return <span key={i} className="text-amber-400 font-bold drop-shadow-sm">{part}</span>;
                 }

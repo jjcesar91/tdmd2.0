@@ -1,4 +1,4 @@
-export type CardType = 'BASIC' | 'SIGNATURE' | 'ULTIMATE';
+export type CardType = 'BASIC' | 'SIGNATURE' | 'ULTIMATE' | 'CRAFTED';
 
 export interface Card {
   id: string;

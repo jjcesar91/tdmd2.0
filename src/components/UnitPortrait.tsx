@@ -5,12 +5,11 @@ import { StatBadge } from './StatBadge';
 interface UnitPortraitProps {
   unit: Unit | null;
   isEnemy: boolean;
-  onProphetAction?: () => void;
   onCrusaderAction?: () => void;
   onRangerAction?: () => void;
 }
 
-export const UnitPortrait = ({ unit, isEnemy, onProphetAction, onCrusaderAction, onRangerAction }: UnitPortraitProps) => {
+export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction, onRangerAction }: UnitPortraitProps) => {
   // Empty State - Same style for both
   if (!unit) {
     return (
@@ -92,25 +91,6 @@ export const UnitPortrait = ({ unit, isEnemy, onProphetAction, onCrusaderAction,
         </div>
       )}
 
-      {/* Action Button (Prophet) */}
-      {!isEnemy && !isDead && unit.id === 'prophet' && (
-         <button 
-           onClick={(e) => { e.stopPropagation(); if(onProphetAction) onProphetAction(); }} 
-           disabled={unit.activeCooldown! > 0}
-           className={`absolute bottom-12 right-1 p-1 rounded-full border shadow-lg z-20 transition-all ${
-             unit.activeCooldown! > 0 
-               ? 'bg-stone-700 border-stone-600 shadow-stone-900/50 cursor-not-allowed opacity-50' 
-               : 'bg-violet-900 border-violet-500 shadow-violet-900/50 hover:scale-110'
-           }`}
-         >
-            {unit.activeCooldown! > 0 ? (
-              <span className="text-[8px] font-bold text-stone-400">{unit.activeCooldown}</span>
-            ) : (
-              <Eye size={10} className="text-violet-200" />
-            )}
-         </button>
-      )}
-      
       {/* Action Button (Crusader - Provoke) */}
       {!isEnemy && !isDead && unit.id === 'crusader' && (
          <button 

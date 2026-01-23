@@ -105,8 +105,7 @@ export function useGameLoop({
           const laneIdx = partyLanes[hero.id] !== undefined ? partyLanes[hero.id] : party.indexOf(hero);
           // Initialize cooldown based on hero
           let cooldownMax = 0;
-          if (hero.id === 'prophet') cooldownMax = 2;
-          else if (hero.id === 'ranger') cooldownMax = 2;
+          if (hero.id === 'ranger') cooldownMax = 2;
           else if (hero.id === 'crusader') cooldownMax = 0;
           
           combatParty[laneIdx] = { 
@@ -396,27 +395,6 @@ export function useGameLoop({
         addLog(`Crusader provokes ${enemyUnit.name} into attacking with ${attackCard.value} damage!`);
     };
 
-    const onProphetAction = () => {
-         if (!combatState || combatState.scryActive) return;
-         
-         const prophetUnit = combatState.playerUnits.find(u => u && u.id === 'prophet');
-         if (!prophetUnit || prophetUnit.activeCooldown! > 0) return;
-         
-         const newPlayerUnits = combatState.playerUnits.map(u => {
-           if (u && u.id === 'prophet') {
-             return { ...u, activeCooldown: u.activeCooldownMax || 0 };
-           }
-           return u;
-         });
-         
-         setCombatState(prev => ({ 
-           ...prev!, 
-           scryActive: true,
-           playerUnits: newPlayerUnits,
-           enemyZoneCards: prev!.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null)
-         }));
-         addLog("Prophet reveals all enemy intentions!");
-    };
     
     const onCrusaderAction = () => {
          if (!combatState || combatState.phase !== 'planning') return;
@@ -461,7 +439,6 @@ export function useGameLoop({
         handleZoneClick,
         handleEndTurn,
         handleProvokeClick,
-        onProphetAction,
         onCrusaderAction,
         onRangerAction
     };

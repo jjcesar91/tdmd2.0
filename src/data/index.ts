@@ -4,9 +4,13 @@ import cleaveCardImage from '../assets/images/heroes/crusader/cards/cleave-card.
 import bloodOathCardImage from '../assets/images/heroes/crusader/cards/bloodoath-card.png';
 import purgeCardImage from '../assets/images/heroes/crusader/cards/purge-card.png';
 import arrowShotCardImage from '../assets/images/heroes/loneranger/cards/arrowshot-card.png';
-import eyeFromAboveCardImage from '../assets/images/heroes/loneranger/cards/eyefromabove-card.png';
+import quetzalSightCardImage from '../assets/images/heroes/loneranger/cards/quetzalsight-card.png';
 import pietrifyingCurseCardImage from '../assets/images/heroes/loneranger/cards/pietrifyingcurse-card.png';
 import huntersMarkIcon from '../assets/images/heroes/loneranger/skills/huntersmark-skill.png';
+import foreseeCardImage from '../assets/images/heroes/madprophet/cards/foresee-card.png';
+import omenCardImage from '../assets/images/heroes/madprophet/cards/omen-card.png';
+import epiphanyCardImage from '../assets/images/heroes/madprophet/cards/epiphany-card.png';
+import theProphecyIcon from '../assets/images/heroes/madprophet/skills/thepropecy-skill.png';
 
 export const ZONES = ['F', 'M', 'R'];
 
@@ -27,7 +31,7 @@ export const KEYWORDS: Record<string, string> = {
   'Prevent': 'Reduces incoming damage by a flat amount.',
   'Stalwart': 'Gain 1 Gray Heart each round.',
   'Camouflage': 'Immune this turn.',
-  'Map Vision': 'See adjacent nodes.',
+  'The Prophecy': 'Reveal the next nodes type on world map.',
   'Scry All': 'Reveal all enemy cards.',
   'Range': 'Can target enemies X lanes away.',
   'Ranged': 'Can target enemies X lanes away.',
@@ -36,9 +40,10 @@ export const KEYWORDS: Record<string, string> = {
 };
 
 export const POTIONS_DB: Card[] = [
-  { id: 'pot_heal', type: 'BASIC', value: 3, name: 'Healing Potion', desc: 'Heal 3 HP', isPotion: true, color: 'bg-emerald-950', border: 'border-emerald-700' },
-  { id: 'pot_inv', type: 'BASIC', value: 0, name: 'Invis. Potion', desc: 'Immune 1 round', isPotion: true, color: 'bg-indigo-950', border: 'border-indigo-700' },
-  { id: 'pot_str', type: 'BASIC', value: 2, name: 'Str. Potion', desc: '+2 DMG next', isPotion: true, color: 'bg-amber-950', border: 'border-amber-700' }
+  { id: 'pot_heal', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Healing Potion', desc: 'Heal 2 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700' },
+  { id: 'pot_inv', type: 'CRAFTED', actionType: 'SKILL', value: 0, name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-indigo-950', border: 'border-indigo-700' },
+  { id: 'pot_aug', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Augmented Potion', desc: 'Gain Anger 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700' },
+  { id: 'pot_exp', type: 'CRAFTED', actionType: 'ATTACK', value: 2, name: 'Explosive Potion', desc: 'Deal 2 to this lane and adjacent lanes.', isPotion: true, speed: 'FAST', range: 2, effect: 'CLEAVE', color: 'bg-red-950', border: 'border-red-700' }
 ];
 
 export const HEROES_DB: Hero[] = [
@@ -76,7 +81,7 @@ export const HEROES_DB: Hero[] = [
     lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
     cards: [
       { id: 'r_arrow_shot', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL', image: arrowShotCardImage },
-      { id: 'r_eye_above', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Eye from above', desc: 'Reveal this lane.', range: 1, effect: 'SCRY_LANE', ownerId: 'ranger', speed: 'FAST', image: eyeFromAboveCardImage },
+      { id: 'r_eye_above', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Quetzal Sight', desc: 'Reveal this lane.', range: 1, effect: 'SCRY_LANE', ownerId: 'ranger', speed: 'FAST', image: quetzalSightCardImage },
       { id: 'r_pietrifying_curse', type: 'ULTIMATE', actionType: 'SKILL', value: 2, name: 'Pietrifying Curse', desc: 'Detain 2', range: 2, effect: 'DETAIN', ownerId: 'ranger', speed: 'NORMAL', image: pietrifyingCurseCardImage }
     ]
   },
@@ -84,7 +89,9 @@ export const HEROES_DB: Hero[] = [
     id: 'prophet',
     name: 'Mad Prophet',
     role: 'SUPP',
-    desc: 'Passive: Map Vision. Active: Scry All (Cooldown 2)',
+    desc: 'Passive: The Prophecy.',
+    passiveName: 'The Prophecy',
+    passiveIcon: theProphecyIcon,
     hp: 3,
     maxHp: 3,
     archetype: 'KINGDOM' as const,
@@ -92,16 +99,17 @@ export const HEROES_DB: Hero[] = [
     locked: false,
     lore: "Once king's high priest, it bears a prophecy of restoration",
     cards: [
-      { id: 'p_foresee', type: 'BASIC', actionType: 'SKILL', value: 1, name: 'Foresee', desc: 'Detain 1. Play on Revealed only.', range: 1, effect: 'DETAIN', ownerId: 'prophet', speed: 'NORMAL' },
-      { id: 'p_omen', type: 'SIGNATURE', actionType: 'SKILL', value: 2, name: 'Omen', desc: 'Vulnerable 2.', range: 1, effect: 'VULNERABLE', ownerId: 'prophet', speed: 'NORMAL' },
-      { id: 'p_epiphany', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Epiphany', desc: 'Reveal all lanes.', effect: 'SCRY_ALL', ownerId: 'prophet', speed: 'FAST' }
+      { id: 'p_foresee', type: 'BASIC', actionType: 'SKILL', value: 1, name: 'Foresee', desc: 'Detain 1. Play on Revealed only.', range: 1, effect: 'DETAIN', ownerId: 'prophet', speed: 'NORMAL', image: foreseeCardImage },
+      { id: 'p_omen', type: 'SIGNATURE', actionType: 'SKILL', value: 2, name: 'Omen', desc: 'Apply Vulnerable 2', range: 1, effect: 'VULNERABLE', ownerId: 'prophet', speed: 'FAST', image: omenCardImage },
+      { id: 'p_epiphany', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Epiphany', desc: 'Reveal all lanes.', effect: 'SCRY_ALL', ownerId: 'prophet', speed: 'FAST', image: epiphanyCardImage }
     ]
   },
   {
     id: 'alchemist',
     name: 'Alchemist',
     role: 'WILD',
-    desc: 'Passive: Craft potion on Draw.',
+    desc: 'Passive: Before Draw Phase, Craft 1 random potion.',
+    passiveName: 'Skilled Brewery',
     hp: 4,
     maxHp: 4,
     archetype: 'POWER' as const,

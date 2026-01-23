@@ -11,7 +11,10 @@ interface CardPreviewModalProps {
 }
 
 export const CardPreviewModal: React.FC<CardPreviewModalProps> = ({ card, onClose, interactive = false }) => {
-  const foundKeywords = Object.keys(KEYWORDS).filter(k => card.desc.includes(k));
+  const sortedKeys = Object.keys(KEYWORDS).sort((a, b) => b.length - a.length);
+  const regex = new RegExp(`(${sortedKeys.join('|')})`, 'g');
+  const matches = card.desc.match(regex) || [];
+  const foundKeywords = Array.from(new Set(matches));
 
   return (
     <div 
