@@ -1,4 +1,6 @@
 import { Card, Hero } from '../types';
+import unstableMixtureIcon from '../assets/images/heroes/alchemist/alchemist-icon.png'; // Placeholder
+import explosiveFlaskIcon from '../assets/images/heroes/alchemist/alchemist-icon.png'; // Placeholder
 import stalwartIcon from '../assets/images/heroes/crusader/skills/stalwart-skill.png';
 import cleaveCardImage from '../assets/images/heroes/crusader/cards/cleave-card.png';
 import bloodOathCardImage from '../assets/images/heroes/crusader/cards/bloodoath-card.png';
@@ -24,9 +26,10 @@ export const KEYWORDS: Record<string, string> = {
   'Tank': 'Redirects attacks from other lanes to this unit.',
   'Marked': 'The target takes double (2x) damage this round.',
   'Cleave': 'Deals damage to the target lane AND adjacent lanes.',
+  'AoE': 'Area of Effect, effects also apply to adjacent lanes.',
   'Improve': 'Permanently increases the value of a card or unit stat.',
   'Pick': 'Choose a specific card from a selection.',
-  'Anger': 'Increases Attack Damage.',
+  'Augment': 'Increases Attack Damage.',
   'Gray Heart': 'Temporary HP that absorbs damage before real HP is touched.',
   'Prevent': 'Reduces incoming damage by a flat amount.',
   'Stalwart': 'Gain 1 Gray Heart each round.',
@@ -35,14 +38,19 @@ export const KEYWORDS: Record<string, string> = {
   'Range': 'Can target enemies X lanes away.',
   'Ranged': 'Can target enemies X lanes away.',
   'Revealed': 'Target character has a face up card on its lane.',
-  'Vulnerable': 'For X turn, when damage is dealt to the character, it lose 2 more hearts (ignore defenses).'
+  'Vulnerable': 'For X turn, when damage is dealt to the character, it lose 2 more hearts (ignore defenses).',
+  'Volatile': 'If this card is in your hand at the end of the turn, remove it from game.',
+  'Persist': 'For the next X Cleanup Phase, it won\'t get discarded.',
+  'Recoil': 'Affect the enemy lane, deal X each time a card is resolved on it.',
+  'Craft': 'Create a new card and add it to your hand.',
+  'Merge': 'Combine two cards into one with both effects.'
 };
 
 export const POTIONS_DB: Card[] = [
   { id: 'pot_heal', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Healing Potion', desc: 'Heal 2 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700' },
   { id: 'pot_inv', type: 'CRAFTED', actionType: 'SKILL', value: 0, name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-indigo-950', border: 'border-indigo-700' },
-  { id: 'pot_aug', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Augmented Potion', desc: 'Gain Anger 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700' },
-  { id: 'pot_exp', type: 'CRAFTED', actionType: 'ATTACK', value: 2, name: 'Explosive Potion', desc: 'Deal 2 to this lane and adjacent lanes.', isPotion: true, speed: 'FAST', range: 2, effect: 'CLEAVE', color: 'bg-red-950', border: 'border-red-700' }
+  { id: 'pot_aug', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Augmented Potion', desc: 'Gain Augment 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700' },
+  { id: 'pot_haste', type: 'CRAFTED', actionType: 'SKILL', value: 0, name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700' }
 ];
 
 export const HEROES_DB: Hero[] = [
@@ -60,9 +68,9 @@ export const HEROES_DB: Hero[] = [
     locked: false,
     lore: 'An old veteran, back to action to avenge its family',
     cards: [
-      { id: 'c_cleave', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Cleave', desc: 'Deal 2. Also deal 2 to adjacent lanes.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL', image: cleaveCardImage },
-      { id: 'c_blood_oath', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Blood Oath', desc: 'Lose 2 hearts. Gain Anger 2.', effect: 'BLOOD_OATH', ownerId: 'crusader', speed: 'FAST', image: bloodOathCardImage },
-      { id: 'c_purge', type: 'ULTIMATE', actionType: 'ATTACK', value: 0, name: 'Purge', desc: 'Deal X. (X equals to missing hearts)', effect: 'PURGE', ownerId: 'crusader', speed: 'NORMAL', image: purgeCardImage },
+      { id: 'c_cleave', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Cleave', desc: 'AoE. Deal 2.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL', image: cleaveCardImage },
+      { id: 'c_blood_oath', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Blood Oath', desc: 'Lose 2 hearts. Gain Augment 2.', effect: 'BLOOD_OATH', ownerId: 'crusader', speed: 'FAST', image: bloodOathCardImage },
+      { id: 'c_purge', type: 'ULTIMATE', actionType: 'ATTACK', value: 0, name: 'Purge', desc: 'Deal 2, plus hero missing hearts', effect: 'PURGE', ownerId: 'crusader', speed: 'NORMAL', image: purgeCardImage },
     ]
   },
   {
@@ -115,7 +123,11 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: false,
     lore: 'A prodigy that seeks legendary ingredients for dangerous formulas',
-    cards: []
+    cards: [
+      { id: 'a_explosive_flask', type: 'BASIC', actionType: 'ATTACK', value: 1, name: 'Explosive Flask', desc: 'AoE. Deal 1.', effect: 'CLEAVE', ownerId: 'alchemist', speed: 'NORMAL', range: 1, image: explosiveFlaskIcon },
+      { id: 'a_unstable_mixture', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', effect: 'UNSTABLE_MIXTURE', ownerId: 'alchemist', speed: 'FAST', range: 1, image: unstableMixtureIcon },
+      { id: 'a_noxious_cloud', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 2.', effect: 'NOXIOUS', ownerId: 'alchemist', speed: 'NORMAL', range: 1, persist: 1, recoil: 2, image: explosiveFlaskIcon }
+    ]
   },
   // KINGDOM HEROES
   {
@@ -142,10 +154,7 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: true,
     lore: "Daughter of crown distant relative, tend to few land survivor aside the Governor",
-    cards: [
-      { id: 'pri_1', type: 'BASIC', actionType: 'SKILL', value: 1, name: 'Grace', desc: 'Heal 1.', range: 1 },
-      { id: 'pri_2', type: 'BASIC', actionType: 'DEFENSE', value: 1, name: 'Protect', desc: 'Prevent 1.', range: 1 },
-    ]
+    cards: []
   },
   {
     id: 'sentry',

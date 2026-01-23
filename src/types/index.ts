@@ -20,6 +20,10 @@ export interface Card {
   lanes?: 'ALL' | 'FRONT' | 'MID' | 'REAR';
   image?: string;
   detained?: number;
+  volatile?: boolean;
+  mergedCards?: Card[];
+  persist?: number;
+  recoil?: number;
 }
 
 export interface Buffs {
@@ -63,6 +67,7 @@ export interface CombatState {
   scryActive: boolean;
   newlyDrawnCards: Set<number>;
   resolvingLane: number | null;
+  laneEffects: { [key: number]: string[] }; // e.g. laneEffects[0] = ['HASTE']
 }
 
 export type Hero = {

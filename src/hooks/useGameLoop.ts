@@ -92,7 +92,7 @@ export function useGameLoop({
         }
   
         setCombatState(prev => ({
-            ...prev!, ...state, phase: 'planning', playerUnits: newPUnits, enemyUnits: newEUnits, playerHand: newHand, drawPile: newDraw, discardPile: newDiscard, enemyHand: eHand, playerZoneCards: [null, null, null], enemyZoneCards: enemyZones, scryActive: false, newlyDrawnCards: newlyDrawnSet, resolvingLane: null
+            ...prev!, ...state, phase: 'planning', playerUnits: newPUnits, enemyUnits: newEUnits, playerHand: newHand, drawPile: newDraw, discardPile: newDiscard, enemyHand: eHand, playerZoneCards: state.playerZoneCards || [null, null, null], enemyZoneCards: enemyZones, scryActive: false, newlyDrawnCards: newlyDrawnSet, resolvingLane: null, laneEffects: {}
         }));
     };
 
@@ -204,7 +204,7 @@ export function useGameLoop({
         }
     
         setCombatState({
-          turn: 1, phase: 'planning', playerUnits: combatParty, enemyUnits: enemies, playerHand: [], drawPile: combatDeck, discardPile: [], enemyHand: [], playerZoneCards: [null, null, null], enemyZoneCards: [null, null, null], selectedCardIdx: null, scryActive: false, newlyDrawnCards: new Set(), resolvingLane: null
+          turn: 1, phase: 'planning', playerUnits: combatParty, enemyUnits: enemies, playerHand: [], drawPile: combatDeck, discardPile: [], enemyHand: [], playerZoneCards: [null, null, null], enemyZoneCards: [null, null, null], selectedCardIdx: null, scryActive: false, newlyDrawnCards: new Set(), resolvingLane: null, laneEffects: {}
         });
         
         startTurnLogic({ turn: 1, playerUnits: combatParty, enemyUnits: enemies, drawPile: combatDeck, discardPile: [], enemyHand: [] });
@@ -246,15 +246,30 @@ export function useGameLoop({
               }
           } else { if (!playerUnits[idx]) return; }
     
+          // Check for HASTE effect
+          const laneHasteEffects = combatState.laneEffects?.[idx] || [];
+          const hasHaste = laneHasteEffects.includes('HASTE');
+          const effectiveSpeed = hasHaste ? 'FAST' : card.speed;
+
           // Handle FAST cards - activate immediately and discard
-          if (card.speed === 'FAST') {
-              const result = processCardEffect(combatState, card, selectedCardIdx, idx);
+          if (effectiveSpeed === 'FAST') {
+              // Consume HASTE if used
+              let stateForEffect = combatState;
+              let consumedEffectsUpdate = {};
+              if (hasHaste) {
+                 const newLaneEffects = { ...(combatState.laneEffects || {}) };
+                 newLaneEffects[idx] = (newLaneEffects[idx] || []).filter(e => e !== 'HASTE');
+                 consumedEffectsUpdate = { laneEffects: newLaneEffects };
+                 stateForEffect = { ...combatState, laneEffects: newLaneEffects };
+              }
+
+              const result = processCardEffect(stateForEffect, card, selectedCardIdx, idx);
               
               if (result.logs && result.logs.length > 0) {
                   result.logs.forEach(log => addLog(log));
               }
               
-              setCombatState(prev => ({ ...prev!, ...result.newState }));
+              setCombatState(prev => ({ ...prev!, ...consumedEffectsUpdate, ...result.newState }));
               return;
           }
           
@@ -272,7 +287,28 @@ export function useGameLoop({
         
         if (!combatState || combatState.phase !== 'planning') return;
         setProvokeMode(false); // Cancel provoke mode when ending turn
-        setCombatState(prev => ({ ...prev!, phase: 'resolving', selectedCardIdx: null }));
+        
+        // Handle VOLATILE cards (discard from hand)
+        let endTurnHand = [...combatState.playerHand];
+        let endTurnDiscard = [...combatState.discardPile];
+        const volatileIndices: number[] = [];
+
+        endTurnHand.forEach((card, idx) => {
+             if (card.volatile) {
+                 volatileIndices.push(idx);
+                 endTurnDiscard.push(card);
+             }
+        });
+
+        if (volatileIndices.length > 0) {
+            // Remove volatile cards from hand (reverse order to keep indices valid during splice, or filter)
+            endTurnHand = endTurnHand.filter((_, idx) => !volatileIndices.includes(idx));
+            addLog(`Volatile: ${volatileIndices.length} cards evaporated!`);
+        }
+
+        const stateAfterVolatile = { ...combatState, playerHand: endTurnHand, discardPile: endTurnDiscard };
+
+        setCombatState(prev => ({ ...prev!, ...stateAfterVolatile, phase: 'resolving', selectedCardIdx: null }));
         setCombatState(prev => ({ ...prev!, enemyZoneCards: prev!.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null) }));
         await new Promise(r => setTimeout(r, 800));
     
@@ -328,7 +364,21 @@ export function useGameLoop({
             }
         });
 
-        let newDiscard = [...combatState.discardPile, ...pZones.filter((c): c is CardData => c !== null), ...combatState.playerHand, ...enemyCardsToDiscard];
+        // Filter PERSIST player cards
+        let keptPlayerZones: (CardData | null)[] = [null, null, null];
+        let playerCardsToDiscard: CardData[] = [];
+
+        pZones.forEach((c, i) => {
+            if (c) {
+                if (c.persist && c.persist > 0) {
+                     keptPlayerZones[i] = { ...c, persist: c.persist - 1 };
+                } else {
+                     playerCardsToDiscard.push(c);
+                }
+            }
+        });
+
+        let newDiscard = [...combatState.discardPile, ...playerCardsToDiscard, ...combatState.playerHand, ...enemyCardsToDiscard];
         let newDrawPile = [...combatState.drawPile];
         pUnits = pUnits.map(u => u ? {...u, grayHp: 0} : null);
     
@@ -351,7 +401,7 @@ export function useGameLoop({
         }
     
         setCombatState({ ...combatState, drawPile: newDrawPile, discardPile: newDiscard, playerUnits: pUnits, enemyUnits: eUnits, playerHand: [], turn: combatState.turn + 1 });
-        startTurnLogic({ turn: combatState.turn + 1, playerUnits: pUnits, enemyUnits: eUnits, drawPile: newDrawPile, discardPile: newDiscard, enemyHand: [], enemyZoneCards: keptEnemyZones });
+        startTurnLogic({ turn: combatState.turn + 1, playerUnits: pUnits, enemyUnits: eUnits, drawPile: newDrawPile, discardPile: newDiscard, enemyHand: [], enemyZoneCards: keptEnemyZones, playerZoneCards: keptPlayerZones });
         setGlobalDeck(newGlobalDeck);
     };
 

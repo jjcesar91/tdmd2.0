@@ -102,7 +102,7 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
             {parts.map((part, i) => {
                 const match = KEYWORDS[part];
                 if (match && (previewMode || !smallMode)) {
-                     return <span key={i} className="text-amber-400 font-bold drop-shadow-sm">{part}</span>;
+                     return <span key={i} className="text-amber-400 font-bold drop-shadow-sm cursor-help" title={`${part}: ${match}`}>{part}</span>;
                 }
                 return part;
             })}
@@ -169,13 +169,25 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
            <div className="relative z-20 w-full bg-stone-950/95 border-t border-stone-700 flex flex-col">
               
               {/* Name Strip */}
-              <div className="w-full bg-stone-900 border-b border-stone-800 py-0.5 px-2 text-center shadow-inner">
-                <span className={`${previewMode ? (compactPreview ? 'text-[9px]' : 'text-xs') : 'text-[5px]'} font-bold text-stone-100 uppercase tracking-widest font-serif block`}>{name}</span>
+              <div className="w-full bg-stone-900 border-b border-stone-800 py-0.5 px-2 text-center shadow-inner overflow-hidden">
+                <span className={`${
+                  previewMode 
+                    ? (compactPreview 
+                        ? ((name?.length || 0) > 16 ? 'text-[6px] tracking-wide' : (name?.length || 0) > 12 ? 'text-[7px] tracking-wider' : 'text-[9px] tracking-widest') 
+                        : 'text-xs tracking-widest') 
+                    : 'text-[5px] tracking-widest'
+                } font-bold text-stone-100 uppercase font-serif block whitespace-nowrap`}>{name}</span>
               </div>
 
               {/* Description Body */}
-              <div className={`w-full px-2 py-2 flex items-center justify-center min-h-[50px] ${previewMode ? '' : 'line-clamp-3'}`}>
-                  <p className={`${previewMode ? (compactPreview ? 'text-[8px]' : 'text-xs') : 'text-[7px]'} text-center text-stone-300 leading-relaxed font-medium`}>
+              <div className={`w-full px-2 py-2 flex items-center justify-center ${previewMode && compactPreview ? 'h-[50px] overflow-hidden' : 'min-h-[50px]'} ${previewMode ? '' : 'line-clamp-3'}`}>
+                  <p className={`${
+                    previewMode 
+                      ? (compactPreview 
+                          ? ((desc?.length || 0) > 85 ? 'text-[6px] leading-[1.1]' : (desc?.length || 0) > 50 ? 'text-[7px] leading-[1.2]' : 'text-[8px] leading-relaxed') 
+                          : 'text-xs leading-relaxed') 
+                      : 'text-[7px] leading-relaxed'
+                  } text-center text-stone-300 font-medium w-full`}>
                     {renderDescription()}
                   </p>
               </div>

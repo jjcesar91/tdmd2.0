@@ -314,7 +314,7 @@ export const HeroDetailScreen = ({ hero, onClose }: HeroDetailScreenProps) => {
                                 
                                 return parts.map((part, i) => {
                                     if (KEYWORDS[part]) {
-                                        return <span key={i} className="text-amber-400 font-bold drop-shadow-sm">{part}</span>;
+                                        return <span key={i} className="text-amber-400 font-bold drop-shadow-sm cursor-help" title={`${part}: ${KEYWORDS[part]}`}>{part}</span>;
                                     }
                                     return <span key={i}>{part}</span>;
                                 });

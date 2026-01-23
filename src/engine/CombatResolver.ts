@@ -174,8 +174,30 @@ export const resolveLane = (
 
     // --- Enemy Attack Phase ---
     if (eUnit && !eUnit.dead && eCard) {
-        // Skip if detained
-        if (eCard.detained && eCard.detained > 0) {
+        // RECOIL Logic
+        let recoilDmg = 0;
+        playerZones.forEach((c, i) => {
+             if (c && c.recoil && c.recoil > 0) {
+                 const isAoE = c.desc.includes('AoE') || c.effect === 'NOXIOUS';
+                 if (i === laneIdx || (isAoE && Math.abs(i - laneIdx) === 1)) {
+                     recoilDmg += c.recoil;
+                 }
+             }
+        });
+        
+        if (recoilDmg > 0) {
+             eUnit.hp -= recoilDmg;
+             if (eUnit.hp <= 0) {
+                 eUnit.dead = true;
+                 eUnit.hp = 0;
+             }
+             msg += `Recoil ${recoilDmg}! `;
+        }
+        
+        // Skip if detained (or dead from recoil)
+        if (eUnit.dead) {
+            // Unit died to recoil
+        } else if (eCard.detained && eCard.detained > 0) {
             msg += `Enemy ${eUnit.name} is Detained! `;
         } else {
             let dmg = (eCard.actionType === 'ATTACK' ? eCard.value : 0);
