@@ -1,6 +1,8 @@
 import { Card, Hero } from '../types';
-import unstableMixtureIcon from '../assets/images/heroes/alchemist/alchemist-icon.png'; // Placeholder
-import explosiveFlaskIcon from '../assets/images/heroes/alchemist/alchemist-icon.png'; // Placeholder
+import explosiveFlaskCardImage from '../assets/images/heroes/alchemist/cards/explosiveflask-card.png';
+import unstableMixtureCardImage from '../assets/images/heroes/alchemist/cards/unstablemixture-card.png';
+import noxiousCloudCardImage from '../assets/images/heroes/alchemist/cards/noxiouscloud-card.png';
+import skilledBreweryIcon from '../assets/images/heroes/alchemist/skills/skilledbrewery-skill.png';
 import stalwartIcon from '../assets/images/heroes/crusader/skills/stalwart-skill.png';
 import cleaveCardImage from '../assets/images/heroes/crusader/cards/cleave-card.png';
 import bloodOathCardImage from '../assets/images/heroes/crusader/cards/bloodoath-card.png';
@@ -13,6 +15,10 @@ import foreseeCardImage from '../assets/images/heroes/madprophet/cards/foresee-c
 import omenCardImage from '../assets/images/heroes/madprophet/cards/omen-card.png';
 import epiphanyCardImage from '../assets/images/heroes/madprophet/cards/epiphany-card.png';
 import theProphecyIcon from '../assets/images/heroes/madprophet/skills/thepropecy-skill.png';
+import healingPotionImage from '../assets/images/potions/healing-potion.png';
+import invisibilityPotionImage from '../assets/images/potions/invisibility-potion.png';
+import augmentationPotionImage from '../assets/images/potions/augmentation-potion.png';
+import hastePotionImage from '../assets/images/potions/haste-potion.png';
 
 export const ZONES = ['F', 'M', 'R'];
 
@@ -47,10 +53,10 @@ export const KEYWORDS: Record<string, string> = {
 };
 
 export const POTIONS_DB: Card[] = [
-  { id: 'pot_heal', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Healing Potion', desc: 'Heal 2 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700' },
-  { id: 'pot_inv', type: 'CRAFTED', actionType: 'SKILL', value: 0, name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-indigo-950', border: 'border-indigo-700' },
-  { id: 'pot_aug', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Augmented Potion', desc: 'Gain Augment 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700' },
-  { id: 'pot_haste', type: 'CRAFTED', actionType: 'SKILL', value: 0, name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700' }
+  { id: 'pot_heal', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Healing Potion', desc: 'Heal 2 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
+  { id: 'pot_inv', type: 'CRAFTED', actionType: 'SKILL', value: 0, name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
+  { id: 'pot_aug', type: 'CRAFTED', actionType: 'SKILL', value: 2, name: 'Augmented Potion', desc: 'Gain Augment 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
+  { id: 'pot_haste', type: 'CRAFTED', actionType: 'SKILL', value: 0, name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
 ];
 
 export const HEROES_DB: Hero[] = [
@@ -117,6 +123,7 @@ export const HEROES_DB: Hero[] = [
     role: 'WILD',
     desc: 'Passive: Before Draw Phase, Craft 1 random potion.',
     passiveName: 'Skilled Brewery',
+    passiveIcon: skilledBreweryIcon,
     hp: 4,
     maxHp: 4,
     archetype: 'POWER' as const,
@@ -124,9 +131,9 @@ export const HEROES_DB: Hero[] = [
     locked: false,
     lore: 'A prodigy that seeks legendary ingredients for dangerous formulas',
     cards: [
-      { id: 'a_explosive_flask', type: 'BASIC', actionType: 'ATTACK', value: 1, name: 'Explosive Flask', desc: 'AoE. Deal 1.', effect: 'CLEAVE', ownerId: 'alchemist', speed: 'NORMAL', range: 1, image: explosiveFlaskIcon },
-      { id: 'a_unstable_mixture', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', effect: 'UNSTABLE_MIXTURE', ownerId: 'alchemist', speed: 'FAST', range: 1, image: unstableMixtureIcon },
-      { id: 'a_noxious_cloud', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 2.', effect: 'NOXIOUS', ownerId: 'alchemist', speed: 'NORMAL', range: 1, persist: 1, recoil: 2, image: explosiveFlaskIcon }
+      { id: 'a_explosive_flask', type: 'BASIC', actionType: 'ATTACK', value: 1, name: 'Explosive Flask', desc: 'AoE. Deal 1.', effect: 'CLEAVE', ownerId: 'alchemist', speed: 'NORMAL', range: 1, image: explosiveFlaskCardImage },
+      { id: 'a_unstable_mixture', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', effect: 'UNSTABLE_MIXTURE', ownerId: 'alchemist', speed: 'FAST', range: 1, image: unstableMixtureCardImage },
+      { id: 'a_noxious_cloud', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 2.', effect: 'NOXIOUS', ownerId: 'alchemist', speed: 'NORMAL', range: 1, persist: 1, recoil: 2, image: noxiousCloudCardImage }
     ]
   },
   // KINGDOM HEROES

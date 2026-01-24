@@ -65,7 +65,7 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction, onRangerAction }
       {!isDead && (
         <div className="flex justify-center gap-1 pb-1 px-1 relative z-10">
            {unit.buffs?.tanking && <StatBadge icon={Shield} value="" color="text-sky-400 border-sky-800" />}
-           {unit.buffs?.strength > 0 && <StatBadge icon={Sword} value={unit.buffs.strength} color="text-amber-500 border-amber-800" />}
+           {(unit.buffs?.augment || 0) > 0 && <StatBadge icon={Sword} value={unit.buffs.augment} color="text-amber-500 border-amber-800" />}
            {(unit.buffs?.anger || 0) > 0 && <StatBadge icon={Flame} value={unit.buffs?.anger || 0} color="text-orange-500 border-orange-800" />}
            {unit.buffs?.immune && <StatBadge icon={RefreshCw} value="" color="text-indigo-400 border-indigo-800" />}
         </div>

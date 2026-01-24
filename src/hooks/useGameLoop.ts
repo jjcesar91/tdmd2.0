@@ -30,7 +30,7 @@ export function useGameLoop({
     const startTurnLogic = (state: Partial<CombatState>) => {
         let newPUnits = (state.playerUnits || []).map((u: Unit | null) => {
             if (!u || u.dead) return u;
-            let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false, strength: 0 } };
+            let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false, augment: 0 } };
             // Decrement Vulnerable
             if (unit.buffs.vulnerable) {
                  unit.buffs.vulnerable -= 1;
@@ -111,7 +111,7 @@ export function useGameLoop({
           combatParty[laneIdx] = { 
             ...hero, 
             grayHp: 0, 
-            buffs: { immune: false, tanking: false, strength: 0 },
+            buffs: { immune: false, tanking: false, augment: 0 },
             activeCooldown: 0,
             activeCooldownMax: cooldownMax
           };

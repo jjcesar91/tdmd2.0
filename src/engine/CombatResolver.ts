@@ -19,7 +19,7 @@ export const applyRoundBuffs = (
         if (card) {
             if (card.id === 'pot_heal') newUnit.hp = Math.min(newUnit.maxHp, newUnit.hp + 3);
             if (card.id === 'pot_inv') newUnit.buffs.immune = true;
-            if (card.id === 'pot_str') newUnit.buffs.strength += 2;
+            if (card.id === 'pot_str') newUnit.buffs.augment += 2;
             if (card.effect === 'TANK_RIGHT') newUnit.buffs.tanking = true;
             if (card.effect === 'TANK_ALL') {
                 newUnit.buffs.tanking = true;
@@ -81,7 +81,7 @@ export const resolveLane = (
              }
         }
 
-        let dmg = (pCard.actionType === 'ATTACK' ? pCard.value : 0) + (pUnit.buffs.strength || 0) + (pUnit.buffs.anger || 0);
+        let dmg = (pCard.actionType === 'ATTACK' ? pCard.value : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
         
         // Eye for an Eye / Purge
         if (pCard.effect === 'EYE_FOR_EYE' || pCard.effect === 'PURGE') {

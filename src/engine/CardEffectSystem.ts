@@ -51,16 +51,16 @@ const applySingleCardEffect = (
          return { newStateUpdates: stateUpdates, logs };
     }
 
-    // AUGMENT / STRENGTH
+    // AUGMENT
     if (card.id === 'pot_aug') {
          const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
          const hero = newPlayerUnits[targetLaneIdx];
          if (hero) {
              const val = card.value || 2;
-             // Assuming 'strength' is the buff property for Augment
-             const newBuffs = { ...hero.buffs, strength: (hero.buffs.strength || 0) + val };
+             // Assuming 'augment' is the buff property for Augment
+             const newBuffs = { ...hero.buffs, augment: (hero.buffs.augment || 0) + val };
              newPlayerUnits[targetLaneIdx] = { ...hero, buffs: newBuffs };
-             logs.push(`Augmented Potion: ${hero.name} gained +${val} Strength!`);
+             logs.push(`Augmented Potion: ${hero.name} gained +${val} Augment!`);
              stateUpdates.playerUnits = newPlayerUnits;
          }
          return { newStateUpdates: stateUpdates, logs };
@@ -147,8 +147,8 @@ export const processCardEffect = (
             uid: Math.random(),
             type: 'CRAFTED',
             actionType: 'SKILL', // Default to SKILL mostly
-            name: `Mixture: ${p1.name} & ${p2.name}`,
-            desc: `Merged: ${p1.desc} + ${p2.desc}`,
+            name: `Unstable Brew`,
+            desc: `${p1.desc} ${p2.desc}`,
             value: 0, // Values are handled by constituent cards
             speed: 'FAST', // Potions are FAST
             range: range,
@@ -361,11 +361,11 @@ export const processCardEffect = (
                 dead: newHp === 0,
                 buffs: {
                     ...crusader.buffs,
-                    anger: (crusader.buffs.anger || 0) + 2
+                    augment: (crusader.buffs.augment || 0) + 2 // Use Augment consistently
                 }
             };
             
-            logs.push(`Blood Oath: Crusader sacrificed 2 HP for 2 Anger!`);
+            logs.push(`Blood Oath: Crusader sacrificed 2 HP for 2 Augment!`);
 
             return {
                 newState: { 

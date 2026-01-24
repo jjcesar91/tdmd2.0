@@ -66,7 +66,7 @@ export function useDraftLogic({ setParty, setPartyLanes, setGlobalDeck, setMapNo
         ...heroData,
         level: heroLevels[heroId] || 1,
         dead: false,
-        buffs: { immune: false, tanking: false, strength: 0 }
+        buffs: { immune: false, tanking: false, augment: 0 }
       } as Unit;
     });
     

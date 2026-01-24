@@ -29,7 +29,7 @@ export interface Card {
 export interface Buffs {
   immune: boolean;
   tanking: boolean;
-  strength: number;
+  augment: number;
   anger?: number;
   vulnerable?: number;
 }
