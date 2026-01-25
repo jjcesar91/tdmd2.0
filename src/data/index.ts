@@ -3,6 +3,10 @@ import crusaderPortrait from '../assets/images/heroes/crusader/crusader-portrait
 import rangerPortrait from '../assets/images/heroes/loneranger/loneranger-portrait.png';
 import prophetPortrait from '../assets/images/heroes/madprophet/madprophet-portrait.png';
 import alchemistPortrait from '../assets/images/heroes/alchemist/alchemist-portrait.png';
+import crusaderAvatar from '../assets/images/heroes/crusader/crusader-avatar.png';
+import rangerAvatar from '../assets/images/heroes/loneranger/loneranger-avatar.png';
+import prophetAvatar from '../assets/images/heroes/madprophet/madprophet-avatar.png';
+import alchemistAvatar from '../assets/images/heroes/alchemist/alchemist-avatar.png';
 import explosiveFlaskCardImage from '../assets/images/heroes/alchemist/cards/explosiveflask-card.png';
 import unstableMixtureCardImage from '../assets/images/heroes/alchemist/cards/unstablemixture-card.png';
 import noxiousCloudCardImage from '../assets/images/heroes/alchemist/cards/noxiouscloud-card.png';
@@ -76,6 +80,7 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: false,
     portrait: crusaderPortrait,
+    avatar: crusaderAvatar,
     lore: 'An old veteran, back to action to avenge its family',
     cards: [
       { id: 'c_cleave', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Cleave', desc: 'AoE. Deal 2.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL', image: cleaveCardImage },
@@ -96,6 +101,7 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: false,
     portrait: rangerPortrait,
+    avatar: rangerAvatar,
     lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
     cards: [
       { id: 'r_arrow_shot', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL', image: arrowShotCardImage },
@@ -116,6 +122,7 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: false,
     portrait: prophetPortrait,
+    avatar: prophetAvatar,
     lore: "Once king's high priest, it bears a prophecy of restoration",
     cards: [
       { id: 'p_foresee', type: 'BASIC', actionType: 'SKILL', value: 1, name: 'Foresee', desc: 'Detain 1. Play on Revealed only.', range: 1, effect: 'DETAIN', ownerId: 'prophet', speed: 'NORMAL', image: foreseeCardImage },
@@ -136,6 +143,7 @@ export const HEROES_DB: Hero[] = [
     level: 1,
     locked: false,
     portrait: alchemistPortrait,
+    avatar: alchemistAvatar,
     lore: 'A prodigy that seeks legendary ingredients for dangerous formulas',
     cards: [
       { id: 'a_explosive_flask', type: 'BASIC', actionType: 'ATTACK', value: 1, name: 'Explosive Flask', desc: 'AoE. Deal 1.', effect: 'CLEAVE', ownerId: 'alchemist', speed: 'NORMAL', range: 0, image: explosiveFlaskCardImage },

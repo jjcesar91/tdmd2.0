@@ -309,7 +309,7 @@ export function useGameLoop({
         const stateAfterVolatile = { ...combatState, playerHand: endTurnHand, discardPile: endTurnDiscard };
 
         setCombatState(prev => ({ ...prev!, ...stateAfterVolatile, phase: 'resolving', selectedCardIdx: null }));
-        setCombatState(prev => ({ ...prev!, enemyZoneCards: prev!.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null) }));
+        // REMOVED: Immediate reveal of all enemy cards. Now handled dynamically in UI during resolution.
         await new Promise(r => setTimeout(r, 800));
     
         let pUnits = [...combatState.playerUnits]; 

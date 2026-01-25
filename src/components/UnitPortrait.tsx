@@ -33,18 +33,6 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitPr
       ${borderColor} ${bgColor} ${isDead ? 'grayscale opacity-50' : `shadow-lg ${glowColor}`}
       ${unit.buffs?.immune ? 'ring-2 ring-indigo-500/50' : ''}
     `}>
-      {/* Level Badge */}
-      {!isEnemy && !isDead && unit.level && (
-        <div className={`absolute top-1 left-1 z-30 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-black border shadow-lg ${
-          unit.level === 1 ? 'bg-stone-600 text-stone-300 border-stone-500' :
-          unit.level === 2 ? 'bg-green-600 text-stone-100 border-green-400' :
-          unit.level === 3 ? 'bg-blue-600 text-stone-100 border-blue-400' :
-          unit.level === 4 ? 'bg-purple-600 text-stone-100 border-purple-400' :
-          'bg-amber-600 text-stone-100 border-amber-400'
-        }`}>
-          {unit.level}
-        </div>
-      )}
       
       {/* Header Name */}
       <div className="px-1 py-0.5 bg-black/60 border-b border-white/5 text-[8px] font-bold font-serif text-center truncate text-stone-300">
@@ -55,8 +43,14 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitPr
       <div className={`flex-1 flex items-center justify-center ${textColor} relative`}>
          {/* Background Glow */}
          <div className={`absolute inset-0 bg-gradient-to-t ${isEnemy ? 'from-red-900/20' : 'from-sky-900/20'} to-transparent opacity-50`} />
-         <div className="relative z-10 filter drop-shadow-lg">
-            {isDead ? <Skull size={24} /> : (unit.isBoss ? <Crown size={32} className="text-amber-500" /> : (isEnemy ? <User size={28} /> : <Shield size={28} />))}
+         <div className={`relative z-10 filter drop-shadow-lg ${unit.avatar && !isEnemy && !isDead ? 'w-full h-full' : ''}`}>
+            {isDead ? <Skull size={24} /> : (
+              (unit.avatar && !isEnemy) ? (
+                 <img src={unit.avatar} alt={unit.name} className="w-full h-full object-cover" />
+              ) : (
+                 unit.isBoss ? <Crown size={32} className="text-amber-500" /> : (isEnemy ? <User size={28} /> : <Shield size={28} />)
+              )
+            )}
          </div>
       </div>
 
@@ -91,20 +85,18 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitPr
       )}
 
       {/* Action Button (Crusader - Provoke) */}
-      {!isEnemy && !isDead && unit.id === 'crusader' && (
+      {!isEnemy && !isDead && unit.id === 'crusader' && unit.level && unit.level >= 2 && (
          <button 
            onClick={(e) => { e.stopPropagation(); if(onCrusaderAction) onCrusaderAction(); }} 
-           disabled={unit.activeCooldown! > 0 || !unit.level || unit.level < 2}
+           disabled={unit.activeCooldown! > 0}
            className={`absolute bottom-12 right-1 p-1 rounded-full border shadow-lg z-20 transition-all ${
-             (unit.activeCooldown! > 0 || !unit.level || unit.level < 2)
+             (unit.activeCooldown! > 0)
                ? 'bg-stone-700 border-stone-600 shadow-stone-900/50 cursor-not-allowed opacity-50' 
                : 'bg-red-900 border-red-500 shadow-red-900/50 hover:scale-110'
            }`}
          >
             {unit.activeCooldown! > 0 ? (
               <span className="text-[8px] font-bold text-stone-400">{unit.activeCooldown}</span>
-            ) : (!unit.level || unit.level < 2) ? (
-              <Lock size={10} className="text-stone-400" />
             ) : (
               <Target size={10} className="text-red-200" />
             )}

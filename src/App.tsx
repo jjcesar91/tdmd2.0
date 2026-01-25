@@ -175,6 +175,7 @@ export default function TheDragonMustDie() {
         setPreviewCard={setPreviewCard}
         onCrusaderAction={onCrusaderAction}
         setCombatState={setCombatState}
+        onRestart={() => enterCombat(mapNode === 4 ? 'boss' : 'normal')}
       />
     );
   }

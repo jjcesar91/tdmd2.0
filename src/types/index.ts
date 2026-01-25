@@ -50,6 +50,8 @@ export interface Unit {
   activeCooldownMax?: number;
   archetype?: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
   level?: number;
+  portrait?: string;
+  avatar?: string;
 }
 
 export interface CombatState {
@@ -85,4 +87,5 @@ export type Hero = {
   passiveName?: string;
   passiveIcon?: string;
   portrait?: string;
+  avatar?: string;
 };

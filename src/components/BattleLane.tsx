@@ -13,7 +13,7 @@ interface BattleLaneProps {
   onEnemyCardClick?: () => void;
   isSelected: boolean;
   isValidTarget: boolean;
-  onPreviewStart: (card: CardData) => void;
+  onPreviewStart: (card: CardData, locked?: boolean) => void;
   onPreviewEnd: () => void;
   onCrusaderAction?: () => void;
   showTargetArrow?: boolean;
@@ -22,6 +22,8 @@ interface BattleLaneProps {
   onLaneLeave?: () => void;
   isResolving?: boolean;
   provokeMode?: boolean;
+  isPlayerCardFlipped?: boolean;
+  isEnemyCardRevealed?: boolean;
 }
 
 export const BattleLane = ({ 
@@ -41,7 +43,9 @@ export const BattleLane = ({
   onLaneHover, 
   onLaneLeave, 
   isResolving, 
-  provokeMode 
+  provokeMode,
+  isPlayerCardFlipped,
+  isEnemyCardRevealed
 }: BattleLaneProps) => {
   return (
     <div 
@@ -89,29 +93,34 @@ export const BattleLane = ({
 
          {/* Enemy Card Slot */}
          <div 
-           onClick={provokeMode && enemyCard ? onEnemyCardClick : undefined}
-           className={`w-full aspect-[2/3] max-h-[80px] z-10 transition-all duration-300 ${
-             isResolving && enemyCard ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''
-           } ${
-             provokeMode && enemyCard ? 'cursor-pointer ring-2 ring-amber-500 animate-pulse' : ''
-           }`}
+           onClick={() => {
+             if (provokeMode && enemyCard) {
+               onEnemyCardClick?.();
+             } else if (enemyCard && (enemyCard.revealed || isEnemyCardRevealed)) {
+               onPreviewStart(enemyCard, true);
+             }
+           }}
+           className={`w-full aspect-square max-h-[100px] z-10 transition-all duration-300 flex items-center justify-center
+             ${!enemyCard ? 'border-2 border-dashed border-stone-800 bg-stone-900/20 rounded-lg' : ''}
+             ${provokeMode && enemyCard ? 'cursor-pointer ring-2 ring-amber-500 animate-pulse' : ''}
+             ${!provokeMode && enemyCard && (enemyCard.revealed || isEnemyCardRevealed) ? 'cursor-pointer hover:ring-2 hover:ring-stone-500/50' : ''}
+           `}
          >
             {enemyCard ? (
-               <Card 
-                 {...enemyCard} 
-                 isHidden={!enemyCard.revealed} 
-                 smallMode={true} 
-                 onPreviewStart={() => onPreviewStart && onPreviewStart(enemyCard)}
-                 onPreviewEnd={onPreviewEnd}
-                 className={`w-full h-full text-[10px] ${
-                   isResolving ? 'ring-2 ring-red-500 shadow-lg' : ''
-                 }`}
-               />
-            ) : (
-               // Empty Enemy Slot - Matches Player Style
-               <div className="w-full h-full border-2 border-dashed border-stone-800 bg-stone-900/20 rounded-lg flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-stone-800" />
+               <div className={`h-[90%] aspect-[2/3] ${isResolving ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''}`}>
+                   <Card 
+                     {...enemyCard} 
+                     isHidden={!enemyCard.revealed && !isEnemyCardRevealed} 
+                     smallMode={true} 
+                     onPreviewStart={(!enemyCard.revealed && !isEnemyCardRevealed) ? undefined : (() => onPreviewStart && onPreviewStart(enemyCard))}
+                     onPreviewEnd={onPreviewEnd}
+                     className={`w-full h-full text-[10px] ${
+                       isResolving ? 'ring-2 ring-red-500 shadow-lg' : ''
+                     }`}
+                   />
                </div>
+            ) : (
+               <div className="w-1.5 h-1.5 rounded-full bg-stone-800" />
             )}
          </div>
 
@@ -123,24 +132,27 @@ export const BattleLane = ({
          {/* Player Card Slot */}
          <div 
             onClick={onPlayerSlotClick}
-            className={`w-full aspect-[2/3] max-h-[80px] z-10 cursor-pointer transition-all duration-300 mt-2
-              ${!playerCard && isValidTarget ? 'scale-105 border-sky-500 shadow-[0_0_15px_rgba(14,165,233,0.4)]' : ''}
-              ${isResolving && playerCard ? 'scale-110 drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]' : ''}
+            className={`w-full aspect-square max-h-[100px] z-10 cursor-pointer transition-all duration-300 mt-2 flex items-center justify-center relative
+               ${!playerCard ? 'border-2 border-dashed rounded-lg' : ''}
+               ${!playerCard && isValidTarget ? 'border-sky-500/50 bg-sky-900/20 scale-105 shadow-[0_0_15px_rgba(14,165,233,0.4)]' : ''}
+               ${!playerCard && !isValidTarget ? 'border-stone-800 bg-stone-900/30 hover:border-stone-600 hover:bg-stone-900/50' : ''}
             `}
          >
             {playerCard ? (
-               <Card 
-                 {...playerCard} 
-                 smallMode={true} 
-                 onPreviewStart={() => onPreviewStart && onPreviewStart(playerCard)}
-                 onPreviewEnd={onPreviewEnd}
-                 className={`w-full h-full text-[10px] ${isResolving ? 'ring-2 ring-sky-500 shadow-lg' : ''}`}
-               />
-            ) : (
-               <div className={`w-full h-full border-2 border-dashed rounded-lg flex items-center justify-center transition-colors 
-                  ${isValidTarget ? 'border-sky-500/50 bg-sky-900/20' : 'border-stone-800 bg-stone-900/30 hover:border-stone-600 hover:bg-stone-900/50'}`}>
-                  {isValidTarget ? <Target size={16} className="text-sky-500 animate-pulse" /> : <div className="w-1.5 h-1.5 rounded-full bg-stone-800" />}
+               <div className={`h-[90%] aspect-[2/3] transition-transform duration-300 ${
+                  isResolving ? 'scale-110 drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]' : ''
+               }`}>
+                  <Card 
+                    {...playerCard} 
+                    smallMode={true} 
+                    isHidden={isPlayerCardFlipped}
+                    onPreviewStart={() => onPreviewStart && onPreviewStart(playerCard)}
+                    onPreviewEnd={onPreviewEnd}
+                    className={`w-full h-full text-[10px] ${isResolving ? 'ring-2 ring-sky-500 shadow-lg' : ''}`}
+                  />
                </div>
+            ) : (
+               isValidTarget ? <Target size={24} className="text-sky-500 animate-pulse" /> : <div className="w-2 h-2 rounded-full bg-stone-800" />
             )}
          </div>
       </div>

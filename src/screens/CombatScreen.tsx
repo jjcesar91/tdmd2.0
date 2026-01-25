@@ -26,6 +26,7 @@ interface CombatScreenProps {
   setPreviewCard: (card: CardData | null) => void;
   onCrusaderAction?: () => void;
   setCombatState: React.Dispatch<React.SetStateAction<CombatState | null>>;
+  onRestart: () => void;
 }
 
 export const CombatScreen: React.FC<CombatScreenProps> = ({
@@ -47,10 +48,28 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
   previewCard,
   setPreviewCard,
   onCrusaderAction,
-  setCombatState
+  setCombatState,
+  onRestart
 }) => {
+  const [previewLocked, setPreviewLocked] = React.useState(false);
   const { turn, phase, playerHand, playerZoneCards, enemyZoneCards, playerUnits, enemyUnits, selectedCardIdx, drawPile, discardPile, resolvingLane } = combatState;
   const isPlayerTurn = phase === 'planning';
+
+  const handlePreviewStart = (card: CardData, locked = false) => {
+    setPreviewCard(card);
+    setPreviewLocked(locked);
+  };
+
+  const handlePreviewEnd = () => {
+    if (!previewLocked) {
+      setPreviewCard(null);
+    }
+  };
+
+  const handleForceClose = () => {
+    setPreviewCard(null);
+    setPreviewLocked(false);
+  };
 
   return (
     <div className="w-full h-screen bg-stone-950 text-stone-100 flex items-center justify-center font-sans">
@@ -70,6 +89,10 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
            
            {/* Deck Controls */}
            <div className="flex gap-2">
+              <button onClick={onRestart} className="flex flex-col items-center justify-center w-10 h-8 rounded bg-stone-800 border border-stone-700 hover:border-red-500 transition-colors group" title="Restart Battle">
+                 <RefreshCw size={12} className="text-stone-400 group-hover:text-red-500" />
+                 <span className="text-[8px] font-bold text-stone-500 group-hover:text-red-500">RES</span>
+              </button>
               <button onClick={() => setShowDiscardModal(true)} className="flex flex-col items-center justify-center w-10 h-8 rounded bg-stone-800 border border-stone-700 hover:border-stone-500 transition-colors">
                  <Trash2 size={12} className="text-stone-400" />
                  <span className="text-[8px] font-bold text-stone-500">{discardPile.length}</span>
@@ -218,7 +241,20 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                           shouldShowDefenseArrow = calculatedDefenseLane === laneIdx;
                       }
                   }
+
+                  // Determine if player card should be flipped down
+                  // It's flipped down if we are resolving AND (start of resolving OR this lane hasn't resolved yet)
+                  // Resolving order: 0 -> 1 -> 2.
+                  // If resolvingLane is null (just started resolving) -> ALL FLIPPED
+                  // If resolvingLane is 0 -> Lane 0 FLIPS UP, Lane 1,2 remain FLIPPED
+                  // But wait, if resolvingLane is CURRENTLY 0, it means it is BEING resolved. So it should be revelaed.
+                  // So: isHidden = phase === resolving && (resolvingLane === null || laneIdx > resolvingLane)
+                  const isPlayerCardFlipped = phase === 'resolving' && (resolvingLane === null || laneIdx > resolvingLane);
                   
+                  // Enemy Reveal Logic:
+                  // Reveal if already revealed OR if we are resolving this lane (or passed it)
+                  const isEnemyCardRevealed = phase === 'resolving' && resolvingLane !== null && laneIdx <= resolvingLane;
+
                   return (
                     <BattleLane 
                        key={laneIdx}
@@ -231,8 +267,8 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                        onEnemyCardClick={() => handleProvokeClick(laneIdx)}
                        isSelected={false}
                        isValidTarget={isValidTarget}
-                       onPreviewStart={setPreviewCard}
-                       onPreviewEnd={() => setPreviewCard(null)}
+                       onPreviewStart={handlePreviewStart}
+                       onPreviewEnd={handlePreviewEnd}
                        onCrusaderAction={onCrusaderAction}
                        showTargetArrow={calculatedTargetLane === laneIdx && hoveredLane !== null}
                        showDefenseArrow={shouldShowDefenseArrow}
@@ -240,6 +276,8 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                        onLaneLeave={() => setHoveredLane(null)}
                        isResolving={resolvingLane === laneIdx}
                        provokeMode={provokeMode}
+                       isPlayerCardFlipped={isPlayerCardFlipped}
+                       isEnemyCardRevealed={isEnemyCardRevealed}
                     />
                   );
               });
@@ -283,8 +321,8 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                           isSelected={selectedCardIdx === i}
                           onClick={() => { if (isPlayerTurn) setCombatState(p => ({...p!, selectedCardIdx: p!.selectedCardIdx === i ? null : i})); }}
                           disabled={!isPlayerTurn}
-                          onPreviewStart={() => setPreviewCard(card)}
-                          onPreviewEnd={() => setPreviewCard(null)}
+                          onPreviewStart={() => handlePreviewStart(card)}
+                          onPreviewEnd={handlePreviewEnd}
                           className="w-full h-full text-[10px]"
                         />
                       </div>
@@ -297,7 +335,11 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
 
         {/* CARD PREVIEW OVERLAY */}
         {previewCard && (
-           <CardPreviewModal card={previewCard} interactive={false} />
+           <CardPreviewModal 
+             card={previewCard} 
+             interactive={previewLocked} 
+             onClose={handleForceClose}
+           />
         )}
 
         {/* MODALS */}
