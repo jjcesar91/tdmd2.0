@@ -52,6 +52,26 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitPr
               )
             )}
          </div>
+
+         {/* Hero Hearts Overlay */}
+         {!isDead && !isEnemy && (
+          <div className="absolute bottom-0 inset-x-0 pb-[14px] pt-6 bg-gradient-to-t from-black/90 to-transparent z-20 flex items-end justify-center">
+            <div className="flex items-center justify-center gap-0.5 flex-wrap px-1">
+             {/* Red hearts for current HP */}
+             {Array.from({ length: unit.hp }).map((_, i) => (
+               <Heart key={`hp-${i}`} size={12} className="text-red-500 fill-red-500 drop-shadow-md" />
+             ))}
+             {/* Gray hearts for gray HP */}
+             {Array.from({ length: unit.grayHp || 0 }).map((_, i) => (
+               <Heart key={`gray-${i}`} size={12} className="text-stone-400 fill-stone-400 drop-shadow-md" />
+             ))}
+             {/* Empty hearts for missing HP */}
+             {Array.from({ length: unit.maxHp - unit.hp - (unit.grayHp || 0) }).map((_, i) => (
+               <Heart key={`empty-${i}`} size={12} className="text-stone-600/50" />
+             ))}
+            </div>
+          </div>
+         )}
       </div>
 
       {/* Buffs Row */}
@@ -65,7 +85,7 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitPr
       )}
 
       {/* HP Bar */}
-      {!isDead && (
+      {!isDead && isEnemy && (
         <div className="w-full px-1.5 py-1 bg-stone-950 relative border-t border-stone-800">
            <div className="flex items-center justify-center gap-0.5 flex-wrap">
              {/* Red hearts for current HP */}

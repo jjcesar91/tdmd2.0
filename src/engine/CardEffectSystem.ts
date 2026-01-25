@@ -135,7 +135,12 @@ export const processCardEffect = (
         // 1. Pick 2 random unique potions (if possible)
         const opts = [...POTIONS_DB];
         const p1 = opts[Math.floor(Math.random() * opts.length)];
-        const p2 = opts[Math.floor(Math.random() * opts.length)]; // Allow duplicates? "random potions". Yes.
+        
+        // Filter out the first potion to ensure we don't pick the same kind twice
+        const remainingOpts = opts.filter(p => p.id !== p1.id);
+        const p2 = remainingOpts.length > 0 
+            ? remainingOpts[Math.floor(Math.random() * remainingOpts.length)]
+            : p1;
 
         // 2. Merge logic
         // Range = min(p1.range, p2.range)

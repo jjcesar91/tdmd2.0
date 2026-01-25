@@ -174,12 +174,10 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
               const selectedCard = selectedCardIdx !== null ? playerHand[selectedCardIdx] : null;
               
               // Calculate target lane once for hovered lane
-              let calculatedTargetLane: number | null = null;
+              let calculatedTargetLanes: number[] = [];
               let calculatedDefenseLane: number | null = null;
               
               if (hoveredLane !== null && selectedCard && !selectedCard.isPotion) {
-                  calculatedTargetLane = hoveredLane;
-                  
                   // Check if card has Tank/Defense effects that protect adjacent/all lanes
                   if (selectedCard.effect === 'TANK_ALL') {
                       // TANK_ALL: Show defense arrow on all lanes (we'll show arrows on all)
@@ -192,24 +190,38 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                   }
                   
                   // Use same logic as damage resolution
+                  let mainTarget = hoveredLane;
                   if (!enemyUnits[hoveredLane] || enemyUnits[hoveredLane]!.dead) {
                       // Priority 1: Left adjacent
                       if (hoveredLane > 0 && enemyUnits[hoveredLane-1] && !enemyUnits[hoveredLane-1]!.dead) {
-                          calculatedTargetLane = hoveredLane - 1;
+                          mainTarget = hoveredLane - 1;
                       }
                       // Priority 2: Right adjacent
                       else if (hoveredLane < 2 && enemyUnits[hoveredLane+1] && !enemyUnits[hoveredLane+1]!.dead) {
-                          calculatedTargetLane = hoveredLane + 1;
+                          mainTarget = hoveredLane + 1;
                       }
                       // Priority 3: Farthest alive enemy
                       else {
                           const candidates = [0,1,2].filter(idx => enemyUnits[idx] && !enemyUnits[idx]!.dead);
                           if (candidates.length > 0) {
-                              calculatedTargetLane = candidates.reduce((farthest, current) => 
+                              mainTarget = candidates.reduce((farthest, current) => 
                                   Math.abs(current - hoveredLane) > Math.abs(farthest - hoveredLane) ? current : farthest
                               );
                           }
                       }
+                  }
+                  
+                  // Add main target
+                  calculatedTargetLanes.push(mainTarget);
+
+                  // CLEAVE / AoE Logic
+                  if (selectedCard.effect === 'CLEAVE') {
+                      const adj = [mainTarget - 1, mainTarget + 1];
+                      adj.forEach(idx => {
+                          if (idx >= 0 && idx <= 2 && enemyUnits[idx] && !enemyUnits[idx]!.dead) {
+                              calculatedTargetLanes.push(idx);
+                          }
+                      });
                   }
               }
 
@@ -270,7 +282,7 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                        onPreviewStart={handlePreviewStart}
                        onPreviewEnd={handlePreviewEnd}
                        onCrusaderAction={onCrusaderAction}
-                       showTargetArrow={calculatedTargetLane === laneIdx && hoveredLane !== null}
+                       showTargetArrow={calculatedTargetLanes.includes(laneIdx) && hoveredLane !== null}
                        showDefenseArrow={shouldShowDefenseArrow}
                        onLaneHover={() => setHoveredLane(laneIdx)}
                        onLaneLeave={() => setHoveredLane(null)}
