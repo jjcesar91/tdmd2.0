@@ -43,7 +43,6 @@ export const KEYWORDS: Record<string, string> = {
   'Gray Heart': 'Temporary HP that absorbs damage before real HP is touched.',
   'Prevent': 'Reduces incoming damage by a flat amount.',
   'Stalwart': 'Gain 1 Gray Heart each round.',
-  'Camouflage': 'Immune this turn.',
   'Scry All': 'Reveal all enemy cards.',
   'Range': 'Can target enemies X lanes away.',
   'Ranged': 'Can target enemies X lanes away.',

@@ -461,27 +461,6 @@ export function useGameLoop({
          addLog("Crusader Provoke: Select an enemy card to force an attack!");
     };
     
-    const onRangerAction = () => {
-         if (!combatState || combatState.phase !== 'planning') return;
-         
-         const rangerUnit = combatState.playerUnits.find(u => u && u.id === 'ranger');
-         if (!rangerUnit || rangerUnit.activeCooldown! > 0) return;
-         
-         const newPlayerUnits = combatState.playerUnits.map(u => {
-           if (u && u.id === 'ranger') {
-             return { 
-               ...u, 
-               activeCooldown: u.activeCooldownMax || 0,
-               buffs: { ...u.buffs, immune: true }
-             };
-           }
-           return u;
-         });
-         
-         setCombatState(prev => ({ ...prev!, playerUnits: newPlayerUnits }));
-         addLog("Ranger uses Camouflage! Immune this turn!");
-    };
-
     return {
         provokeMode,
         setProvokeMode,
@@ -489,7 +468,6 @@ export function useGameLoop({
         handleZoneClick,
         handleEndTurn,
         handleProvokeClick,
-        onCrusaderAction,
-        onRangerAction
+        onCrusaderAction
     };
 }

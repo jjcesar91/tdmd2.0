@@ -141,7 +141,7 @@ export const LoadoutScreen: React.FC<LoadoutScreenProps> = ({
             {/* Bottom Fixed Action Button */}
             <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black via-black/90 to-transparent pb-8">
                 <div className="grid grid-cols-2 gap-3">
-                    <button className="bg-stone-800/80 border border-yellow-600/60 py-3 rounded text-[#d4b483] font-bold text-sm uppercase tracking-wide shadow-lg hover:bg-stone-700 transition-colors">
+                    <button disabled className="bg-stone-800/80 border border-yellow-600/60 py-3 rounded text-[#d4b483] font-bold text-sm uppercase tracking-wide shadow-lg opacity-50 cursor-not-allowed">
                         Choose Loadout
                     </button>
                     <button 

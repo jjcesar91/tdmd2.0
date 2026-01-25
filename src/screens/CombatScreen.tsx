@@ -25,7 +25,6 @@ interface CombatScreenProps {
   previewCard: CardData | null;
   setPreviewCard: (card: CardData | null) => void;
   onCrusaderAction?: () => void;
-  onRangerAction?: () => void;
   setCombatState: React.Dispatch<React.SetStateAction<CombatState | null>>;
 }
 
@@ -48,7 +47,6 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
   previewCard,
   setPreviewCard,
   onCrusaderAction,
-  onRangerAction,
   setCombatState
 }) => {
   const { turn, phase, playerHand, playerZoneCards, enemyZoneCards, playerUnits, enemyUnits, selectedCardIdx, drawPile, discardPile, resolvingLane } = combatState;
@@ -236,7 +234,6 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                        onPreviewStart={setPreviewCard}
                        onPreviewEnd={() => setPreviewCard(null)}
                        onCrusaderAction={onCrusaderAction}
-                       onRangerAction={onRangerAction}
                        showTargetArrow={calculatedTargetLane === laneIdx && hoveredLane !== null}
                        showDefenseArrow={shouldShowDefenseArrow}
                        onLaneHover={() => setHoveredLane(laneIdx)}
@@ -250,7 +247,7 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
         </div>
 
         {/* PLAYER HAND AREA */}
-        <div className="flex-none h-[22%] bg-stone-950 border-t border-stone-800 flex flex-col relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <div className="flex-none h-[15%] bg-stone-950 border-t border-stone-800 flex flex-col relative z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
            {/* Cards Fan Layout */}
            <div className="flex-1 relative flex items-end justify-center pb-2 overflow-visible px-4">
               {playerHand.length === 0 && <div className="w-full text-center text-[10px] text-stone-600 font-bold uppercase tracking-widest absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">No Cards Available</div>}
@@ -268,7 +265,7 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                   return (
                     <div 
                       key={card.uid || i} 
-                      className="absolute bottom-0 left-1/2 transition-all duration-300 ease-out"
+                      className="absolute -bottom-10 left-1/2 transition-all duration-300 ease-out"
                       style={{
                         transform: `translateX(calc(-50% + ${translateX}px)) translateY(${translateY}px) rotate(${rotation}deg)`,
                         zIndex: selectedCardIdx === i ? 50 : 10 + i,

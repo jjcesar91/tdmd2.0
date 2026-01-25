@@ -6,10 +6,9 @@ interface UnitPortraitProps {
   unit: Unit | null;
   isEnemy: boolean;
   onCrusaderAction?: () => void;
-  onRangerAction?: () => void;
 }
 
-export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction, onRangerAction }: UnitPortraitProps) => {
+export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitProps) => {
   // Empty State - Same style for both
   if (!unit) {
     return (
@@ -112,24 +111,6 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction, onRangerAction }
          </button>
       )}
       
-      {/* Action Button (Ranger - Camouflage) */}
-      {!isEnemy && !isDead && unit.id === 'ranger' && (
-         <button 
-           onClick={(e) => { e.stopPropagation(); if(onRangerAction) onRangerAction(); }} 
-           disabled={unit.activeCooldown! > 0}
-           className={`absolute bottom-12 right-1 p-1 rounded-full border shadow-lg z-20 transition-all ${
-             unit.activeCooldown! > 0 
-               ? 'bg-stone-700 border-stone-600 shadow-stone-900/50 cursor-not-allowed opacity-50' 
-               : 'bg-green-900 border-green-500 shadow-green-900/50 hover:scale-110'
-           }`}
-         >
-            {unit.activeCooldown! > 0 ? (
-              <span className="text-[8px] font-bold text-stone-400">{unit.activeCooldown}</span>
-            ) : (
-              <RefreshCw size={10} className="text-green-200" />
-            )}
-         </button>
-      )}
     </div>
   );
 };

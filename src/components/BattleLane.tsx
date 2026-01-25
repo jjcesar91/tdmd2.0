@@ -16,7 +16,6 @@ interface BattleLaneProps {
   onPreviewStart: (card: CardData) => void;
   onPreviewEnd: () => void;
   onCrusaderAction?: () => void;
-  onRangerAction?: () => void;
   showTargetArrow?: boolean;
   showDefenseArrow?: boolean;
   onLaneHover?: () => void;
@@ -37,7 +36,6 @@ export const BattleLane = ({
   onPreviewStart, 
   onPreviewEnd, 
   onCrusaderAction, 
-  onRangerAction, 
   showTargetArrow, 
   showDefenseArrow, 
   onLaneHover, 
@@ -163,7 +161,6 @@ export const BattleLane = ({
            unit={playerUnit} 
            isEnemy={false} 
            onCrusaderAction={onCrusaderAction}
-           onRangerAction={onRangerAction}
          />
       </div>
     </div>
