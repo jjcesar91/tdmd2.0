@@ -1,4 +1,8 @@
 import { Card, Hero } from '../types';
+import crusaderPortrait from '../assets/images/heroes/crusader/crusader-portrait.png';
+import rangerPortrait from '../assets/images/heroes/loneranger/loneranger-portrait.png';
+import prophetPortrait from '../assets/images/heroes/madprophet/madprophet-portrait.png';
+import alchemistPortrait from '../assets/images/heroes/alchemist/alchemist-portrait.png';
 import explosiveFlaskCardImage from '../assets/images/heroes/alchemist/cards/explosiveflask-card.png';
 import unstableMixtureCardImage from '../assets/images/heroes/alchemist/cards/unstablemixture-card.png';
 import noxiousCloudCardImage from '../assets/images/heroes/alchemist/cards/noxiouscloud-card.png';
@@ -72,6 +76,7 @@ export const HEROES_DB: Hero[] = [
     archetype: 'VENGEANCE',
     level: 1,
     locked: false,
+    portrait: crusaderPortrait,
     lore: 'An old veteran, back to action to avenge its family',
     cards: [
       { id: 'c_cleave', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Cleave', desc: 'AoE. Deal 2.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL', image: cleaveCardImage },
@@ -91,6 +96,7 @@ export const HEROES_DB: Hero[] = [
     archetype: 'BALANCE' as const,
     level: 1,
     locked: false,
+    portrait: rangerPortrait,
     lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
     cards: [
       { id: 'r_arrow_shot', type: 'BASIC', actionType: 'ATTACK', value: 2, name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL', image: arrowShotCardImage },
@@ -110,6 +116,7 @@ export const HEROES_DB: Hero[] = [
     archetype: 'KINGDOM' as const,
     level: 1,
     locked: false,
+    portrait: prophetPortrait,
     lore: "Once king's high priest, it bears a prophecy of restoration",
     cards: [
       { id: 'p_foresee', type: 'BASIC', actionType: 'SKILL', value: 1, name: 'Foresee', desc: 'Detain 1. Play on Revealed only.', range: 1, effect: 'DETAIN', ownerId: 'prophet', speed: 'NORMAL', image: foreseeCardImage },
@@ -129,11 +136,12 @@ export const HEROES_DB: Hero[] = [
     archetype: 'POWER' as const,
     level: 1,
     locked: false,
+    portrait: alchemistPortrait,
     lore: 'A prodigy that seeks legendary ingredients for dangerous formulas',
     cards: [
-      { id: 'a_explosive_flask', type: 'BASIC', actionType: 'ATTACK', value: 1, name: 'Explosive Flask', desc: 'AoE. Deal 1.', effect: 'CLEAVE', ownerId: 'alchemist', speed: 'NORMAL', range: 1, image: explosiveFlaskCardImage },
-      { id: 'a_unstable_mixture', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', effect: 'UNSTABLE_MIXTURE', ownerId: 'alchemist', speed: 'FAST', range: 1, image: unstableMixtureCardImage },
-      { id: 'a_noxious_cloud', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 2.', effect: 'NOXIOUS', ownerId: 'alchemist', speed: 'NORMAL', range: 1, persist: 1, recoil: 2, image: noxiousCloudCardImage }
+      { id: 'a_explosive_flask', type: 'BASIC', actionType: 'ATTACK', value: 1, name: 'Explosive Flask', desc: 'AoE. Deal 1.', effect: 'CLEAVE', ownerId: 'alchemist', speed: 'NORMAL', range: 0, image: explosiveFlaskCardImage },
+      { id: 'a_unstable_mixture', type: 'SIGNATURE', actionType: 'SKILL', value: 0, name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', effect: 'UNSTABLE_MIXTURE', ownerId: 'alchemist', speed: 'FAST', range: 0, image: unstableMixtureCardImage },
+      { id: 'a_noxious_cloud', type: 'ULTIMATE', actionType: 'SKILL', value: 0, name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 2.', effect: 'NOXIOUS', ownerId: 'alchemist', speed: 'NORMAL', range: 0, persist: 1, recoil: 2, image: noxiousCloudCardImage }
     ]
   },
   // KINGDOM HEROES

@@ -10,7 +10,7 @@ import { HeroDetailScreen } from './screens/HeroDetailScreen';
 import { IntroScreen } from './screens/IntroScreen';
 import { StartScreen } from './screens/StartScreen';
 import { HeroSelectionScreen } from './screens/HeroSelectionScreen';
-import { LaneAssignmentScreen } from './screens/LaneAssignmentScreen';
+import { LoadoutScreen } from './screens/LoadoutScreen';
 import { MapScreen } from './screens/MapScreen';
 import { CombatScreen } from './screens/CombatScreen';
 import { VictoryScreen } from './screens/VictoryScreen';
@@ -134,18 +134,12 @@ export default function TheDragonMustDie() {
     );
   }
 
-  else if (view === 'LANE_ASSIGNMENT') {
+  else if (view === 'LOADOUT') {
     mainContent = (
-      <LaneAssignmentScreen
+      <LoadoutScreen
         selectedHeroes={selectedHeroes}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        draggedHeroIndex={draggedHeroIndex}
         onBack={() => setView('HERO_SELECTION')}
-        onStartAdventure={finalizeDraft}
-        heroLevels={heroLevels}
-        onLevelChange={handleLevelChange}
+        onStart={finalizeDraft}
       />
     );
   }

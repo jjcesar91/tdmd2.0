@@ -84,4 +84,5 @@ export type Hero = {
   lore?: string;
   passiveName?: string;
   passiveIcon?: string;
+  portrait?: string;
 };

@@ -35,7 +35,7 @@ export function useDraftLogic({ setParty, setPartyLanes, setGlobalDeck, setMapNo
 
   const confirmHeroSelection = () => {
     if (selectedHeroes.length !== 3) return;
-    setView('LANE_ASSIGNMENT');
+    setView('LOADOUT');
   };
 
   const handleDragStart = (index: number) => {
