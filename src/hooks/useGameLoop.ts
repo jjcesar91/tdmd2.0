@@ -31,15 +31,19 @@ export function useGameLoop({
         let newPUnits = (state.playerUnits || []).map((u: Unit | null) => {
             if (!u || u.dead) return u;
             let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false, augment: 0 } };
+            
+            // Cleanup Phase: Reset Gray HP
+            unit.grayHp = 0;
+
             // Decrement Vulnerable
             if (unit.buffs.vulnerable) {
                  unit.buffs.vulnerable -= 1;
                  if (unit.buffs.vulnerable <= 0) delete unit.buffs.vulnerable;
             }
-            // Crusader passive: Gain Gray HP based on level
+            // Crusader passive: Gain Gray HP based on level (Applied AFTER cleanup)
             if (unit.id === 'crusader') {
               const grayHpGain = (unit.level && unit.level >= 4) ? 2 : 1;
-              unit.grayHp = (unit.grayHp || 0) + grayHpGain;
+              unit.grayHp = grayHpGain; // Was reset to 0 above
             }
             // Decrement cooldown each turn
             if (unit.activeCooldown && unit.activeCooldown > 0) {
@@ -51,6 +55,10 @@ export function useGameLoop({
         let newEUnits = (state.enemyUnits || []).map((u: Unit | null) => {
             if (!u || u.dead) return u;
             let unit = { ...u, buffs: { ...u.buffs } };
+            
+            // Cleanup Phase: Reset Gray HP
+            unit.grayHp = 0;
+
             if (unit.buffs.vulnerable) {
                  unit.buffs.vulnerable -= 1;
                  if (unit.buffs.vulnerable <= 0) delete unit.buffs.vulnerable;

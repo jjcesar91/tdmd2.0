@@ -46,6 +46,36 @@ export const resolveLane = (
     let logs: string[] = [];
     let msg = "";
 
+    // --- Phase 0: Defense / Gray HP Application ---
+    // Player Defense & Supports
+    if (pUnit && !pUnit.dead) {
+        let gainedGrayHp = 0;
+        // Self Defense
+        if (pCard && pCard.actionType === 'DEFENSE') {
+            gainedGrayHp += (pCard.value || 0);
+        }
+        // Support from Left
+        if (laneIdx > 0 && playerZones[laneIdx-1]?.effect === 'DEF_RIGHT') {
+            gainedGrayHp += (playerZones[laneIdx-1]?.value || 0);
+        }
+        
+        if (gainedGrayHp > 0) {
+            pUnit.grayHp = (pUnit.grayHp || 0) + gainedGrayHp;
+            msg += `${pUnit.name} +${gainedGrayHp} Gray HP. `;
+        }
+    }
+
+    // Enemy Defense
+    if (eUnit && !eUnit.dead) {
+        if (eCard && eCard.actionType === 'DEFENSE') {
+            const val = eCard.value || 0;
+            if (val > 0) {
+                eUnit.grayHp = (eUnit.grayHp || 0) + val;
+                msg += `${eUnit.name} +${val} Gray HP. `;
+            }
+        }
+    }
+
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && pCard) {
         // DETAIN (Pietrifying Curse & Foresee)
@@ -117,9 +147,7 @@ export const resolveLane = (
             msg += "CRIT! ";
         }
 
-        // Defense Calculation
-        let reduction = (enemyZones[targetIdx]?.actionType === 'DEFENSE') ? (enemyZones[targetIdx]?.value || 0) : 0;
-        let finalDmg = Math.max(0, dmg - reduction);
+        let finalDmg = dmg; // Damage is not reduced directly anymore, but absorbed by Gray HP
 
         if (finalDmg > 0 && eUnits[targetIdx]?.buffs.vulnerable) {
              finalDmg += 2;
@@ -141,6 +169,14 @@ export const resolveLane = (
             msg += "Marked! ";
         }
 
+        // Gray HP Absorption (Standard Logic)
+        if (finalDmg > 0 && targetEnemy && (targetEnemy.grayHp || 0) > 0) {
+            const abs = Math.min(finalDmg, targetEnemy.grayHp || 0);
+            targetEnemy.grayHp = (targetEnemy.grayHp || 0) - abs;
+            finalDmg -= abs;
+            if (abs > 0) msg += `Absorbed ${abs}! `;
+        }
+
         // Apply Damage
         if (finalDmg > 0 && eUnits[targetIdx]) {
             eUnits[targetIdx]!.hp -= finalDmg;
@@ -156,8 +192,76 @@ export const resolveLane = (
             const adjIndices = [targetIdx - 1, targetIdx + 1];
             adjIndices.forEach(adjIdx => {
                 if (adjIdx >= 0 && adjIdx <= 2 && eUnits[adjIdx] && !eUnits[adjIdx]!.dead) {
-                     let adjReduction = (enemyZones[adjIdx]?.actionType === 'DEFENSE') ? (enemyZones[adjIdx]?.value || 0) : 0;
-                     let adjFinalDmg = Math.max(0, dmg - adjReduction);
+                     // Adjacent units benefit from their own defense card if present (added to gray HP already?) 
+                     // Wait, we add Gray HP for TARGET only in above block? NO, we iterate resolved lanes.
+                     // IMPORTANT: resolveLane is typically called per lane. 
+                     // But here we are looking at `targetIdx`.
+                     // If target indices have defense cards, we should probably award them Gray HP too if we want CLEAVE to be mitigated?
+                     // BUT, if `resolveLane` is called for lane 0, and target is 0, we added Gray HP to 0.
+                     // Cleave hits 1. Lane 1 hasn't resolved yet? Or has it?
+                     // Usually combat resolves simultaneously or in order.
+                     // To be safe and fair: Standard Defense card only protects the unit it's ON. 
+                     // If I resolve lane 0, and Cleave hits lane 1, 
+                     // EITHER lane 1 already resolved and got Gray HP, 
+                     // OR lane 1 hasn't resolved yet.
+                     // If `resolveLane` is strictly calculating outcome for Player Lane X vs Enemy Lane X,
+                     // but interactions cross lanes...
+                     
+                     // SIMPLIFICATION for now: Standard damage calculation checks Gray HP.
+                     // We just need to ensure Gray HP is there.
+                     // If we are modifying `eUnits` in place for THIS resolution step,
+                     // we should check if they have valid defense cards that trigger NOW.
+                     
+                     // HOWEVER, if 'resolveLane' is called sequentially 0..1..2,
+                     // and Lane 0 Cleaves Lane 1... Lane 1 might not have 'gained' its Gray HP yet if it gains it during ITS resolution.
+                     // Ideally, "Start of Round" buffs (like Gray HP from cards) should happen BEFORE damage calculation.
+                     // Given the structure, maybe we should apply DEFENSE cards as a "Pre-Combat Phase"?
+                     // But conforming to request: "When resolving a lane, gray hearts will also be gained before any damage dealing."
+                     
+                     // For Cleave: We verify if adjacent unit has defense card, if so, grant Gray HP temporarily to calculate?
+                     // OR we just use whatever Gray HP controls they have.
+                     // If they haven't resolved yet, they rely on pre-existing Gray HP (from last turn?).
+                     // This is a known issue in sequential resolution systems.
+                     // Let's stick to: Check Gray HP. If it's 0 and they have a defense card, maybe we should credit it?
+                     // But that would duplicate it when their lane resolves.
+                     
+                     // FIX: For now, Cleave just hits. If they have Gray HP, good.
+                     // To properly support "Defense Card adds Gray HP", all Defense cards should ideally resolve/trigger 
+                     // before ANY attacks. But user said "When resolving a lane...".
+                     // So: When I attack result for Lane 0, I see Lane 0 enemy card.
+                     // If Lane 0 enemy has defense, they gain Gray HP. I hit them.
+                     // Lane 1 enemy has Defense. Does they gain Gray HP now? No, they gain it when Lane 1 resolves.
+                     // So Cleave on Lane 1 hits their "current" Gray HP (from before).
+                     // This might be intended tactical depth (Attack left to prevent right from setting up?).
+                     
+                     // Wait! Logic tweak:
+                     // If enemy Lane 1 has a Defense card, and I Cleave it from Lane 0...
+                     // The Defense card *has not activated yet*. So Cleave bypasses it.
+                     // This effectively NERFS defense vs Cleave/Speed, unless Defense is "Fast".
+                     // Let's respect "When resolving a lane" instruction strictly.
+                     
+                     // Only existing Gray HP protects adjacent units for now.
+                     // BUT wait, we need to apply `adjReduction` logic from before?
+                     // Previous code: `let adjReduction = (enemyZones[adjIdx]?.actionType === 'DEFENSE') ? ...`
+                     // This implies Defense passively reduced damage even if not active/resolved?
+                     // If we remove this, Defense becomes weaker vs Cleave.
+                     // User said "Prevent ... always into gaining Gray Hearts".
+                     // If I simply replace reduction with gray HP check, 
+                     // and don't grant Gray HP pre-emptively,
+                     // then Cleave is stronger.
+                     
+                     // Attempt to replicate "Passive Defense" vs Cleave:
+                     // If adj unit has Defense card, grant them "Phantom Gray HP" for this hit?
+                     // No, "Gain Gray Hearts" implies accumulation and persistence.
+                     // Let's stick to strict resolution. Defense card activates on its turn.
+                     
+                     let adjFinalDmg = dmg;
+                     
+                     if (eUnits[adjIdx] && (eUnits[adjIdx]!.grayHp || 0) > 0) {
+                         const abs = Math.min(adjFinalDmg, eUnits[adjIdx]!.grayHp || 0);
+                         eUnits[adjIdx]!.grayHp = (eUnits[adjIdx]!.grayHp || 0) - abs;
+                         adjFinalDmg -= abs;
+                     }
                      
                      if (adjFinalDmg > 0) {
                          eUnits[adjIdx]!.hp -= adjFinalDmg;
@@ -231,17 +335,13 @@ export const resolveLane = (
     
             // Apply Damage
             if (targetUnit) {
+                // Defense Calculation - Removed specific check here as it is applied in Phase 0
+                // We keep generic defense check only if needed for reduction, but requested logic is Gray HP conversion.
+
                 if (targetUnit.buffs.immune) { 
                     msg += "Immune! "; 
                 } else {
-                    let reduction = (playerZones[targetIdx]?.actionType === 'DEFENSE') ? (playerZones[targetIdx]?.value || 0) : 0;
-                    
-                    // DEF_RIGHT Support
-                    if (targetIdx > 0 && playerZones[targetIdx-1]?.effect === 'DEF_RIGHT') {
-                        reduction += (playerZones[targetIdx-1]?.value || 0);
-                    }
-                    
-                    let finalDmg = Math.max(0, dmg - reduction);
+                    let finalDmg = dmg;
     
                     if (finalDmg > 0 && targetUnit.buffs.vulnerable) {
                         finalDmg += 2;
@@ -253,6 +353,7 @@ export const resolveLane = (
                         const abs = Math.min(finalDmg, targetUnit.grayHp || 0); 
                         targetUnit.grayHp = (targetUnit.grayHp || 0) - abs; 
                         finalDmg -= abs; 
+                        if (abs > 0) msg += `Absorbed ${abs}! `;
                     }
     
                     if (finalDmg > 0) {

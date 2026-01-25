@@ -45,7 +45,7 @@ export const KEYWORDS: Record<string, string> = {
   'Pick': 'Choose a specific card from a selection.',
   'Augment': 'Increases Attack Damage.',
   'Gray Heart': 'Temporary HP that absorbs damage before real HP is touched.',
-  'Prevent': 'Reduces incoming damage by a flat amount.',
+  'Prevent': 'Converts the defense value into Gray Hearts.',
   'Stalwart': 'Gain 1 Gray Heart each round.',
   'Scry All': 'Reveal all enemy cards.',
   'Range': 'Can target enemies X lanes away.',
