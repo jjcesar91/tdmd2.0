@@ -1,4 +1,4 @@
-import { Skull, Shield, Crown, User, RefreshCw, Sword, Heart, Lock, Target, Flame } from 'lucide-react';
+import { Skull, Shield, Crown, User, RefreshCw, Sword, Heart, Target, Flame } from 'lucide-react';
 import { Unit } from '../types';
 import { StatBadge } from './StatBadge';
 
