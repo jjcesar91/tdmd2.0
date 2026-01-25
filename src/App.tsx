@@ -38,9 +38,9 @@ export default function TheDragonMustDie() {
   
   // Custom Hook: Draft Logic
   const {
-      selectedHeroes, heroLevels, draggedHeroIndex,
+      selectedHeroes, heroLevels,
       handleHeroSelect, handleLevelChange, confirmHeroSelection,
-      handleDragStart, handleDragOver, handleDrop, finalizeDraft, resetDraft
+       finalizeDraft, resetDraft
   } = useDraftLogic({ 
       setParty, setPartyLanes, setGlobalDeck, setMapNode, setView 
   });
