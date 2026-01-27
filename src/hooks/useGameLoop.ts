@@ -297,6 +297,7 @@ export function useGameLoop({
             pUnits = result.playerUnits;
             eUnits = result.enemyUnits;
             if (result.enemyZones) eZones = result.enemyZones;
+            if (result.playerZones) pZones = result.playerZones;
             
             // Add logs
             if (result.logs.length > 0) {
@@ -304,7 +305,7 @@ export function useGameLoop({
             }
     
             // Update React state to show damage immediately
-            setCombatState(prev => ({ ...prev!, playerUnits: [...pUnits], enemyUnits: [...eUnits], enemyZoneCards: [...eZones] }));
+            setCombatState(prev => ({ ...prev!, playerUnits: [...pUnits], enemyUnits: [...eUnits], enemyZoneCards: [...eZones], playerZoneCards: [...pZones] }));
             await new Promise(r => setTimeout(r, 600));
         }
         
@@ -344,7 +345,13 @@ export function useGameLoop({
                 if (c.persist && c.persist > 0) {
                      keptPlayerZones[i] = { ...c, persist: c.persist - 1, resolved: true };
                 } else if (c.detained && c.detained > 0) {
-                     keptPlayerZones[i] = { ...c, detained: c.detained - 1, resolved: true };
+                     const newDetained = c.detained - 1;
+                     if (newDetained > 0) {
+                         keptPlayerZones[i] = { ...c, detained: newDetained, resolved: true };
+                     } else {
+                         const { resolved, detained, ...cleanCard } = c;
+                         playerCardsToDiscard.push(cleanCard);
+                     }
                 } else {
                      const { resolved, detained, ...cleanCard } = c;
                      playerCardsToDiscard.push(cleanCard);
