@@ -89,7 +89,7 @@ const applySingleCardEffect = (
     // For Safety in Merge: If it's a card handled by `processCardEffect` main block (like CLEAVE via resolveLane),
     // we need to call resolveLane here.
     
-    if (card.effect === 'CLEAVE' || card.actionType === 'ATTACK' || card.effect === 'DETAIN' || card.effect === 'VULNERABLE') {
+    if (card.effect === 'CLEAVE' || card.desc.includes('Deal') || card.effect === 'DETAIN' || card.effect === 'VULNERABLE') {
         // Use resolveLane logic
         // We need to construct temporary zones
         const tempPlayerZones = [...(state.playerZoneCards)];
@@ -151,7 +151,6 @@ export const processCardEffect = (
             id: `mix_${Math.random().toString(36).substr(2, 9)}`,
             uid: Math.random(),
             type: 'CRAFTED',
-            actionType: 'SKILL', // Default to SKILL mostly
             name: `Unstable Brew`,
             desc: `${p1.desc} ${p2.desc}`,
             value: 0, // Values are handled by constituent cards

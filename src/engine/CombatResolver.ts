@@ -39,7 +39,7 @@ export const resolveLane = (
     const pUnits = playerUnits.map(u => u ? {...u} : null); // Deep copy for mutation within this step
     const eUnits = enemyUnits.map(u => u ? {...u} : null);
     const pCard = playerZones[laneIdx];
-    const eCard = enemyZones[laneIdx];
+    // eCard removed as it was unused
     const pUnit = pUnits[laneIdx];
     const eUnit = eUnits[laneIdx];
     
@@ -69,8 +69,11 @@ export const resolveLane = (
     if (pUnit && !pUnit.dead) {
         let gainedGrayHp = 0;
         // Self Defense
-        if (pCard && pCard.actionType === 'DEFENSE') {
-            gainedGrayHp += (pCard.value || 0);
+        if (pCard) {
+            const defenseMatch = pCard.desc.match(/Gain (\d+) (?:gray hearts?)/i);
+            if (defenseMatch) {
+                gainedGrayHp += parseInt(defenseMatch[1], 10);
+            }
         }
         // Support from Left
         if (laneIdx > 0 && playerZones[laneIdx-1]?.effect === 'DEF_RIGHT') {
@@ -87,12 +90,13 @@ export const resolveLane = (
     // Re-fetch card in case it was detained in Phase -1
     const defenseECard = enemyZones[laneIdx];
     if (eUnit && !eUnit.dead) {
-        if (defenseECard && defenseECard.actionType === 'DEFENSE') {
-            if (defenseECard.detained && defenseECard.detained > 0) {
-               msg += `${eUnit.name} Defense Detained! `;
-            } else {
-                const val = defenseECard.value || 0;
-                if (val > 0) {
+        if (defenseECard) {
+            const defenseMatch = defenseECard.desc.match(/Gain (\d+) (?:gray hearts?)/i);
+            if (defenseMatch) {
+                const val = parseInt(defenseMatch[1], 10);
+                if (defenseECard.detained && defenseECard.detained > 0) {
+                   msg += `${eUnit.name} Defense Detained! `;
+                } else if (val > 0) {
                     eUnit.grayHp = (eUnit.grayHp || 0) + val;
                     msg += `${eUnit.name} +${val} Gray HP. `;
                 }
@@ -125,7 +129,7 @@ export const resolveLane = (
              }
         }
 
-        let dmg = (pCard.actionType === 'ATTACK' ? pCard.value : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
+        let dmg = (pCard.desc.includes('Deal') ? pCard.value : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
         
         // Eye for an Eye / Purge
         if (pCard.effect === 'EYE_FOR_EYE' || pCard.effect === 'PURGE') {
@@ -256,7 +260,7 @@ export const resolveLane = (
                      
                      // Only existing Gray HP protects adjacent units for now.
                      // BUT wait, we need to apply `adjReduction` logic from before?
-                     // Previous code: `let adjReduction = (enemyZones[adjIdx]?.actionType === 'DEFENSE') ? ...`
+                     // Previous code relying on actionType removed.
                      // This implies Defense passively reduced damage even if not active/resolved?
                      // If we remove this, Defense becomes weaker vs Cleave.
                      // User said "Prevent ... always into gaining Gray Hearts".
@@ -321,7 +325,7 @@ export const resolveLane = (
         } else if (currentECard.detained && currentECard.detained > 0) {
             msg += `Enemy ${eUnit.name} is Detained! `;
         } else {
-            let dmg = (currentECard.actionType === 'ATTACK' ? currentECard.value : 0);
+            let dmg = (currentECard.desc.includes('Deal') ? currentECard.value : 0);
             
             // Target Selection
             let targetIdx = laneIdx;

@@ -136,14 +136,14 @@ export function useGameLoop({
             if (heroLevel >= 3) {
               // Level 3: Add 2x Eye for an Eye
               levelCards.push(
-                { id: 'c_eye', type: 'SIGNATURE', actionType: 'ATTACK', value: 0, name: 'Eye for an Eye', desc: 'Deal X equal to your missing hearts.', effect: 'EYE_FOR_EYE', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() },
-                { id: 'c_eye', type: 'SIGNATURE', actionType: 'ATTACK', value: 0, name: 'Eye for an Eye', desc: 'Deal X equal to your missing hearts.', effect: 'EYE_FOR_EYE', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
+                { id: 'c_eye', type: 'SIGNATURE', value: 0, name: 'Eye for an Eye', desc: 'Deal X equal to your missing hearts.', effect: 'EYE_FOR_EYE', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() },
+                { id: 'c_eye', type: 'SIGNATURE', value: 0, name: 'Eye for an Eye', desc: 'Deal X equal to your missing hearts.', effect: 'EYE_FOR_EYE', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
               );
             }
             if (heroLevel >= 5) {
               // Level 5: Add 1x Nothing to Lose
               levelCards.push(
-                { id: 'c_nothing', type: 'BASIC', actionType: 'SKILL', value: 0, name: 'Nothing to Lose', desc: 'Tank all lanes this turn.', effect: 'TANK_ALL', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
+                { id: 'c_nothing', type: 'BASIC', value: 0, name: 'Nothing to Lose', desc: 'Tank all lanes this turn.', effect: 'TANK_ALL', ownerId: 'crusader', archetype: 'VENGEANCE' as const, uid: Math.random() }
               );
             }
           }
