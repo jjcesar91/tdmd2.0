@@ -74,13 +74,16 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitPr
          )}
       </div>
 
-      {/* Buffs Row */}
+      {/* Buffs Overlay - Top for Heroes, Bottom for Enemies */}
       {!isDead && (
-        <div className="flex justify-center gap-1 pb-1 px-1 relative z-10">
+        <div className={`absolute left-0 right-0 z-30 flex justify-center gap-1 px-1 pointer-events-none ${
+          isEnemy ? 'bottom-7' : 'top-6'
+        }`}>
            {unit.buffs?.tanking && <StatBadge icon={Shield} value="" color="text-sky-400 border-sky-800" />}
-           {(unit.buffs?.augment || 0) > 0 && <StatBadge icon={Sword} value={unit.buffs.augment} color="text-amber-500 border-amber-800" />}
-           {(unit.buffs?.anger || 0) > 0 && <StatBadge icon={Flame} value={unit.buffs?.anger || 0} color="text-orange-500 border-orange-800" />}
+           {(unit.buffs?.augment || 0) > 0 && <StatBadge icon={Sword} value={unit.buffs!.augment} color="text-amber-500 border-amber-800" />}
+           {(unit.buffs?.anger || 0) > 0 && <StatBadge icon={Flame} value={unit.buffs!.anger || 0} color="text-orange-500 border-orange-800" />}
            {unit.buffs?.immune && <StatBadge icon={RefreshCw} value="" color="text-indigo-400 border-indigo-800" />}
+           {(unit.buffs?.vulnerable || 0) > 0 && <StatBadge icon={Target} value={unit.buffs!.vulnerable} color="text-rose-500 border-rose-800" />}
         </div>
       )}
 
