@@ -1,23 +1,18 @@
 export type CardType = 'BASIC' | 'SIGNATURE' | 'ULTIMATE' | 'CRAFTED';
 
+export type ModCategory = 'BUFF' | 'DEBUFF';
+export type ModType = 'AUGMENT' | 'VULNERABLE';
+
 export type EffectType = 
     | 'DEAL_DAMAGE'       
     | 'GAIN_GRAY_HP'      
     | 'HEAL'              
-    | 'BUFF_ATTACK'       
-    | 'BUFF_DEFENSE'      
-    | 'VULNERABLE'        
+    | 'APPLY_MOD'       
     | 'DETAIN'            
-    | 'STUN'              
     | 'IMMUNE'            
-    | 'TANK_RIGHT'        
     | 'TANK_ALL'          
-    | 'DEF_RIGHT'         
-    | 'CLEAVE'            
     | 'BLOOD_OATH'        
     | 'PURGE'             
-    | 'EYE_FOR_EYE'       
-    | 'MARK_HUNTER'       
     | 'HASTE'             
     | 'SCRY'              
     | 'REVEAL'
@@ -29,6 +24,8 @@ export interface CardEffect {
     type: EffectType;
     amount: number; 
     target?: 'SELF' | 'ENEMY' | 'ALLY' | 'ALL_ENEMIES' | 'ALL_ALLIES';
+    modType?: ModType;
+    modCategory?: ModCategory;
 }
 
 export interface Card {
@@ -50,6 +47,7 @@ export interface Card {
   speed?: 'NORMAL' | 'FAST';
   lanes?: 'ALL' | 'FRONT' | 'MID' | 'REAR';
   image?: string;
+  isAoE?: boolean;
   detained?: number;
   volatile?: boolean;
   mergedCards?: Card[];

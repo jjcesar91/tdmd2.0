@@ -7,31 +7,119 @@ interface ResolutionResult {
     enemyZones?: (CardData | null)[];
 }
 
+// Helper to determine target indices
+const resolveTargets = (
+    laneIdx: number, 
+    sourceUnits: (Unit | null)[],
+    targetUnits: (Unit | null)[], 
+    targetType: 'SELF' | 'ENEMY' | 'ALLY' | 'ALL_ENEMIES' | 'ALL_ALLIES' | undefined,
+    isAoE: boolean | undefined
+): number[] => {
+    let targets: number[] = [];
+
+    // ALLY (Self/Lane Hero if source is player)
+    if (targetType === 'SELF' || targetType === 'ALLY') {
+        if (sourceUnits[laneIdx]) targets.push(laneIdx);
+    }
+    // ENEMY
+    else if (targetType === 'ENEMY') {
+        // Standard targeting logic (Lane -> Adj -> Farthest)
+        // Check if lane has enemy
+        if (targetUnits[laneIdx] && !targetUnits[laneIdx]!.dead) {
+            targets.push(laneIdx);
+        } else {
+            // Find substitute
+             // Priority 1: Left adjacent
+             if (laneIdx > 0 && targetUnits[laneIdx-1] && !targetUnits[laneIdx-1]!.dead) {
+                targets.push(laneIdx-1);
+            }
+            // Priority 2: Right adjacent
+            else if (laneIdx < 2 && targetUnits[laneIdx+1] && !targetUnits[laneIdx+1]!.dead) {
+                targets.push(laneIdx+1);
+            }
+            // Priority 3: Farthest alive
+            else {
+                const candidates = [0,1,2].filter(idx => targetUnits[idx] && !targetUnits[idx]!.dead);
+                if (candidates.length > 0) {
+                     const farthest = candidates.reduce((best, current) => 
+                        Math.abs(current - laneIdx) > Math.abs(best - laneIdx) ? current : best
+                    );
+                    targets.push(farthest);
+                }
+            }
+        }
+    }
+    else if (targetType === 'ALL_ENEMIES') {
+        return [0,1,2].filter(i => targetUnits[i] && !targetUnits[i]!.dead);
+    }
+    else if (targetType === 'ALL_ALLIES') {
+        return [0,1,2].filter(i => sourceUnits[i] && !sourceUnits[i]!.dead);
+    }
+
+    // Apply AoE if single target
+    if (isAoE && targets.length === 1) {
+        const primary = targets[0];
+        const adj = [primary - 1, primary + 1].filter(i => i >= 0 && i <= 2);
+        // Add adjacent if valid unit exists
+        adj.forEach(i => {
+             // Check correct side based on targetType.
+             // If target was ENEMY, check targetUnits
+             const collection = (targetType === 'ENEMY') ? targetUnits : sourceUnits;
+             if (collection[i] && !collection[i]!.dead) targets.push(i);
+        });
+    }
+
+    return [...new Set(targets)]; // Unique
+};
+
 export const applyRoundBuffs = (
     units: (Unit | null)[], 
     zones: (CardData | null)[]
 ): (Unit | null)[] => {
-    return units.map((u, i) => {
-        if (!u || u.dead) return u;
-        const newUnit = { ...u, buffs: { ...u.buffs } };
-        const card = zones[i];
+    // We need to process all cards to apply buffs to correct targets.
+    // Since traverse order matters less for buffs, we can clone first.
+    let newUnits = units.map(u => u ? { ...u, buffs: { ...u.buffs } } : null);
+
+    zones.forEach((card, laneIdx) => {
+        if (!card) return;
         
-        if (card) {
-            // Potions mapping
-            if (card.id === 'pot_heal') newUnit.hp = Math.min(newUnit.maxHp, newUnit.hp + 3);
-            if (card.id === 'pot_inv' || card.effects.some(e => e.type === 'IMMUNE')) newUnit.buffs.immune = true;
-            
-            // Look for BUFF_ATTACK (Augment)
-            const augmentEffect = card.effects.find(e => e.type === 'BUFF_ATTACK');
-            if (augmentEffect) newUnit.buffs.augment += augmentEffect.amount;
-            else if (card.id === 'pot_str') newUnit.buffs.augment += 2; // Keep pot_str fallback if id used
-            
-            if (card.effects.some(e => e.type === 'TANK_RIGHT' || e.type === 'TANK_ALL')) {
-                newUnit.buffs.tanking = true;
-            }
+        // Target resolving for Buffs (Self/Ally)
+        // Usually buffs are targeted at ALLY/SELF.
+        // If card is 'pot_aug', target is ALLY.
+        
+        // Process APPLY_MOD (Buffs)
+        card.effects.forEach(effect => {
+             if (effect.type === 'APPLY_MOD' && effect.modCategory === 'BUFF' && effect.modType === 'AUGMENT') {
+                 // Resolve targets
+                 const targets = resolveTargets(laneIdx, newUnits, [], effect.target, card.isAoE); // Empty enemy units as buffs don't target enemies usually
+                 targets.forEach(tIdx => {
+                     if (newUnits[tIdx]) {
+                         newUnits[tIdx]!.buffs.augment += effect.amount;
+                         // Log? logs are not returned here unfortunately.
+                     }
+                 });
+             }
+        });
+
+        // Legacy/Special cases
+        if (card.id === 'pot_heal') {
+             const targets = resolveTargets(laneIdx, newUnits, [], 'ALLY', card.isAoE);
+             targets.forEach(tIdx => {
+                 if (newUnits[tIdx]) newUnits[tIdx]!.hp = Math.min(newUnits[tIdx]!.maxHp, newUnits[tIdx]!.hp + 3);
+             });
         }
-        return newUnit;
+        
+        if (card.id === 'pot_inv' || card.effects.some(e => e.type === 'IMMUNE')) {
+             const targets = resolveTargets(laneIdx, newUnits, [], 'ALLY', card.isAoE);
+             targets.forEach(tIdx => { if (newUnits[tIdx]) newUnits[tIdx]!.buffs.immune = true; });
+        }
+        
+        if (card.effects.some(e => e.type === 'TANK_ALL')) {
+             if (newUnits[laneIdx]) newUnits[laneIdx]!.buffs.tanking = true; // Tanking usually self
+        }
     });
+
+    return newUnits;
 };
 
 export const resolveLane = (
@@ -80,11 +168,7 @@ export const resolveLane = (
             if (grayHpEffect) gainedGrayHp += grayHpEffect.amount;
         }
         // Support from Left
-        const leftCard = laneIdx > 0 ? playerZones[laneIdx-1] : null;
-        if (leftCard) {
-            const defRight = leftCard.effects.find(e => e.type === 'DEF_RIGHT');
-            if (defRight) gainedGrayHp += defRight.amount;
-        }
+        // const leftCard = laneIdx > 0 ? playerZones[laneIdx-1] : null;
         
         if (gainedGrayHp > 0) {
             pUnit.grayHp = (pUnit.grayHp || 0) + gainedGrayHp;
@@ -110,185 +194,77 @@ export const resolveLane = (
 
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && pCard) {
-        // VULNERABLE (Omen)
-        const vulnEffect = pCard.effects.find(e => e.type === 'VULNERABLE');
-        if (vulnEffect) {
-             // Find target (same logic as attack)
-             let targetIdx = laneIdx;
-             if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
-                 const candidates = [0,1,2].filter(idx => eUnits[idx] && !eUnits[idx]!.dead).sort((a,b) => Math.abs(a-laneIdx) - Math.abs(b-laneIdx));
-                 if (candidates.length > 0) targetIdx = candidates[0];
-             }
-             
-             if (eUnits[targetIdx]) {
-                 const currentVal = eUnits[targetIdx]!.buffs.vulnerable || 0;
-                 eUnits[targetIdx]!.buffs.vulnerable = currentVal + vulnEffect.amount;
-                 msg += `Vulnerable ${eUnits[targetIdx]?.name}! `;
-             }
-        }
+        
+        // VULNERABLE (APPLY_MOD Debuff)
+        const vulnEffects = pCard.effects.filter(e => e.type === 'APPLY_MOD' && e.modType === 'VULNERABLE');
+        vulnEffects.forEach(eff => {
+             const targets = resolveTargets(laneIdx, pUnits, eUnits, eff.target, pCard.isAoE);
+             targets.forEach(tIdx => {
+                 if (eUnits[tIdx]) {
+                     const currentVal = eUnits[tIdx]!.buffs.vulnerable || 0;
+                     eUnits[tIdx]!.buffs.vulnerable = currentVal + eff.amount;
+                     msg += `Vulnerable ${eUnits[tIdx]!.name}! `;
+                 }
+             });
+        });
 
         const damageEffect = pCard.effects.find(e => e.type === 'DEAL_DAMAGE');
-        let dmg = (damageEffect ? damageEffect.amount : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
+        let baseDmg = (damageEffect ? damageEffect.amount : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
+
+        // Purge
+        if (pCard.effects.some(e => e.type === 'PURGE')) {
+            baseDmg = pUnit.maxHp - pUnit.hp;
+        }
         
-        // Eye for an Eye / Purge
-        if (pCard.effects.some(e => e.type === 'EYE_FOR_EYE' || e.type === 'PURGE')) {
-            dmg = pUnit.maxHp - pUnit.hp;
-        }
+        if ((damageEffect || pCard.effects.some(e => e.type === 'PURGE')) && baseDmg > 0) { 
+            // Resolve Targets for Damage
+            // Default to ENEMY if not specified in damage effect (Legacy fallback)
+            const targetType = damageEffect?.target || 'ENEMY'; 
+            const targets = resolveTargets(laneIdx, pUnits, eUnits, targetType, pCard.isAoE);
 
-        // Target Selection
-        let targetIdx = laneIdx; 
-        if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
-            // Priority 1: Left adjacent
-            if (laneIdx > 0 && eUnits[laneIdx-1] && !eUnits[laneIdx-1]!.dead) {
-                targetIdx = laneIdx - 1;
-            }
-            // Priority 2: Right adjacent
-            else if (laneIdx < 2 && eUnits[laneIdx+1] && !eUnits[laneIdx+1]!.dead) {
-                targetIdx = laneIdx + 1;
-            }
-            // Priority 3: Farthest alive enemy
-            else {
-                const candidates = [0,1,2].filter(idx => eUnits[idx] && !eUnits[idx]!.dead);
-                if (candidates.length > 0) {
-                    targetIdx = candidates.reduce((farthest, current) => 
-                        Math.abs(current - laneIdx) > Math.abs(farthest - laneIdx) ? current : farthest
-                    );
+            targets.forEach(targetIdx => {
+                let dmg = baseDmg;
+
+                 // Ranger CRIT
+                const rangerUnit = pUnits.find(u => u && u.id === 'ranger' && !u.dead && (u.level || 1) >= 5);
+                if (rangerUnit && rangerUnit.buffs.immune && pCard.ownerId === 'ranger') {
+                    dmg *= 2;
+                    if (targetIdx === targets[0]) msg += "CRIT! "; // Log once?
                 }
-            }
-        }
+                
+                let finalDmg = dmg;
+                
+                // Vulnerable Check on Target
+                if (finalDmg > 0 && eUnits[targetIdx]?.buffs.vulnerable) {
+                    finalDmg += 2;
+                    msg += `Vuln(${eUnits[targetIdx]!.name})! `;
+                }
 
-        // Ranger CRIT (Level 5)
-        const rangerUnit = pUnits.find(u => u && u.id === 'ranger' && !u.dead && (u.level || 1) >= 5);
-        if (rangerUnit && rangerUnit.buffs.immune && pCard.ownerId === 'ranger') {
-            dmg *= 2;
-            msg += "CRIT! ";
-        }
+                // Hunter's Mark
+                const targetEnemy = eUnits[targetIdx];
+                if (pUnit.id === 'ranger' && targetEnemy && enemyZones[targetIdx]?.revealed) {
+                    if (finalDmg > 0) {
+                        finalDmg *= 2;
+                        msg += "Hunter's Mark! ";
+                    }
+                }
 
-        let finalDmg = dmg; // Damage is not reduced directly anymore, but absorbed by Gray HP
+                // Gray HP Absorption
+                 if (finalDmg > 0 && targetEnemy && (targetEnemy.grayHp || 0) > 0) {
+                    const abs = Math.min(finalDmg, targetEnemy.grayHp || 0);
+                    targetEnemy.grayHp = (targetEnemy.grayHp || 0) - abs;
+                    finalDmg -= abs;
+                    if (abs > 0) msg += `Absorbed ${abs}! `;
+                }
 
-        if (finalDmg > 0 && eUnits[targetIdx]?.buffs.vulnerable) {
-             finalDmg += 2;
-             msg += "Vuln! ";
-        }
-
-        // Ranger Passive: Hunter's Mark (Double DMG vs Revealed)
-        const targetEnemy = eUnits[targetIdx];
-        if (pUnit.id === 'ranger' && targetEnemy && enemyZones[targetIdx]?.revealed) {
-            if (finalDmg > 0) {
-                finalDmg *= 2;
-                msg += "Hunter's Mark! ";
-            }
-        }
-
-        // Mark of Hunter
-        const markHunterEffect = enemyZones[targetIdx]?.effects?.find(e => e.type === 'MARK_HUNTER');
-        if (markHunterEffect && finalDmg > 0) {
-            finalDmg *= 2;
-            msg += "Marked! ";
-        }
-
-        // Gray HP Absorption (Standard Logic)
-        if (finalDmg > 0 && targetEnemy && (targetEnemy.grayHp || 0) > 0) {
-            const abs = Math.min(finalDmg, targetEnemy.grayHp || 0);
-            targetEnemy.grayHp = (targetEnemy.grayHp || 0) - abs;
-            finalDmg -= abs;
-            if (abs > 0) msg += `Absorbed ${abs}! `;
-        }
-
-        // Apply Damage
-        if (finalDmg > 0 && eUnits[targetIdx]) {
-            eUnits[targetIdx]!.hp -= finalDmg;
-            if (eUnits[targetIdx]!.hp <= 0) { 
-                eUnits[targetIdx]!.dead = true; 
-                eUnits[targetIdx]!.hp = 0; 
-            }
-            msg += `Hit ${finalDmg}! `;
-        }
-
-        // CLEAVE: Splash damage to adjacent lanes relative to TARGET
-        if (pCard.effects.some(e => e.type === 'CLEAVE')) {
-            const adjIndices = [targetIdx - 1, targetIdx + 1];
-            adjIndices.forEach(adjIdx => {
-                if (adjIdx >= 0 && adjIdx <= 2 && eUnits[adjIdx] && !eUnits[adjIdx]!.dead) {
-                     // Adjacent units benefit from their own defense card if present (added to gray HP already?) 
-                     // Wait, we add Gray HP for TARGET only in above block? NO, we iterate resolved lanes.
-                     // IMPORTANT: resolveLane is typically called per lane. 
-                     // But here we are looking at `targetIdx`.
-                     // If target indices have defense cards, we should probably award them Gray HP too if we want CLEAVE to be mitigated?
-                     // BUT, if `resolveLane` is called for lane 0, and target is 0, we added Gray HP to 0.
-                     // Cleave hits 1. Lane 1 hasn't resolved yet? Or has it?
-                     // Usually combat resolves simultaneously or in order.
-                     // To be safe and fair: Standard Defense card only protects the unit it's ON. 
-                     // If I resolve lane 0, and Cleave hits lane 1, 
-                     // EITHER lane 1 already resolved and got Gray HP, 
-                     // OR lane 1 hasn't resolved yet.
-                     // If `resolveLane` is strictly calculating outcome for Player Lane X vs Enemy Lane X,
-                     // but interactions cross lanes...
-                     
-                     // SIMPLIFICATION for now: Standard damage calculation checks Gray HP.
-                     // We just need to ensure Gray HP is there.
-                     // If we are modifying `eUnits` in place for THIS resolution step,
-                     // we should check if they have valid defense cards that trigger NOW.
-                     
-                     // HOWEVER, if 'resolveLane' is called sequentially 0..1..2,
-                     // and Lane 0 Cleaves Lane 1... Lane 1 might not have 'gained' its Gray HP yet if it gains it during ITS resolution.
-                     // Ideally, "Start of Round" buffs (like Gray HP from cards) should happen BEFORE damage calculation.
-                     // Given the structure, maybe we should apply DEFENSE cards as a "Pre-Combat Phase"?
-                     // But conforming to request: "When resolving a lane, gray hearts will also be gained before any damage dealing."
-                     
-                     // For Cleave: We verify if adjacent unit has defense card, if so, grant Gray HP temporarily to calculate?
-                     // OR we just use whatever Gray HP controls they have.
-                     // If they haven't resolved yet, they rely on pre-existing Gray HP (from last turn?).
-                     // This is a known issue in sequential resolution systems.
-                     // Let's stick to: Check Gray HP. If it's 0 and they have a defense card, maybe we should credit it?
-                     // But that would duplicate it when their lane resolves.
-                     
-                     // FIX: For now, Cleave just hits. If they have Gray HP, good.
-                     // To properly support "Defense Card adds Gray HP", all Defense cards should ideally resolve/trigger 
-                     // before ANY attacks. But user said "When resolving a lane...".
-                     // So: When I attack result for Lane 0, I see Lane 0 enemy card.
-                     // If Lane 0 enemy has defense, they gain Gray HP. I hit them.
-                     // Lane 1 enemy has Defense. Does they gain Gray HP now? No, they gain it when Lane 1 resolves.
-                     // So Cleave on Lane 1 hits their "current" Gray HP (from before).
-                     // This might be intended tactical depth (Attack left to prevent right from setting up?).
-                     
-                     // Wait! Logic tweak:
-                     // If enemy Lane 1 has a Defense card, and I Cleave it from Lane 0...
-                     // The Defense card *has not activated yet*. So Cleave bypasses it.
-                     // This effectively NERFS defense vs Cleave/Speed, unless Defense is "Fast".
-                     // Let's respect "When resolving a lane" instruction strictly.
-                     
-                     // Only existing Gray HP protects adjacent units for now.
-                     // BUT wait, we need to apply `adjReduction` logic from before?
-                     // Previous code relying on actionType removed.
-                     // This implies Defense passively reduced damage even if not active/resolved?
-                     // If we remove this, Defense becomes weaker vs Cleave.
-                     // User said "Prevent ... always into gaining Gray Hearts".
-                     // If I simply replace reduction with gray HP check, 
-                     // and don't grant Gray HP pre-emptively,
-                     // then Cleave is stronger.
-                     
-                     // Attempt to replicate "Passive Defense" vs Cleave:
-                     // If adj unit has Defense card, grant them "Phantom Gray HP" for this hit?
-                     // No, "Gain Gray Hearts" implies accumulation and persistence.
-                     // Let's stick to strict resolution. Defense card activates on its turn.
-                     
-                     let adjFinalDmg = dmg;
-                     
-                     if (eUnits[adjIdx] && (eUnits[adjIdx]!.grayHp || 0) > 0) {
-                         const abs = Math.min(adjFinalDmg, eUnits[adjIdx]!.grayHp || 0);
-                         eUnits[adjIdx]!.grayHp = (eUnits[adjIdx]!.grayHp || 0) - abs;
-                         adjFinalDmg -= abs;
-                     }
-                     
-                     if (adjFinalDmg > 0) {
-                         eUnits[adjIdx]!.hp -= adjFinalDmg;
-                         if (eUnits[adjIdx]!.hp <= 0) {
-                             eUnits[adjIdx]!.dead = true;
-                             eUnits[adjIdx]!.hp = 0;
-                         }
-                         msg += `Cleave ${adjFinalDmg}! `;
-                     }
+                // Apply
+                if (finalDmg > 0 && eUnits[targetIdx]) {
+                    eUnits[targetIdx]!.hp -= finalDmg;
+                    if (eUnits[targetIdx]!.hp <= 0) { 
+                        eUnits[targetIdx]!.dead = true; 
+                        eUnits[targetIdx]!.hp = 0; 
+                    }
+                    msg += `Hit ${eUnits[targetIdx]!.name} ${finalDmg}! `;
                 }
             });
         }
@@ -337,18 +313,8 @@ export const resolveLane = (
             let targetUnit = pUnits[targetIdx];
     
             // Tanking Logic
-            // Find if anyone is tanking for this specific targetIdx
-            // TANK_RIGHT tanks for laneIdx+1 === targetIdx
-            const tankingUnit = pUnits.find((u, idx) => {
-                if (!u || u.dead || !u.buffs.tanking) return false;
-                
-                // TANK_ALL: check if any player zone card has TANK_ALL effect for this unit
-                const hasTankAll = playerZones.some(c => c?.effects.some(e => e.type === 'TANK_ALL') && c.ownerId === u.id);
-                if (hasTankAll) return true;
-                
-                // TANK_RIGHT
-                return idx + 1 === targetIdx;
-            });
+            // Find if anyone is tanking (TANK_ALL sets buffs.tanking)
+            const tankingUnit = pUnits.find(u => u && !u.dead && u.buffs.tanking);
     
             if (tankingUnit) { 
                 targetUnit = tankingUnit; 

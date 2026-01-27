@@ -188,11 +188,6 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                   if (selectedCard.effects.some(e => e.type === 'TANK_ALL')) {
                       // TANK_ALL: Show defense arrow on all lanes (we'll show arrows on all)
                       // For simplicity, we'll handle this in the render loop
-                  } else if (selectedCard.effects.some(e => e.type === 'TANK_RIGHT' || e.type === 'DEF_RIGHT')) {
-                      // Show defense arrow on the lane to the right (hoveredLane + 1)
-                      if (hoveredLane < 2) {
-                          calculatedDefenseLane = hoveredLane + 1;
-                      }
                   }
                   
                   // Use same logic as damage resolution
@@ -221,7 +216,7 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                   calculatedTargetLanes.push(mainTarget);
 
                   // CLEAVE / AoE Logic
-                  if (selectedCard.effects.some(e => e.type === 'CLEAVE')) {
+                  if (selectedCard.isAoE) {
                       const adj = [mainTarget - 1, mainTarget + 1];
                       adj.forEach(idx => {
                           if (idx >= 0 && idx <= 2 && enemyUnits[idx] && !enemyUnits[idx]!.dead) {

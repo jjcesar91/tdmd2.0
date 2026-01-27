@@ -56,7 +56,7 @@ const applySingleCardEffect = (
          const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
          const hero = newPlayerUnits[targetLaneIdx];
          if (hero) {
-             const val = card.effects.find(e => e.type === 'BUFF_ATTACK')?.amount || 2;
+             const val = card.effects.find(e => e.type === 'APPLY_MOD' && e.modType === 'AUGMENT')?.amount || 2;
              // Assuming 'augment' is the buff property for Augment
              const newBuffs = { ...hero.buffs, augment: (hero.buffs.augment || 0) + val };
              newPlayerUnits[targetLaneIdx] = { ...hero, buffs: newBuffs };
@@ -84,7 +84,7 @@ const applySingleCardEffect = (
     // we need to call resolveLane here.
     
     // Check if card has any effect that should be resolved in lane
-    const hasCombatEffect = card.effects.some(e => ['CLEAVE', 'DEAL_DAMAGE', 'DETAIN', 'VULNERABLE'].includes(e.type)) || card.desc.includes('Deal');
+    const hasCombatEffect = card.effects.some(e => ['CLEAVE', 'DEAL_DAMAGE', 'DETAIN', 'APPLY_MOD'].includes(e.type)) || card.desc.includes('Deal');
 
     if (hasCombatEffect) {
         // Use resolveLane logic
@@ -333,8 +333,8 @@ export const processCardEffect = (
         const existingCard = newPlayerZones[targetLaneIdx];
         
         // Find the amount to improve from the card's effects (e.g., BUFF_ATTACK or just generic flat value storage)
-        // Let's assume Omen has { type: 'BUFF_ATTACK', amount: 2 } or similar.
-        const improveAmount = card.effects.find(e => e.type === 'BUFF_ATTACK')?.amount || 2;
+        // Let's assume Omen has { type: 'APPLY_MOD', modType: 'AUGMENT', amount: 2 } or similar.
+        const improveAmount = card.effects.find(e => e.type === 'APPLY_MOD' && e.modType === 'AUGMENT')?.amount || 2;
         
         if (existingCard) {
             // We need to add an effect to the existing card OR increase its existing effects.
