@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Sword, Sparkles, Crown, FlaskConical, Zap } from 'lucide-react';
+import { Sword, Sparkles, Crown, FlaskConical, Zap, Lock } from 'lucide-react';
 import { Card as CardModel } from '../types';
 import { KEYWORDS } from '../data';
 
@@ -29,9 +29,10 @@ interface CardProps extends Partial<CardModel> {
   previewMode?: boolean;
   compactPreview?: boolean;
   image?: string;
+  detained?: number;
 }
 
-export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, speed, className = "", smallMode = false, previewMode = false, compactPreview = false, image }: CardProps) => {
+export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, speed, className = "", smallMode = false, previewMode = false, compactPreview = false, image, detained }: CardProps) => {
   const timerRef = useRef<number | null>(null);
 
   const handleStart = (_e: React.MouseEvent | React.TouchEvent) => {
@@ -108,6 +109,21 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
               backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 1px, transparent 1px)',
               backgroundSize: '20px 20px'
             }} />
+
+            {/* DETAINED OVERLAY */}
+            {detained && detained > 0 && (
+              <div className="absolute inset-0 z-30 bg-black/60 flex flex-col items-center justify-center p-2 backdrop-blur-[1px]">
+                  <div className="bg-stone-900 border-2 border-amber-600 rounded-full p-3 shadow-2xl animate-pulse">
+                      <Lock size={compactPreview ? 16 : 32} className="text-amber-500" />
+                  </div>
+                  {!compactPreview && !smallMode && (
+                      <div className="mt-2 text-amber-500 font-bold uppercase tracking-wider text-xs bg-black/80 px-2 py-1 rounded border border-amber-900/50">
+                        Detained ({detained})
+                      </div>
+                  )}
+              </div>
+            )}
+
 
 
             {/* Top corner indicators - Speed & Range */}

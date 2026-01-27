@@ -100,14 +100,14 @@ export const BattleLane = ({
                onPreviewStart(enemyCard, true);
              }
            }}
-           className={`w-full aspect-square max-h-[100px] z-10 transition-all duration-300 flex items-center justify-center
+           className={`w-full aspect-[3/4] max-h-[130px] z-10 transition-all duration-300 flex items-center justify-center
              ${!enemyCard ? 'border-2 border-dashed border-stone-800 bg-stone-900/20 rounded-lg' : ''}
              ${provokeMode && enemyCard ? 'cursor-pointer ring-2 ring-amber-500 animate-pulse' : ''}
              ${!provokeMode && enemyCard && (enemyCard.revealed || isEnemyCardRevealed) ? 'cursor-pointer hover:ring-2 hover:ring-stone-500/50' : ''}
            `}
          >
             {enemyCard ? (
-               <div className={`h-[90%] aspect-[2/3] ${isResolving ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''}`}>
+               <div className={`h-[95%] aspect-[2/3] ${isResolving ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''}`}>
                    <Card 
                      {...enemyCard} 
                      isHidden={!enemyCard.revealed && !isEnemyCardRevealed} 
@@ -132,14 +132,14 @@ export const BattleLane = ({
          {/* Player Card Slot */}
          <div 
             onClick={onPlayerSlotClick}
-            className={`w-full aspect-square max-h-[100px] z-10 cursor-pointer transition-all duration-300 mt-2 flex items-center justify-center relative
+            className={`w-full aspect-[3/4] max-h-[130px] z-10 cursor-pointer transition-all duration-300 mt-2 flex items-center justify-center relative
                ${!playerCard ? 'border-2 border-dashed rounded-lg' : ''}
                ${!playerCard && isValidTarget ? 'border-sky-500/50 bg-sky-900/20 scale-105 shadow-[0_0_15px_rgba(14,165,233,0.4)]' : ''}
                ${!playerCard && !isValidTarget ? 'border-stone-800 bg-stone-900/30 hover:border-stone-600 hover:bg-stone-900/50' : ''}
             `}
          >
             {playerCard ? (
-               <div className={`h-[90%] aspect-[2/3] transition-transform duration-300 ${
+               <div className={`h-[95%] aspect-[2/3] transition-transform duration-300 ${
                   isResolving ? 'scale-110 drop-shadow-[0_0_12px_rgba(56,189,248,0.6)]' : ''
                }`}>
                   <Card 

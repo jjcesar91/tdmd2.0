@@ -176,6 +176,7 @@ export default function TheDragonMustDie() {
         onCrusaderAction={onCrusaderAction}
         setCombatState={setCombatState}
         onRestart={() => enterCombat(mapNode === 4 ? 'boss' : 'normal')}
+        onQuit={() => setView('START')}
       />
     );
   }

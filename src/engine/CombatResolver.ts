@@ -46,6 +46,24 @@ export const resolveLane = (
     let logs: string[] = [];
     let msg = "";
 
+    // --- Phase -1: Priority Control Effects (Detain) ---
+    // Apply Detain BEFORE Defense phase so we can prevent defense cards
+    if (pUnit && !pUnit.dead && pCard && pCard.effect === 'DETAIN') {
+         // Find target (same logic as attack)
+         let targetIdx = laneIdx; 
+         if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
+             const candidates = [0,1,2].filter(idx => eUnits[idx] && !eUnits[idx]!.dead).sort((a,b) => Math.abs(a-laneIdx) - Math.abs(b-laneIdx));
+             if (candidates.length > 0) targetIdx = candidates[0];
+         }
+         
+         if (enemyZones[targetIdx]) {
+             enemyZones[targetIdx] = { ...enemyZones[targetIdx]!, detained: (enemyZones[targetIdx]!.detained || 0) + (pCard.value || 0) };
+             msg += `Detained ${eUnits[targetIdx]?.name || 'Target'}! `;
+         } else {
+             msg += "Detain whiffed! ";
+         }
+    }
+
     // --- Phase 0: Defense / Gray HP Application ---
     // Player Defense & Supports
     if (pUnit && !pUnit.dead) {
@@ -66,34 +84,30 @@ export const resolveLane = (
     }
 
     // Enemy Defense
+    // Re-fetch card in case it was detained in Phase -1
+    const defenseECard = enemyZones[laneIdx];
     if (eUnit && !eUnit.dead) {
-        if (eCard && eCard.actionType === 'DEFENSE') {
-            const val = eCard.value || 0;
-            if (val > 0) {
-                eUnit.grayHp = (eUnit.grayHp || 0) + val;
-                msg += `${eUnit.name} +${val} Gray HP. `;
+        if (defenseECard && defenseECard.actionType === 'DEFENSE') {
+            if (defenseECard.detained && defenseECard.detained > 0) {
+               msg += `${eUnit.name} Defense Detained! `;
+            } else {
+                const val = defenseECard.value || 0;
+                if (val > 0) {
+                    eUnit.grayHp = (eUnit.grayHp || 0) + val;
+                    msg += `${eUnit.name} +${val} Gray HP. `;
+                }
             }
         }
     }
 
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && pCard) {
-        // DETAIN (Pietrifying Curse & Foresee)
+        // DETAIN (Already handled in Phase -1)
+        /*
         if (pCard.effect === 'DETAIN') {
-             // Find target (same logic as attack)
-             let targetIdx = laneIdx; 
-             if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
-                 const candidates = [0,1,2].filter(idx => eUnits[idx] && !eUnits[idx]!.dead).sort((a,b) => Math.abs(a-laneIdx) - Math.abs(b-laneIdx));
-                 if (candidates.length > 0) targetIdx = candidates[0];
-             }
-             
-             if (enemyZones[targetIdx]) {
-                 enemyZones[targetIdx] = { ...enemyZones[targetIdx]!, detained: (enemyZones[targetIdx]!.detained || 0) + (pCard.value || 0) };
-                 msg += `Detained ${eUnits[targetIdx]?.name || 'Target'}! `;
-             } else {
-                 msg += "Detain whiffed! ";
-             }
+             // ...
         }
+        */
 
         // VULNERABLE (Omen)
         if (pCard.effect === 'VULNERABLE') {
@@ -277,7 +291,10 @@ export const resolveLane = (
     }
 
     // --- Enemy Attack Phase ---
-    if (eUnit && !eUnit.dead && eCard) {
+    // RE-FETCH eCard from potentially modified enemyZones (in case player DETAINED it this turn)
+    const currentECard = enemyZones[laneIdx];
+    
+    if (eUnit && !eUnit.dead && currentECard) {
         // RECOIL Logic
         let recoilDmg = 0;
         playerZones.forEach((c, i) => {
@@ -301,10 +318,10 @@ export const resolveLane = (
         // Skip if detained (or dead from recoil)
         if (eUnit.dead) {
             // Unit died to recoil
-        } else if (eCard.detained && eCard.detained > 0) {
+        } else if (currentECard.detained && currentECard.detained > 0) {
             msg += `Enemy ${eUnit.name} is Detained! `;
         } else {
-            let dmg = (eCard.actionType === 'ATTACK' ? eCard.value : 0);
+            let dmg = (currentECard.actionType === 'ATTACK' ? currentECard.value : 0);
             
             // Target Selection
             let targetIdx = laneIdx;

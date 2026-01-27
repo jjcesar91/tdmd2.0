@@ -224,6 +224,10 @@ export function useGameLoop({
         const { playerZoneCards, playerHand, selectedCardIdx, playerUnits, enemyZoneCards } = combatState;
         if (playerZoneCards[idx]) { 
           const card = playerZoneCards[idx]!;
+          if (card.resolved) {
+             addLog("Cannot return resolved card.");
+             return;
+          }
           setCombatState(prev => ({...prev!, playerHand: [...prev!.playerHand, card], playerZoneCards: prev!.playerZoneCards.map((c, i) => i === idx ? null : c)}));
           return;
         }
@@ -244,11 +248,11 @@ export function useGameLoop({
                   }
               }
 
-              // Lane restriction check
+              // Lane restriction check (Hero Position)
               if (card.lanes && card.lanes !== 'ALL') {
                   const allowedIdx = card.lanes === 'FRONT' ? 0 : card.lanes === 'MID' ? 1 : 2;
-                  if (idx !== allowedIdx) {
-                      addLog(`Must be played in ${card.lanes} lane`);
+                  if (ownerIndex !== allowedIdx) {
+                      addLog(`Hero must be in ${card.lanes} lane to use this`);
                       return;
                   }
               }
@@ -347,7 +351,7 @@ export function useGameLoop({
             }
     
             // Update React state to show damage immediately
-            setCombatState(prev => ({ ...prev!, playerUnits: [...pUnits], enemyUnits: [...eUnits] }));
+            setCombatState(prev => ({ ...prev!, playerUnits: [...pUnits], enemyUnits: [...eUnits], enemyZoneCards: [...eZones] }));
             await new Promise(r => setTimeout(r, 600));
         }
         
@@ -365,7 +369,13 @@ export function useGameLoop({
             if (c) {
                 if (c.detained && c.detained > 0) {
                    // Keep card, decrement counter
-                   keptEnemyZones[i] = { ...c, detained: c.detained - 1 };
+                   // If detained counter reaches 0, it should be discarded in THIS cleanup phase
+                   const newDetained = c.detained - 1;
+                   if (newDetained > 0) {
+                      keptEnemyZones[i] = { ...c, detained: newDetained };
+                   } else {
+                      enemyCardsToDiscard.push(c);
+                   }
                 } else {
                    enemyCardsToDiscard.push(c);
                 }
@@ -379,9 +389,12 @@ export function useGameLoop({
         pZones.forEach((c, i) => {
             if (c) {
                 if (c.persist && c.persist > 0) {
-                     keptPlayerZones[i] = { ...c, persist: c.persist - 1 };
+                     keptPlayerZones[i] = { ...c, persist: c.persist - 1, resolved: true };
+                } else if (c.detained && c.detained > 0) {
+                     keptPlayerZones[i] = { ...c, detained: c.detained - 1, resolved: true };
                 } else {
-                     playerCardsToDiscard.push(c);
+                     const { resolved, detained, ...cleanCard } = c;
+                     playerCardsToDiscard.push(cleanCard);
                 }
             }
         });

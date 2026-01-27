@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sword, Trash2, Layers, Eye, X, Target, Swords, RefreshCw } from 'lucide-react';
+import { Sword, Trash2, Layers, Eye, X, Target, Swords, RefreshCw, LogOut } from 'lucide-react';
 import { Card } from '../components/Card';
 import { CardPreviewModal } from '../components/CardPreviewModal';
 import { BattleLane } from '../components/BattleLane';
@@ -27,6 +27,7 @@ interface CombatScreenProps {
   onCrusaderAction?: () => void;
   setCombatState: React.Dispatch<React.SetStateAction<CombatState | null>>;
   onRestart: () => void;
+  onQuit: () => void;
 }
 
 export const CombatScreen: React.FC<CombatScreenProps> = ({
@@ -49,7 +50,8 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
   setPreviewCard,
   onCrusaderAction,
   setCombatState,
-  onRestart
+  onRestart,
+  onQuit
 }) => {
   const [previewLocked, setPreviewLocked] = React.useState(false);
   const { turn, phase, playerHand, playerZoneCards, enemyZoneCards, playerUnits, enemyUnits, selectedCardIdx, drawPile, discardPile, resolvingLane } = combatState;
@@ -89,6 +91,10 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
            
            {/* Deck Controls */}
            <div className="flex gap-2">
+              <button onClick={onQuit} className="flex flex-col items-center justify-center w-10 h-8 rounded bg-stone-800 border border-stone-700 hover:border-red-500 transition-colors group" title="Quit to Menu">
+                 <LogOut size={12} className="text-stone-400 group-hover:text-red-500" />
+                 <span className="text-[8px] font-bold text-stone-500 group-hover:text-red-500">QUIT</span>
+              </button>
               <button onClick={onRestart} className="flex flex-col items-center justify-center w-10 h-8 rounded bg-stone-800 border border-stone-700 hover:border-red-500 transition-colors group" title="Restart Battle">
                  <RefreshCw size={12} className="text-stone-400 group-hover:text-red-500" />
                  <span className="text-[8px] font-bold text-stone-500 group-hover:text-red-500">RES</span>

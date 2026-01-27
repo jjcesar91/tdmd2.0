@@ -24,6 +24,7 @@ export interface Card {
   mergedCards?: Card[];
   persist?: number;
   recoil?: number;
+  resolved?: boolean;
 }
 
 export interface Buffs {
