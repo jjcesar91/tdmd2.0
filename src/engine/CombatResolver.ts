@@ -224,11 +224,30 @@ export const resolveLane = (
     }
 
     // --- Player Attack Phase ---
-    if (pUnit && !pUnit.dead && currentPCard && (!currentPCard.detained || currentPCard.detained <= 0)) {
+    let attackingUnit = pUnit;
+    
+    // If no unit in lane, but card has owner, try to find owner for determining stats/range legality
+    if ((!attackingUnit || attackingUnit.dead) && currentPCard && currentPCard.ownerId) {
+        const owner = pUnits.find(u => u && u.id === currentPCard.ownerId && !u.dead);
+        if (owner) {
+             // Basic Range Check: Is owner close enough to "reach" this lane?
+             // Since we use the lane as the "Source of Effect", if the owner placed it here remotely,
+             // then the owner essentially "is acting" here.
+             // We can use the owner's unit for stat calculations.
+             const ownerIdx = pUnits.indexOf(owner);
+             const dist = Math.abs(ownerIdx - laneIdx);
+             const range = currentPCard.range || 0;
+             if (dist <= range) {
+                 attackingUnit = owner;
+             }
+        }
+    }
+
+    if (attackingUnit && !attackingUnit.dead && currentPCard && (!currentPCard.detained || currentPCard.detained <= 0)) {
         
         // Decrement Augment if a card is played
-        if ((pUnit.buffs.augment || 0) > 0) {
-             pUnit.buffs.augment = (pUnit.buffs.augment || 0) - 1;
+        if ((attackingUnit.buffs.augment || 0) > 0) {
+             attackingUnit.buffs.augment = (attackingUnit.buffs.augment || 0) - 1;
         }
 
         // VULNERABLE (APPLY_MOD Debuff)
@@ -245,11 +264,11 @@ export const resolveLane = (
         });
 
         const damageEffect = currentPCard.effects.find(e => e.type === 'DEAL_DAMAGE');
-        let baseDmg = (damageEffect ? damageEffect.amount : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
+        let baseDmg = (damageEffect ? damageEffect.amount : 0) + (attackingUnit.buffs.augment || 0) + (attackingUnit.buffs.anger || 0);
 
         // Purge
         if (currentPCard.effects.some(e => e.type === 'PURGE')) {
-            baseDmg = pUnit.maxHp - pUnit.hp;
+            baseDmg = attackingUnit.maxHp - attackingUnit.hp;
         }
         
         if ((damageEffect || currentPCard.effects.some(e => e.type === 'PURGE')) && baseDmg > 0) { 
@@ -278,7 +297,7 @@ export const resolveLane = (
 
                 // Hunter's Mark
                 const targetEnemy = eUnits[targetIdx];
-                if (pUnit.id === 'ranger' && targetEnemy && enemyZones[targetIdx]?.revealed) {
+                if (attackingUnit!.id === 'ranger' && targetEnemy && enemyZones[targetIdx]?.revealed) {
                     if (finalDmg > 0) {
                         finalDmg *= 2;
                         msg += "Hunter's Mark! ";

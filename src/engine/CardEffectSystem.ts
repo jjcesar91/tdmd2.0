@@ -483,6 +483,7 @@ export const processCardEffect = (
     
     // Default / Fallback: Attempt to resolve using standard combat logic
     // This handles FAST cards or Hasted cards acting as standard cards
+    // Note: We bypass Detain checks for FAST cards essentially by placing them freshly here
     const tempPlayerZones = [...state.playerZoneCards];
     tempPlayerZones[targetLaneIdx] = card;
 
@@ -493,6 +494,11 @@ export const processCardEffect = (
         tempPlayerZones,
         state.enemyZoneCards
     );
+
+    // Ensure we log what happened
+    if (resolution.logs.length === 0) {
+        logs.push("Effect resolved (no visible outcome).");
+    }
 
     return {
         newState: {
