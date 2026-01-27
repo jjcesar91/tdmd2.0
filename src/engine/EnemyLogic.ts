@@ -115,14 +115,18 @@ const getTadpolearmDecision = (unit: Unit, state: CombatState, plannedMoves: Pla
     // Identity
     const poke = createCard('tad_poke', 'Poke', 'Deal 2.', [{ type: 'DEAL_DAMAGE', amount: 2, target: 'ENEMY' }], 'BASIC');
     const cower = createCard('tad_cower', 'Cower', 'Gain Immune.', [{ type: 'IMMUNE', amount: 1, target: 'SELF' }], 'SIGNATURE');
-    cower.lanes = 'REAR'; // "Lane: R"
+    cower.lanes = 'FRONT'; // "Lane: F"
 
     const myLaneIdx = state.enemyUnits.findIndex(u => u && u.id === unit.id);
     let currentLane = myLaneIdx !== -1 ? myLaneIdx : 1; // Default to Mid?
 
-    // Rule: "If Bullyfrog is playing a card on its lane, play Cower in Rear lane"
+    // Rule: "If Bullyfrog is playing a card on its lane, play Cower in Front lane"
     // "its lane" -> Tadpolearm's current lane.
-    const bullyMove = plannedMoves.find(m => m.unitId.includes('frog_bully') || m.unitId === 'Bullyfrog'); // Need consistent ID or Name check. Unit ID in generateEncounter is 'frog_bully'.
+    // robustly find Bullyfrog
+    const bullyUnit = state.enemyUnits.find(u => u && u.name === 'Bullyfrog');
+    const bullyId = bullyUnit ? bullyUnit.id : 'frog_bully';
+    
+    const bullyMove = plannedMoves.find(m => m.unitId === bullyId || m.unitId.includes('frog_bully'));
     
     // Assuming Bullyfrog decided first.
     // If unit.id is 'frog_poker' (Tadpolearm), and Bullyfrog played in 'currentLane'
@@ -134,15 +138,15 @@ const getTadpolearmDecision = (unit: Unit, state: CombatState, plannedMoves: Pla
     let selected = shouldUseCower ? cower : poke;
     let targetLane = currentLane;
 
-    if (shouldUseCower) targetLane = 2; // Rear
+    if (shouldUseCower) targetLane = 0; // Front
 
     // Check availability
     const isTaken = (idx: number) => plannedMoves.some(m => m.lane === idx);
     
     if (isTaken(targetLane)) {
-         // If Cower(Rear) is blocked, can we play it elsewhere?
+         // If Cower(Front) is blocked, can we play it elsewhere?
          // "must play on any available lane, if possible"
-         // Cower has Lane: R constraint. So unlikely.
+         // Cower has Lane: F constraint. So unlikely.
          // Fallback to Poke? "AI Behavior: [B]" (Always Poke).
          // If blocked, fallback to Poke in random available lane.
          if (selected === cower) {
@@ -170,7 +174,10 @@ const getFrogmanDecision = (unit: Unit, state: CombatState, plannedMoves: Planne
     let currentLane = myLaneIdx !== -1 ? myLaneIdx : 2; // Default Rear
 
     // Check Moves
-    const bullyMove = plannedMoves.find(m => m.unitId.includes('frog_bully')); // ID check
+    const bullyUnit = state.enemyUnits.find(u => u && u.name === 'Bullyfrog');
+    const bullyId = bullyUnit ? bullyUnit.id : 'frog_bully';
+    const bullyMove = plannedMoves.find(m => m.unitId === bullyId || m.unitId.includes('frog_bully'));
+
     // "When Bullyfrog play a card in middle lane [1], always play S on the Front lane [0]"
     if (bullyMove && bullyMove.lane === 1) {
         return { card: shot, lane: 0 }; // Ignore other checks
