@@ -280,10 +280,7 @@ export function useGameLoop({
         let pUnits = [...combatState.playerUnits]; 
         let eUnits = [...combatState.enemyUnits];
         let pZones = combatState.playerZoneCards; 
-        let eZones: (CardData | null)[] = combatState.enemyZoneCards.map(c => c ? { ...c, revealed: true } : null);
-    
-        // Apply start-of-turn buffs (potions, tanking)
-        pUnits = applyRoundBuffs(pUnits, pZones);
+    let eZones = [...combatState.enemyZoneCards];
     
         for (let i = 0; i < 3; i++) {
             // Highlight current resolving lane

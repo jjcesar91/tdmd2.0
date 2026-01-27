@@ -299,7 +299,7 @@ export const resolveLane = (
                 const targetEnemy = eUnits[targetIdx];
                 if (attackingUnit!.id === 'ranger' && targetEnemy && enemyZones[targetIdx]?.revealed) {
                     if (finalDmg > 0) {
-                        finalDmg *= 2;
+                        finalDmg += 1;
                         msg += "Hunter's Mark! ";
                     }
                 }

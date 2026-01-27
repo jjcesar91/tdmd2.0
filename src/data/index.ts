@@ -92,7 +92,7 @@ export const HEROES_DB: Hero[] = [
     id: 'ranger',
     name: 'Lone Ranger',
     role: 'DPS',
-    desc: "Passive: Deal double damage against Revealed enemies.",
+    desc: "Passive: Deal +1 damage against Revealed enemies.",
     passiveName: "Hunter's Mark",
     passiveIcon: huntersMarkIcon,
     hp: 4,
