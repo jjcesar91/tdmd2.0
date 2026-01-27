@@ -331,6 +331,30 @@ export function useGameLoop({
             if (result.enemyZones) eZones = result.enemyZones;
             if (result.playerZones) pZones = result.playerZones;
             
+            // Remove cards of dead units
+            pZones = pZones.map((c) => {
+                if (!c) return null;
+                const owner = pUnits.find(u => u && u.id === c.ownerId);
+                // Be careful not to remove a card that just resolved (even if owner died?)
+                // User said "die before resolving".
+                // If we are at loop i. Card at i just resolved.
+                // If owner died at i. technically it resolved.
+                // But loop moves to i+1.
+                // Generally, resolved cards are kept for the turn (detained/persist logic later)
+                // But if unit dies, maybe we want it gone visually?
+                // "remove its cards from lane"
+                // If I null it here, it disappears from UI immediately.
+                if (owner && owner.dead) return null;
+                return c;
+            });
+            
+            // For enemies, we assume card at lane X belongs to unit at lane X
+            eZones = eZones.map((c, idx) => {
+                 if (!c) return null;
+                 if (eUnits[idx] && eUnits[idx]!.dead) return null;
+                 return c;
+            });
+
             // Add logs
             if (result.logs.length > 0) {
                 result.logs.forEach(msg => addLog(msg));
