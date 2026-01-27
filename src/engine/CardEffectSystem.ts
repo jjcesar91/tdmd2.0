@@ -78,6 +78,38 @@ const applySingleCardEffect = (
         return { newStateUpdates: stateUpdates, logs };
     }
 
+    // STONESKIN POTION
+    if (card.id === 'pot_stoneskin') {
+        const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
+        const hero = newPlayerUnits[targetLaneIdx];
+        if (hero) {
+            const newBuffs = { ...hero.buffs, stoneskin: 3 };
+            newPlayerUnits[targetLaneIdx] = { 
+                ...hero, 
+                buffs: newBuffs,
+                grayHp: (hero.grayHp || 0) + 1
+            };
+            logs.push(`Stoneskin Potion: ${hero.name} gains Stoneskin (3 turns)!`);
+            stateUpdates.playerUnits = newPlayerUnits;
+        }
+        return { newStateUpdates: stateUpdates, logs };
+    }
+
+    // ACID POTION
+    if (card.id === 'pot_acid') {
+         const newEnemyUnits = [...(stateUpdates.enemyUnits || state.enemyUnits)];
+         const enemy = newEnemyUnits[targetLaneIdx];
+         if (enemy) {
+             const newBuffs = { ...enemy.buffs, vulnerable: (enemy.buffs.vulnerable || 0) + 1 };
+             newEnemyUnits[targetLaneIdx] = { ...enemy, buffs: newBuffs };
+             logs.push(`Acid Potion: ${enemy.name} is Vulnerable!`);
+             stateUpdates.enemyUnits = newEnemyUnits;
+         } else {
+             logs.push(`Acid Potion used, but no enemy in lane!`);
+         }
+         return { newStateUpdates: stateUpdates, logs };
+    }
+
     // SELF DAMAGE POTION (Internal for Unstable Brew)
     if (card.id === 'pot_self_dmg') {
          const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
