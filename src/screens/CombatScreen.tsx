@@ -185,10 +185,10 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
               
               if (hoveredLane !== null && selectedCard && !selectedCard.isPotion) {
                   // Check if card has Tank/Defense effects that protect adjacent/all lanes
-                  if (selectedCard.effect === 'TANK_ALL') {
+                  if (selectedCard.effects.some(e => e.type === 'TANK_ALL')) {
                       // TANK_ALL: Show defense arrow on all lanes (we'll show arrows on all)
                       // For simplicity, we'll handle this in the render loop
-                  } else if (selectedCard.effect === 'TANK_RIGHT' || selectedCard.effect === 'ATTACK_DEF_RIGHT') {
+                  } else if (selectedCard.effects.some(e => e.type === 'TANK_RIGHT' || e.type === 'DEF_RIGHT')) {
                       // Show defense arrow on the lane to the right (hoveredLane + 1)
                       if (hoveredLane < 2) {
                           calculatedDefenseLane = hoveredLane + 1;
@@ -221,7 +221,7 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                   calculatedTargetLanes.push(mainTarget);
 
                   // CLEAVE / AoE Logic
-                  if (selectedCard.effect === 'CLEAVE') {
+                  if (selectedCard.effects.some(e => e.type === 'CLEAVE')) {
                       const adj = [mainTarget - 1, mainTarget + 1];
                       adj.forEach(idx => {
                           if (idx >= 0 && idx <= 2 && enemyUnits[idx] && !enemyUnits[idx]!.dead) {
@@ -251,7 +251,7 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                   // Check if this lane should show defense arrow
                   let shouldShowDefenseArrow = false;
                   if (hoveredLane !== null && selectedCard && !selectedCard.isPotion) {
-                      if (selectedCard.effect === 'TANK_ALL') {
+                      if (selectedCard.effects.some(e => e.type === 'TANK_ALL')) {
                           // TANK_ALL: Show defense arrow on all lanes except the hovered one
                           shouldShowDefenseArrow = laneIdx !== hoveredLane;
                       } else {

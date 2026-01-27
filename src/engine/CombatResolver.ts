@@ -17,11 +17,16 @@ export const applyRoundBuffs = (
         const card = zones[i];
         
         if (card) {
+            // Potions mapping
             if (card.id === 'pot_heal') newUnit.hp = Math.min(newUnit.maxHp, newUnit.hp + 3);
-            if (card.id === 'pot_inv') newUnit.buffs.immune = true;
-            if (card.id === 'pot_str') newUnit.buffs.augment += 2;
-            if (card.effect === 'TANK_RIGHT') newUnit.buffs.tanking = true;
-            if (card.effect === 'TANK_ALL') {
+            if (card.id === 'pot_inv' || card.effects.some(e => e.type === 'IMMUNE')) newUnit.buffs.immune = true;
+            
+            // Look for BUFF_ATTACK (Augment)
+            const augmentEffect = card.effects.find(e => e.type === 'BUFF_ATTACK');
+            if (augmentEffect) newUnit.buffs.augment += augmentEffect.amount;
+            else if (card.id === 'pot_str') newUnit.buffs.augment += 2; // Keep pot_str fallback if id used
+            
+            if (card.effects.some(e => e.type === 'TANK_RIGHT' || e.type === 'TANK_ALL')) {
                 newUnit.buffs.tanking = true;
             }
         }
@@ -48,7 +53,8 @@ export const resolveLane = (
 
     // --- Phase -1: Priority Control Effects (Detain) ---
     // Apply Detain BEFORE Defense phase so we can prevent defense cards
-    if (pUnit && !pUnit.dead && pCard && pCard.effect === 'DETAIN') {
+    const detainEffect = (pUnit && !pUnit.dead && pCard) ? pCard.effects.find(e => e.type === 'DETAIN') : undefined;
+    if (detainEffect) {
          // Find target (same logic as attack)
          let targetIdx = laneIdx; 
          if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
@@ -57,7 +63,7 @@ export const resolveLane = (
          }
          
          if (enemyZones[targetIdx]) {
-             enemyZones[targetIdx] = { ...enemyZones[targetIdx]!, detained: (enemyZones[targetIdx]!.detained || 0) + (pCard.value || 0) };
+             enemyZones[targetIdx] = { ...enemyZones[targetIdx]!, detained: (enemyZones[targetIdx]!.detained || 0) + detainEffect.amount };
              msg += `Detained ${eUnits[targetIdx]?.name || 'Target'}! `;
          } else {
              msg += "Detain whiffed! ";
@@ -70,14 +76,14 @@ export const resolveLane = (
         let gainedGrayHp = 0;
         // Self Defense
         if (pCard) {
-            const defenseMatch = pCard.desc.match(/Gain (\d+) (?:gray hearts?)/i);
-            if (defenseMatch) {
-                gainedGrayHp += parseInt(defenseMatch[1], 10);
-            }
+            const grayHpEffect = pCard.effects.find(e => e.type === 'GAIN_GRAY_HP');
+            if (grayHpEffect) gainedGrayHp += grayHpEffect.amount;
         }
         // Support from Left
-        if (laneIdx > 0 && playerZones[laneIdx-1]?.effect === 'DEF_RIGHT') {
-            gainedGrayHp += (playerZones[laneIdx-1]?.value || 0);
+        const leftCard = laneIdx > 0 ? playerZones[laneIdx-1] : null;
+        if (leftCard) {
+            const defRight = leftCard.effects.find(e => e.type === 'DEF_RIGHT');
+            if (defRight) gainedGrayHp += defRight.amount;
         }
         
         if (gainedGrayHp > 0) {
@@ -89,32 +95,24 @@ export const resolveLane = (
     // Enemy Defense
     // Re-fetch card in case it was detained in Phase -1
     const defenseECard = enemyZones[laneIdx];
-    if (eUnit && !eUnit.dead) {
-        if (defenseECard) {
-            const defenseMatch = defenseECard.desc.match(/Gain (\d+) (?:gray hearts?)/i);
-            if (defenseMatch) {
-                const val = parseInt(defenseMatch[1], 10);
-                if (defenseECard.detained && defenseECard.detained > 0) {
-                   msg += `${eUnit.name} Defense Detained! `;
-                } else if (val > 0) {
-                    eUnit.grayHp = (eUnit.grayHp || 0) + val;
-                    msg += `${eUnit.name} +${val} Gray HP. `;
-                }
-            }
-        }
+    if (eUnit && !eUnit.dead && defenseECard) {
+         const grayHpEffect = defenseECard.effects.find(e => e.type === 'GAIN_GRAY_HP');
+         if (grayHpEffect) {
+             const val = grayHpEffect.amount;
+             if (defenseECard.detained && defenseECard.detained > 0) {
+                 msg += `${eUnit.name} Defense Detained! `;
+             } else if (val > 0) {
+                 eUnit.grayHp = (eUnit.grayHp || 0) + val;
+                 msg += `${eUnit.name} +${val} Gray HP. `;
+             }
+         }
     }
 
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && pCard) {
-        // DETAIN (Already handled in Phase -1)
-        /*
-        if (pCard.effect === 'DETAIN') {
-             // ...
-        }
-        */
-
         // VULNERABLE (Omen)
-        if (pCard.effect === 'VULNERABLE') {
+        const vulnEffect = pCard.effects.find(e => e.type === 'VULNERABLE');
+        if (vulnEffect) {
              // Find target (same logic as attack)
              let targetIdx = laneIdx;
              if (!eUnits[laneIdx] || eUnits[laneIdx]!.dead) {
@@ -124,15 +122,16 @@ export const resolveLane = (
              
              if (eUnits[targetIdx]) {
                  const currentVal = eUnits[targetIdx]!.buffs.vulnerable || 0;
-                 eUnits[targetIdx]!.buffs.vulnerable = currentVal + (pCard.value || 0);
+                 eUnits[targetIdx]!.buffs.vulnerable = currentVal + vulnEffect.amount;
                  msg += `Vulnerable ${eUnits[targetIdx]?.name}! `;
              }
         }
 
-        let dmg = (pCard.desc.includes('Deal') ? pCard.value : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
+        const damageEffect = pCard.effects.find(e => e.type === 'DEAL_DAMAGE');
+        let dmg = (damageEffect ? damageEffect.amount : 0) + (pUnit.buffs.augment || 0) + (pUnit.buffs.anger || 0);
         
         // Eye for an Eye / Purge
-        if (pCard.effect === 'EYE_FOR_EYE' || pCard.effect === 'PURGE') {
+        if (pCard.effects.some(e => e.type === 'EYE_FOR_EYE' || e.type === 'PURGE')) {
             dmg = pUnit.maxHp - pUnit.hp;
         }
 
@@ -182,7 +181,8 @@ export const resolveLane = (
         }
 
         // Mark of Hunter
-        if (enemyZones[targetIdx]?.effect === 'MARK_HUNTER' && finalDmg > 0) {
+        const markHunterEffect = enemyZones[targetIdx]?.effects?.find(e => e.type === 'MARK_HUNTER');
+        if (markHunterEffect && finalDmg > 0) {
             finalDmg *= 2;
             msg += "Marked! ";
         }
@@ -206,7 +206,7 @@ export const resolveLane = (
         }
 
         // CLEAVE: Splash damage to adjacent lanes relative to TARGET
-        if (pCard.effect === 'CLEAVE') {
+        if (pCard.effects.some(e => e.type === 'CLEAVE')) {
             const adjIndices = [targetIdx - 1, targetIdx + 1];
             adjIndices.forEach(adjIdx => {
                 if (adjIdx >= 0 && adjIdx <= 2 && eUnits[adjIdx] && !eUnits[adjIdx]!.dead) {
@@ -303,7 +303,7 @@ export const resolveLane = (
         let recoilDmg = 0;
         playerZones.forEach((c, i) => {
              if (c && c.recoil && c.recoil > 0) {
-                 const isAoE = c.desc.includes('AoE') || c.effect === 'NOXIOUS';
+                 const isAoE = c.desc.includes('AoE') || c.effects.some(e => e.type === 'NOXIOUS');
                  if (i === laneIdx || (isAoE && Math.abs(i - laneIdx) === 1)) {
                      recoilDmg += c.recoil;
                  }
@@ -325,7 +325,8 @@ export const resolveLane = (
         } else if (currentECard.detained && currentECard.detained > 0) {
             msg += `Enemy ${eUnit.name} is Detained! `;
         } else {
-            let dmg = (currentECard.desc.includes('Deal') ? currentECard.value : 0);
+            const damageEffect = currentECard.effects.find(e => e.type === 'DEAL_DAMAGE');
+            let dmg = damageEffect ? damageEffect.amount : 0;
             
             // Target Selection
             let targetIdx = laneIdx;
@@ -342,7 +343,7 @@ export const resolveLane = (
                 if (!u || u.dead || !u.buffs.tanking) return false;
                 
                 // TANK_ALL: check if any player zone card has TANK_ALL effect for this unit
-                const hasTankAll = playerZones.some(c => c?.effect === 'TANK_ALL' && c.ownerId === u.id);
+                const hasTankAll = playerZones.some(c => c?.effects.some(e => e.type === 'TANK_ALL') && c.ownerId === u.id);
                 if (hasTankAll) return true;
                 
                 // TANK_RIGHT

@@ -1,9 +1,40 @@
 export type CardType = 'BASIC' | 'SIGNATURE' | 'ULTIMATE' | 'CRAFTED';
 
+export type EffectType = 
+    | 'DEAL_DAMAGE'       
+    | 'GAIN_GRAY_HP'      
+    | 'HEAL'              
+    | 'BUFF_ATTACK'       
+    | 'BUFF_DEFENSE'      
+    | 'VULNERABLE'        
+    | 'DETAIN'            
+    | 'STUN'              
+    | 'IMMUNE'            
+    | 'TANK_RIGHT'        
+    | 'TANK_ALL'          
+    | 'DEF_RIGHT'         
+    | 'CLEAVE'            
+    | 'BLOOD_OATH'        
+    | 'PURGE'             
+    | 'EYE_FOR_EYE'       
+    | 'MARK_HUNTER'       
+    | 'HASTE'             
+    | 'SCRY'              
+    | 'REVEAL'
+    | 'UNSTABLE_MIXTURE'
+    | 'NOXIOUS'
+    ;
+
+export interface CardEffect {
+    type: EffectType;
+    amount: number; 
+    target?: 'SELF' | 'ENEMY' | 'ALLY' | 'ALL_ENEMIES' | 'ALL_ALLIES';
+}
+
 export interface Card {
   id: string;
   type: CardType;
-  value: number;
+  // value: number; // Removed in favor of effects array
   name: string;
   desc: string;
   ownerId?: string;
@@ -12,7 +43,8 @@ export interface Card {
   color?: string;
   border?: string;
   range?: number;
-  effect?: string;
+  // effect?: string; // Removed in favor of effects array
+  effects: CardEffect[]; // New structured effects
   revealed?: boolean;
   archetype?: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
   speed?: 'NORMAL' | 'FAST';

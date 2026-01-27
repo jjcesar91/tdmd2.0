@@ -60,10 +60,10 @@ export const KEYWORDS: Record<string, string> = {
 };
 
 export const POTIONS_DB: Card[] = [
-  { id: 'pot_heal', type: 'CRAFTED', value: 2, name: 'Healing Potion', desc: 'Heal 2 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
-  { id: 'pot_inv', type: 'CRAFTED', value: 0, name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
-  { id: 'pot_aug', type: 'CRAFTED', value: 2, name: 'Augmented Potion', desc: 'Gain Augment 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
-  { id: 'pot_haste', type: 'CRAFTED', value: 0, name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
+  { id: 'pot_heal', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 2, target: 'ALLY' }], name: 'Healing Potion', desc: 'Heal 2 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
+  { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
+  { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'BUFF_ATTACK', amount: 2, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
+  { id: 'pot_haste', type: 'CRAFTED', effects: [{ type: 'HASTE', amount: 1, target: 'ALLY' }], name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
 ];
 
 export const HEROES_DB: Hero[] = [
@@ -83,9 +83,9 @@ export const HEROES_DB: Hero[] = [
     avatar: crusaderAvatar,
     lore: 'An old veteran, back to action to avenge its family',
     cards: [
-      { id: 'c_cleave', type: 'BASIC', value: 2, name: 'Cleave', desc: 'AoE. Deal 2.', effect: 'CLEAVE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL', image: cleaveCardImage },
-      { id: 'c_blood_oath', type: 'SIGNATURE', value: 0, name: 'Blood Oath', desc: 'Lose 2 hearts. Gain Augment 2.', effect: 'BLOOD_OATH', ownerId: 'crusader', speed: 'FAST', lanes: 'ALL', image: bloodOathCardImage },
-      { id: 'c_purge', type: 'ULTIMATE', value: 0, name: 'Purge', desc: 'Deal 2, plus hero missing hearts', effect: 'PURGE', ownerId: 'crusader', speed: 'NORMAL', lanes: 'FRONT', image: purgeCardImage },
+      { id: 'c_cleave', type: 'BASIC', effects: [{ type: 'DEAL_DAMAGE', amount: 2, target: 'ENEMY' }, { type: 'CLEAVE', amount: 0, target: 'ENEMY' }], name: 'Cleave', desc: 'AoE. Deal 2.', ownerId: 'crusader', speed: 'NORMAL', lanes: 'ALL', image: cleaveCardImage },
+      { id: 'c_blood_oath', type: 'SIGNATURE', effects: [{ type: 'BLOOD_OATH', amount: 2, target: 'SELF' }], name: 'Blood Oath', desc: 'Lose 2 hearts. Gain Augment 2.', ownerId: 'crusader', speed: 'FAST', lanes: 'ALL', image: bloodOathCardImage },
+      { id: 'c_purge', type: 'ULTIMATE', effects: [{ type: 'PURGE', amount: 0, target: 'ENEMY' }], name: 'Purge', desc: 'Deal 2, plus hero missing hearts', ownerId: 'crusader', speed: 'NORMAL', lanes: 'FRONT', image: purgeCardImage },
     ]
   },
   {
@@ -104,9 +104,9 @@ export const HEROES_DB: Hero[] = [
     avatar: rangerAvatar,
     lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
     cards: [
-      { id: 'r_arrow_shot', type: 'BASIC', value: 2, name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL', lanes: 'REAR', image: arrowShotCardImage },
-      { id: 'r_eye_above', type: 'SIGNATURE', value: 0, name: 'Quetzal Sight', desc: 'Reveal this lane.', range: 1, effect: 'SCRY_LANE', ownerId: 'ranger', speed: 'FAST', lanes: 'ALL', image: quetzalSightCardImage },
-      { id: 'r_pietrifying_curse', type: 'ULTIMATE', value: 2, name: 'Pietrifying Curse', desc: 'Detain 2', range: 2, effect: 'DETAIN', ownerId: 'ranger', speed: 'NORMAL', lanes: 'ALL', image: pietrifyingCurseCardImage }
+      { id: 'r_arrow_shot', type: 'BASIC', effects: [{ type: 'DEAL_DAMAGE', amount: 2, target: 'ENEMY' }], name: 'Arrow Shot', desc: 'Deal 2.', range: 2, ownerId: 'ranger', speed: 'NORMAL', lanes: 'REAR', image: arrowShotCardImage },
+      { id: 'r_eye_above', type: 'SIGNATURE', effects: [{ type: 'SCRY', amount: 1, target: 'ENEMY' }], name: 'Quetzal Sight', desc: 'Reveal this lane.', range: 1, ownerId: 'ranger', speed: 'FAST', lanes: 'ALL', image: quetzalSightCardImage },
+      { id: 'r_pietrifying_curse', type: 'ULTIMATE', effects: [{ type: 'DETAIN', amount: 2, target: 'ENEMY' }], name: 'Pietrifying Curse', desc: 'Detain 2', range: 2, ownerId: 'ranger', speed: 'NORMAL', lanes: 'ALL', image: pietrifyingCurseCardImage }
     ]
   },
   {
@@ -125,9 +125,9 @@ export const HEROES_DB: Hero[] = [
     avatar: prophetAvatar,
     lore: "Once king's high priest, it bears a prophecy of restoration",
     cards: [
-      { id: 'p_foresee', type: 'BASIC', value: 1, name: 'Foresee', desc: 'Detain 1. Play on Revealed only.', range: 1, effect: 'DETAIN', ownerId: 'prophet', speed: 'NORMAL', lanes: 'ALL', image: foreseeCardImage },
-      { id: 'p_omen', type: 'SIGNATURE', value: 2, name: 'Omen', desc: 'Apply Vulnerable 2', range: 1, effect: 'VULNERABLE', ownerId: 'prophet', speed: 'FAST', lanes: 'ALL', image: omenCardImage },
-      { id: 'p_epiphany', type: 'ULTIMATE', value: 0, name: 'Epiphany', desc: 'Reveal all lanes.', effect: 'SCRY_ALL', ownerId: 'prophet', speed: 'FAST', lanes: 'ALL', image: epiphanyCardImage }
+      { id: 'p_foresee', type: 'BASIC', effects: [{ type: 'DETAIN', amount: 1, target: 'ENEMY' }], name: 'Foresee', desc: 'Detain 1. Play on Revealed only.', range: 1, ownerId: 'prophet', speed: 'NORMAL', lanes: 'ALL', image: foreseeCardImage },
+      { id: 'p_omen', type: 'SIGNATURE', effects: [{ type: 'VULNERABLE', amount: 2, target: 'ENEMY' }], name: 'Omen', desc: 'Apply Vulnerable 2', range: 1, ownerId: 'prophet', speed: 'FAST', lanes: 'ALL', image: omenCardImage },
+      { id: 'p_epiphany', type: 'ULTIMATE', effects: [{ type: 'REVEAL', amount: 0, target: 'ALL_ENEMIES' }], name: 'Epiphany', desc: 'Reveal all lanes.', ownerId: 'prophet', speed: 'FAST', lanes: 'ALL', image: epiphanyCardImage }
     ]
   },
   {
@@ -146,9 +146,9 @@ export const HEROES_DB: Hero[] = [
     avatar: alchemistAvatar,
     lore: 'A prodigy that seeks legendary ingredients for dangerous formulas',
     cards: [
-      { id: 'a_explosive_flask', type: 'BASIC', value: 1, name: 'Explosive Flask', desc: 'AoE. Deal 1.', effect: 'CLEAVE', ownerId: 'alchemist', speed: 'NORMAL', range: 0, lanes: 'ALL', image: explosiveFlaskCardImage },
-      { id: 'a_unstable_mixture', type: 'SIGNATURE', value: 0, name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', effect: 'UNSTABLE_MIXTURE', ownerId: 'alchemist', speed: 'FAST', range: 0, lanes: 'ALL', image: unstableMixtureCardImage },
-      { id: 'a_noxious_cloud', type: 'ULTIMATE', value: 0, name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 2.', effect: 'NOXIOUS', ownerId: 'alchemist', speed: 'NORMAL', range: 0, persist: 1, recoil: 2, lanes: 'ALL', image: noxiousCloudCardImage }
+      { id: 'a_explosive_flask', type: 'BASIC', effects: [{ type: 'DEAL_DAMAGE', amount: 1, target: 'ENEMY' }, { type: 'CLEAVE', amount: 0, target: 'ENEMY' }], name: 'Explosive Flask', desc: 'AoE. Deal 1.', ownerId: 'alchemist', speed: 'NORMAL', range: 0, lanes: 'ALL', image: explosiveFlaskCardImage },
+      { id: 'a_unstable_mixture', type: 'SIGNATURE', effects: [{ type: 'UNSTABLE_MIXTURE', amount: 0, target: 'SELF' }], name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', ownerId: 'alchemist', speed: 'FAST', range: 0, lanes: 'ALL', image: unstableMixtureCardImage },
+      { id: 'a_noxious_cloud', type: 'ULTIMATE', effects: [{ type: 'NOXIOUS', amount: 0, target: 'ENEMY' }], name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 2.', ownerId: 'alchemist', speed: 'NORMAL', range: 0, persist: 1, recoil: 2, lanes: 'ALL', image: noxiousCloudCardImage }
     ]
   },
   // KINGDOM HEROES
