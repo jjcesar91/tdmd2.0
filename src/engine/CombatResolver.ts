@@ -226,6 +226,11 @@ export const resolveLane = (
     // --- Player Attack Phase ---
     if (pUnit && !pUnit.dead && currentPCard && (!currentPCard.detained || currentPCard.detained <= 0)) {
         
+        // Decrement Augment if a card is played
+        if ((pUnit.buffs.augment || 0) > 0) {
+             pUnit.buffs.augment = (pUnit.buffs.augment || 0) - 1;
+        }
+
         // VULNERABLE (APPLY_MOD Debuff)
         const vulnEffects = currentPCard.effects.filter(e => e.type === 'APPLY_MOD' && e.modType === 'VULNERABLE');
         vulnEffects.forEach(eff => {

@@ -31,7 +31,7 @@ export function useGameLoop({
     const startTurnLogic = (state: Partial<CombatState>) => {
         let newPUnits = (state.playerUnits || []).map((u: Unit | null) => {
             if (!u || u.dead) return u;
-            let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false, augment: 0 } };
+            let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false } };
             
             // Cleanup Phase: Reset Gray HP
             unit.grayHp = 0;
