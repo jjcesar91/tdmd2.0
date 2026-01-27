@@ -83,7 +83,7 @@ export const UnitPortrait = ({ unit, isEnemy, onCrusaderAction }: UnitPortraitPr
            {(unit.buffs?.augment || 0) > 0 && <StatBadge icon={Sword} value={unit.buffs!.augment} color="text-amber-500 border-amber-800" />}
            {(unit.buffs?.anger || 0) > 0 && <StatBadge icon={Flame} value={unit.buffs!.anger || 0} color="text-orange-500 border-orange-800" />}
            {unit.buffs?.immune && <StatBadge icon={RefreshCw} value="" color="text-indigo-400 border-indigo-800" />}
-           {(unit.buffs?.vulnerable || 0) > 0 && <StatBadge icon={Target} value={unit.buffs!.vulnerable} color="text-rose-500 border-rose-800" />}
+           {(unit.buffs?.vulnerable || 0) > 0 && <StatBadge icon={Target} value={unit.buffs!.vulnerable || 0} color="text-rose-500 border-rose-800" />}
         </div>
       )}
 
