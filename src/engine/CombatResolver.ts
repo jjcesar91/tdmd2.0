@@ -301,8 +301,12 @@ export const resolveLane = (
         } else if (currentECard.detained && currentECard.detained > 0) {
             msg += `Enemy ${eUnit.name} is Detained! `;
         } else {
-            const damageEffect = currentECard.effects.find(e => e.type === 'DEAL_DAMAGE');
-            let dmg = damageEffect ? damageEffect.amount : 0;
+            // 1. Gather Effects
+            const damageEffects = currentECard.effects.filter(e => e.type === 'DEAL_DAMAGE');
+            const detainEffects = currentECard.effects.filter(e => e.type === 'DETAIN');
+            const modEffects = currentECard.effects.filter(e => e.type === 'APPLY_MOD');
+             
+            let totalDmg = damageEffects.reduce((sum, e) => sum + e.amount, 0);
             
             // Target Selection
             let targetIdx = laneIdx;
@@ -313,9 +317,7 @@ export const resolveLane = (
             let targetUnit = pUnits[targetIdx];
     
             // Tanking Logic
-            // Find if anyone is tanking (TANK_ALL sets buffs.tanking)
             const tankingUnit = pUnits.find(u => u && !u.dead && u.buffs.tanking);
-    
             if (tankingUnit) { 
                 targetUnit = tankingUnit; 
                 msg += "Tank! "; 
@@ -323,13 +325,33 @@ export const resolveLane = (
     
             // Apply Damage
             if (targetUnit) {
-                // Defense Calculation - Removed specific check here as it is applied in Phase 0
-                // We keep generic defense check only if needed for reduction, but requested logic is Gray HP conversion.
+                // Apply Mods (Vulnerable)
+                modEffects.forEach(eff => {
+                    if (eff.modType === 'VULNERABLE') {
+                        targetUnit!.buffs.vulnerable = (targetUnit!.buffs.vulnerable || 0) + eff.amount;
+                        msg += `Vulnerable ${targetUnit!.name}! `;
+                    }
+                });
 
-                if (targetUnit.buffs.immune) { 
+                // Apply Detain (Note: affecting player zones for future turns logic)
+                detainEffects.forEach(eff => {
+                     if (playerZones[targetIdx]) {
+                          playerZones[targetIdx]!.detained = (playerZones[targetIdx]!.detained || 0) + eff.amount;
+                          msg += "Detained Player! ";
+                     }
+                });
+
+                // Frogman Passive
+                const finalTargetIdx = pUnits.findIndex(u => u === targetUnit);
+                if (eUnit.id === 'frog_man' && playerZones[finalTargetIdx]?.detained) {
+                    totalDmg += 1;
+                    msg += "+1(Detained)! ";
+                }
+
+                if (targetUnit.buffs.immune && totalDmg > 0) { 
                     msg += "Immune! "; 
                 } else {
-                    let finalDmg = dmg;
+                    let finalDmg = totalDmg;
     
                     if (finalDmg > 0 && targetUnit.buffs.vulnerable) {
                         finalDmg += 2;

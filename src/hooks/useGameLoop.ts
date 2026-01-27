@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Card as CardData, Unit, CombatState } from '../types';
-import { POTIONS_DB, ENEMIES_DB } from '../data';
+import { POTIONS_DB } from '../data';
 import { generateEncounter } from '../engine/EncounterGenerator';
-import { generateEnemyCard, generateProvokedAttack } from '../engine/EnemyAI';
+import { generateProvokedAttack } from '../engine/EnemyAI';
+import { getEnemyDecision, PlannedMove } from '../engine/EnemyLogic';
 import { applyRoundBuffs, resolveLane } from '../engine/CombatResolver';
 import { processCardEffect } from '../engine/CardEffectSystem';
 
@@ -58,6 +59,8 @@ export function useGameLoop({
             
             // Cleanup Phase: Reset Gray HP
             unit.grayHp = 0;
+            // Passive: Bullyfrog
+            if (unit.id === 'frog_bully') unit.grayHp = 1;
 
             if (unit.buffs.vulnerable) {
                  unit.buffs.vulnerable -= 1;
@@ -76,35 +79,59 @@ export function useGameLoop({
           newlyDrawnSet.add(drawnCard.uid || Math.random());
           newHand.push(drawnCard);
         }
-        // Generate enemy cards based on enemy types for strategic variety
-        const eHand: CardData[] = [];
-        const aliveEnemies = (newEUnits || []).filter((e: Unit | null) => e && !e.dead);
-        const count = aliveEnemies.length + 1;
-        
-        // Generate cards matching enemy deck types for flavor and strategy
-        for(let i=0; i<count; i++) {
-          const randomEnemy = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
-          const enemyData = randomEnemy ? ENEMIES_DB.find(e => e.name === randomEnemy.name) : null;
-          const deckType = enemyData?.deckType || 'weak';
-          
-          const card = generateEnemyCard(deckType);
-          eHand.push(card);
-        }
-        
+        // AI Logic & Intent Generation
         let enemyZones: (CardData | null)[] = state.enemyZoneCards ? [...state.enemyZoneCards] : [null, null, null];
-        const indices = [0, 1, 2].sort(() => Math.random() - 0.5);
-        for (let idx of indices) { 
-            if (eHand.length > 0 && !enemyZones[idx] && newEUnits && newEUnits[idx] && !newEUnits[idx]!.dead) {
-                enemyZones[idx] = { ...eHand.pop()!, revealed: false }; 
-            }
-        }
+        const currentCombatStateForAI: any = { ...state, playerUnits: newPUnits, enemyUnits: newEUnits };
+        const eHand: CardData[] = [];
+        
+        // --- ORDERED DECISION MAKING (Global Rule: F -> M -> R) ---
+        // We must iterate 0, 1, 2 explicitly to allow dependencies
+        const plannedMoves: PlannedMove[] = [];
+        
+        // Create a temporary array of units effectively alive for processing
+        // We map to keep indices aligned [0, 1, 2]
+        const orderedIndices = [0, 1, 2];
+        
+        // First pass: Update AI Steps
+        newEUnits = newEUnits.map((u: Unit | null) => {
+             if (!u || u.dead) return u;
+             const nextStep = (u.aiCurrentStep !== undefined ? u.aiCurrentStep : -1) + 1;
+             return { ...u, aiCurrentStep: nextStep };
+        });
+        
+        // Second pass: Decisions
+        orderedIndices.forEach(idx => {
+             const u = newEUnits[idx];
+             if (!u || u.dead) return;
+             
+             // Check if already has card (detained/persisted)
+             if (enemyZones[idx]) {
+                 // Counts as 'played in lane idx' for logic purposes?
+                 // "If Bullyfrog is playing a card on its lane".
+                 // Probably yes.
+                 plannedMoves.push({ lane: idx, card: enemyZones[idx]!, unitId: u.id });
+             } else {
+                 const decision = getEnemyDecision(u, currentCombatStateForAI, plannedMoves);
+                 plannedMoves.push({ lane: decision.lane, card: decision.card, unitId: u.id });
+                 
+                 // Apply to Zone
+                 if (!enemyZones[decision.lane]) {
+                     enemyZones[decision.lane] = { ...decision.card, revealed: false };
+                     eHand.push(decision.card); // Add to "Hand" for record tracking, though physically it goes to zone
+                 }
+             }
+        });
   
         setCombatState(prev => ({
             ...prev!, ...state, phase: 'planning', playerUnits: newPUnits, enemyUnits: newEUnits, playerHand: newHand, drawPile: newDraw, discardPile: newDiscard, enemyHand: eHand, playerZoneCards: state.playerZoneCards || [null, null, null], enemyZoneCards: enemyZones, scryActive: false, newlyDrawnCards: newlyDrawnSet, resolvingLane: null, laneEffects: {}
         }));
     };
 
-    const enterCombat = (enemyType: string) => {
+    const enterCombat = (reqEnemyType: string) => {
+        let enemyType = reqEnemyType;
+        if (mapNode === 0 && enemyType === 'normal') {
+             enemyType = 'frogs_tribe_1';
+        }
         const enemies = generateEncounter(enemyType);
         
         // Place heroes in their assigned lanes

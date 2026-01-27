@@ -82,6 +82,8 @@ export interface Unit {
   level?: number;
   portrait?: string;
   avatar?: string;
+  aiPattern?: string[];
+  aiCurrentStep?: number;
 }
 
 export interface CombatState {

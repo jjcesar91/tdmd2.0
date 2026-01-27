@@ -377,5 +377,8 @@ export const ENEMIES_DB = [
   { name: 'Void Mage', hp: 3, deckType: 'defense_spam' },
   { name: 'Berserker', hp: 5, deckType: 'big_damage' },
   { name: 'Plague Doctor', hp: 3, deckType: 'multi_hit' },
+  { name: 'Bullyfrog', hp: 6, deckType: 'special_frog_front' },
+  { name: 'Tadpolearm', hp: 3, deckType: 'special_frog_mid' },
+  { name: 'Frogman', hp: 5, deckType: 'special_frog_rear' },
   { name: 'ANCIENT DRAGON', hp: 15, deckType: 'boss', isBoss: true }
 ];

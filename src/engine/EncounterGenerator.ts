@@ -4,7 +4,11 @@ import { ENEMIES_DB } from '../data';
 export const generateEncounter = (enemyType: string): (Unit | null)[] => {
     let enemies: (Unit | null)[] = [null, null, null];
     
-    if (enemyType === 'boss') {
+    if (enemyType === 'frogs_tribe_1') {
+      enemies[0] = { name: 'Bullyfrog', id: 'frog_bully', desc: 'Passive: Gain 1 Gray HP', hp: 6, maxHp: 6, dead: false, buffs: { immune: false, tanking: false, augment: 0 }, aiPattern: ['B', 'S', 'U'], aiCurrentStep: -1 };
+      enemies[1] = { name: 'Tadpolearm', id: 'frog_poker', desc: '', hp: 3, maxHp: 3, dead: false, buffs: { immune: false, tanking: false, augment: 0 } };
+      enemies[2] = { name: 'Frogman', id: 'frog_man', desc: 'Passive: Deal 1 more to Detained', hp: 5, maxHp: 5, dead: false, buffs: { immune: false, tanking: false, augment: 0 } };
+    } else if (enemyType === 'boss') {
       // BOSS ENCOUNTER: Dragon + Void Mages (require Prophet scry + Lone Ranger range)
       enemies[1] = { ...ENEMIES_DB.find(e => e.isBoss)!, id: 'boss', name: 'ANCIENT DRAGON', desc: '', maxHp: 15, hp: 15, dead: false, buffs: { immune: false, tanking: false, augment: 0 } };
       enemies[0] = { name: 'Void Mage', id: 'guard1', desc: '', hp: 4, maxHp: 4, dead: false, buffs: { immune: false, tanking: false, augment: 0 } };
