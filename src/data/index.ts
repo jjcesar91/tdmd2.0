@@ -61,7 +61,7 @@ export const KEYWORDS: Record<string, string> = {
 
 export const POTIONS_DB: Card[] = [
   { id: 'pot_heal', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 2, target: 'ALLY' }], name: 'Healing Potion', desc: 'Heal 2 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
-  { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
+  { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
   { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 2, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 2.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
   { id: 'pot_haste', type: 'CRAFTED', effects: [{ type: 'HASTE', amount: 1, target: 'ALLY' }], name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
 ];

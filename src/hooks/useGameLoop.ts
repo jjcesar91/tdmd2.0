@@ -28,6 +28,31 @@ export function useGameLoop({
 }: UseGameLoopProps) {
     const [provokeMode, setProvokeMode] = useState<boolean>(false);
 
+    const checkVictory = (pUnits: (Unit | null)[], eUnits: (Unit | null)[]) => {
+        const allHeroesDead = pUnits.every(u => !u || u.dead);
+        const allEnemiesDead = eUnits.every(u => !u || u.dead);
+    
+        if (allHeroesDead) { setView('GAMEOVER'); setLogs(['Expedition Failed.']); return true; }
+        if (allEnemiesDead) {
+            setLogs(['Victory!']); 
+            
+            // Clean global deck
+            const deadHeroes = pUnits.filter((u): u is Unit => u !== null && u.dead);
+            let newGlobalDeck = [...globalDeck];
+            if (deadHeroes.length > 0) {
+                deadHeroes.forEach(hero => {
+                    newGlobalDeck = newGlobalDeck.filter(c => c.ownerId !== hero.id);
+                });
+            }
+            setGlobalDeck(newGlobalDeck); 
+            
+            setParty(pUnits.filter((u): u is Unit => u !== null && !u.dead));
+            if (mapNode >= 4) setView('VICTORY'); else { setMapNode(n => n + 1); setTimeout(() => setView('MAP'), 1500); }
+            return true;
+        }
+        return false;
+    };
+
     const startTurnLogic = (state: Partial<CombatState>) => {
         let newPUnits = (state.playerUnits || []).map((u: Unit | null) => {
             if (!u || u.dead) return u;
@@ -55,7 +80,7 @@ export function useGameLoop({
 
         let newEUnits = (state.enemyUnits || []).map((u: Unit | null) => {
             if (!u || u.dead) return u;
-            let unit = { ...u, buffs: { ...u.buffs } };
+            let unit = { ...u, buffs: { ...u.buffs, tanking: false, immune: false } };
             
             // Cleanup Phase: Reset Gray HP
             unit.grayHp = 0;
@@ -91,6 +116,7 @@ export function useGameLoop({
         // Create a temporary array of units effectively alive for processing
         // We map to keep indices aligned [0, 1, 2]
         const orderedIndices = [0, 1, 2];
+        const initialZones = state.enemyZoneCards ? [...state.enemyZoneCards] : [null, null, null];
         
         // First pass: Update AI Steps
         newEUnits = newEUnits.map((u: Unit | null) => {
@@ -105,11 +131,11 @@ export function useGameLoop({
              if (!u || u.dead) return;
              
              // Check if already has card (detained/persisted)
-             if (enemyZones[idx]) {
+             if (initialZones[idx]) {
                  // Counts as 'played in lane idx' for logic purposes?
                  // "If Bullyfrog is playing a card on its lane".
                  // Probably yes.
-                 plannedMoves.push({ lane: idx, card: enemyZones[idx]!, unitId: u.id });
+                 plannedMoves.push({ lane: idx, card: initialZones[idx]!, unitId: u.id });
              } else {
                  const decision = getEnemyDecision(u, currentCombatStateForAI, plannedMoves);
                  plannedMoves.push({ lane: decision.lane, card: decision.card, unitId: u.id });
@@ -235,6 +261,11 @@ export function useGameLoop({
               }
               
               setCombatState(prev => ({ ...prev!, ...consumedEffectsUpdate, ...result.newState }));
+
+              // Check victory immediately for FAST cards
+              const finalPUnits = result.newState.playerUnits || combatState.playerUnits;
+              const finalEUnits = result.newState.enemyUnits || combatState.enemyUnits;
+              checkVictory(finalPUnits as (Unit|null)[], finalEUnits as (Unit|null)[]);
               return;
           }
           
@@ -281,8 +312,12 @@ export function useGameLoop({
         let eUnits = [...combatState.enemyUnits];
         let pZones = combatState.playerZoneCards; 
     let eZones = [...combatState.enemyZoneCards];
+
+    // Apply start-of-turn buffs (potions, tanking)
+    pUnits = applyRoundBuffs(pUnits, pZones);
+    eUnits = applyRoundBuffs(eUnits, eZones);
     
-        for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 3; i++) {
             // Highlight current resolving lane
             setCombatState(prev => ({ ...prev!, resolvingLane: i }));
             await new Promise(r => setTimeout(r, 400));
@@ -303,12 +338,18 @@ export function useGameLoop({
     
             // Update React state to show damage immediately
             setCombatState(prev => ({ ...prev!, playerUnits: [...pUnits], enemyUnits: [...eUnits], enemyZoneCards: [...eZones], playerZoneCards: [...pZones] }));
+            
+            // Check victory after lane resolution
+            if (checkVictory(pUnits, eUnits)) return;
+            
             await new Promise(r => setTimeout(r, 600));
         }
         
         // Clear resolving lane highlight
         setCombatState(prev => ({ ...prev!, resolvingLane: null }));
     
+        if (checkVictory(pUnits, eUnits)) return;
+
         const deadHeroes = pUnits.filter((u): u is Unit => u !== null && u.dead);
         let newGlobalDeck = [...globalDeck];
         
@@ -366,16 +407,6 @@ export function useGameLoop({
                 newDrawPile = newDrawPile.filter(c => c.ownerId !== hero.id);
                 newDiscard = newDiscard.filter(c => c.ownerId !== hero.id);
             });
-        }
-    
-        const allHeroesDead = pUnits.every(u => !u || u.dead);
-        const allEnemiesDead = eUnits.every(u => !u || u.dead);
-    
-        if (allHeroesDead) { setView('GAMEOVER'); setLogs(['Expedition Failed.']); return; }
-        if (allEnemiesDead) {
-            setLogs(['Victory!']); setGlobalDeck(newGlobalDeck); setParty(pUnits.filter((u): u is Unit => u !== null && !u.dead));
-            if (mapNode >= 4) setView('VICTORY'); else { setMapNode(n => n + 1); setTimeout(() => setView('MAP'), 1500); }
-            return;
         }
     
         setCombatState({ ...combatState, drawPile: newDrawPile, discardPile: newDiscard, playerUnits: pUnits, enemyUnits: eUnits, playerHand: [], turn: combatState.turn + 1 });

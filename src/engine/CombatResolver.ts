@@ -18,6 +18,27 @@ const resolveTargets = (
 ): number[] => {
     let targets: number[] = [];
 
+    if (targetType === 'ALL_ENEMIES') {
+        return [0,1,2].filter(i => targetUnits[i] && !targetUnits[i]!.dead);
+    }
+    else if (targetType === 'ALL_ALLIES') {
+        return [0,1,2].filter(i => sourceUnits[i] && !sourceUnits[i]!.dead);
+    }
+
+    // AoE Logic: Target Lane + Adjacent (Strict Positional)
+    // Overrides redirection logic to prevent shifting the blast center
+    if (isAoE) {
+        const collection = (targetType === 'ENEMY') ? targetUnits : sourceUnits;
+        const indices = [laneIdx, laneIdx - 1, laneIdx + 1].filter(i => i >= 0 && i <= 2);
+        
+        indices.forEach(i => {
+             if (collection[i] && !collection[i]!.dead) {
+                 targets.push(i);
+             }
+        });
+        return [...new Set(targets)];
+    }
+
     // ALLY (Self/Lane Hero if source is player)
     if (targetType === 'SELF' || targetType === 'ALLY') {
         if (sourceUnits[laneIdx]) targets.push(laneIdx);
@@ -50,24 +71,12 @@ const resolveTargets = (
             }
         }
     }
-    else if (targetType === 'ALL_ENEMIES') {
-        return [0,1,2].filter(i => targetUnits[i] && !targetUnits[i]!.dead);
-    }
-    else if (targetType === 'ALL_ALLIES') {
-        return [0,1,2].filter(i => sourceUnits[i] && !sourceUnits[i]!.dead);
-    }
 
-    // Apply AoE if single target
+    // Auto-AoE Legacy (For cards that might rely on old behavior? cleave relies on isAoE so it's handled above)
+    // This block is now unreachable for isAoE=true, but kept for safety if isAoE is false.
     if (isAoE && targets.length === 1) {
-        const primary = targets[0];
-        const adj = [primary - 1, primary + 1].filter(i => i >= 0 && i <= 2);
-        // Add adjacent if valid unit exists
-        adj.forEach(i => {
-             // Check correct side based on targetType.
-             // If target was ENEMY, check targetUnits
-             const collection = (targetType === 'ENEMY') ? targetUnits : sourceUnits;
-             if (collection[i] && !collection[i]!.dead) targets.push(i);
-        });
+        // This code path is effectively dead for isAoE=true due to top block, but safe to keep or remove.
+        // We will remove it here for clarity as it's replaced.
     }
 
     return [...new Set(targets)]; // Unique
@@ -123,12 +132,17 @@ export const applyRoundBuffs = (
     return newUnits;
 };
 
+export interface ResolveOptions {
+    onlyPlayerAction?: boolean;
+}
+
 export const resolveLane = (
     laneIdx: number,
     playerUnits: (Unit | null)[],
     enemyUnits: (Unit | null)[],
     playerZones: (CardData | null)[],
-    enemyZones: (CardData | null)[]
+    enemyZones: (CardData | null)[],
+    options?: ResolveOptions
 ): ResolutionResult => {
     const pUnits = playerUnits.map(u => u ? {...u} : null); // Deep copy for mutation within this step
     const eUnits = enemyUnits.map(u => u ? {...u} : null);
@@ -143,7 +157,10 @@ export const resolveLane = (
     // --- Phase -1: Priority Control Effects (Detain) ---
     const addToZone = (zoneArr: (CardData | null)[], idx: number, amt: number) => {
         if (zoneArr[idx]) {
-            zoneArr[idx] = { ...zoneArr[idx]!, detained: (zoneArr[idx]!.detained || 0) + amt };
+            // Ensure detained is treated as number
+            const currentVal = zoneArr[idx]!.detained || 0;
+            const newVal = currentVal + amt;
+            zoneArr[idx] = { ...zoneArr[idx]!, detained: newVal };
         }
     };
 
@@ -165,27 +182,32 @@ export const resolveLane = (
          }
     }
 
-    // 2. Enemy Detains Player
-    const eCardInitial = enemyZones[laneIdx];
-    if (eUnit && !eUnit.dead && eCardInitial) {
-        const eDetainEffects = eCardInitial.effects.filter(e => e.type === 'DETAIN');
-        eDetainEffects.forEach(eff => {
-             let targetIdx = laneIdx;
-             // Check Tanking (Global Taunt)
-             const tankingIdx = pUnits.findIndex(u => u && !u.dead && u.buffs.tanking);
-             
-             if (tankingIdx !== -1) {
-                 targetIdx = tankingIdx;
-             } else if (!pUnits[laneIdx] || pUnits[laneIdx]!.dead) {
-                 const candidates = [0,1,2].filter(idx => pUnits[idx] && !pUnits[idx]!.dead).sort((a,b) => Math.abs(a-laneIdx) - Math.abs(b-laneIdx));
-                 if (candidates.length > 0) targetIdx = candidates[0];
-             }
+    // 2. Enemy Detains Player (Skipped in FAST mode)
+    if (!options?.onlyPlayerAction) {
+        const eCardInitial = enemyZones[laneIdx];
+        // Check if Enemy Card is already detained (by Priority Effect or previous turn)
+        const isEnemyDetained = eCardInitial?.detained && eCardInitial.detained > 0;
 
-             if (playerZones[targetIdx]) {
-                addToZone(playerZones, targetIdx, eff.amount);
-                msg += `Enemy Detained ${pUnits[targetIdx]?.name || 'Player'}! `;
-             }
-        });
+        if (eUnit && !eUnit.dead && eCardInitial && !isEnemyDetained) {
+            const eDetainEffects = eCardInitial.effects.filter(e => e.type === 'DETAIN');
+            eDetainEffects.forEach(eff => {
+                let targetIdx = laneIdx;
+                // Check Tanking (Global Taunt)
+                const tankingIdx = pUnits.findIndex(u => u && !u.dead && u.buffs.tanking);
+                
+                if (tankingIdx !== -1) {
+                    targetIdx = tankingIdx;
+                } else if (!pUnits[laneIdx] || pUnits[laneIdx]!.dead) {
+                    const candidates = [0,1,2].filter(idx => pUnits[idx] && !pUnits[idx]!.dead).sort((a,b) => Math.abs(a-laneIdx) - Math.abs(b-laneIdx));
+                    if (candidates.length > 0) targetIdx = candidates[0];
+                }
+
+                if (playerZones[targetIdx]) {
+                    addToZone(playerZones, targetIdx, eff.amount);
+                    msg += `Enemy Detained ${pUnits[targetIdx]?.name || 'Player'}! `;
+                }
+            });
+        }
     }
 
     // Refresh references to respect Detained status update
@@ -210,8 +232,8 @@ export const resolveLane = (
         }
     }
 
-    // Enemy Defense
-    if (eUnit && !eUnit.dead && currentECard) {
+    // Enemy Defense (Skipped in FAST mode)
+    if (!options?.onlyPlayerAction && eUnit && !eUnit.dead && currentECard) {
          const grayHpEffect = currentECard.effects.find(e => e.type === 'GAIN_GRAY_HP');
          if (grayHpEffect) {
              if (currentECard.detained && currentECard.detained > 0) {
@@ -327,7 +349,7 @@ export const resolveLane = (
 
     // --- Enemy Attack Phase ---
     
-    if (eUnit && !eUnit.dead && currentECard) {
+    if (!options?.onlyPlayerAction && eUnit && !eUnit.dead && currentECard) {
         // RECOIL Logic
         let recoilDmg = 0;
         playerZones.forEach((c, i) => {

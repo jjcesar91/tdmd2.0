@@ -78,6 +78,24 @@ const applySingleCardEffect = (
         return { newStateUpdates: stateUpdates, logs };
     }
 
+    // SELF DAMAGE POTION (Internal for Unstable Brew)
+    if (card.id === 'pot_self_dmg') {
+         const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
+         const hero = newPlayerUnits[targetLaneIdx];
+         if (hero) {
+             const dmg = 1;
+             const newHp = Math.max(0, hero.hp - dmg);
+             newPlayerUnits[targetLaneIdx] = { 
+                 ...hero, 
+                 hp: newHp,
+                 dead: newHp === 0
+             };
+             logs.push(`Unstable Brew: ${hero.name} took ${dmg} damage!`);
+             stateUpdates.playerUnits = newPlayerUnits;
+         }
+         return { newStateUpdates: stateUpdates, logs };
+    }
+
     // --- Standard Effects ---
 
     // For Safety in Merge: If it's a card handled by `processCardEffect` main block (like CLEAVE via resolveLane),
@@ -97,7 +115,8 @@ const applySingleCardEffect = (
             (stateUpdates.playerUnits || state.playerUnits),
             (stateUpdates.enemyUnits || state.enemyUnits),
             tempPlayerZones,
-            (stateUpdates.enemyZoneCards || state.enemyZoneCards)
+            (stateUpdates.enemyZoneCards || state.enemyZoneCards),
+            { onlyPlayerAction: true }
         );
         
         stateUpdates = {
@@ -142,6 +161,18 @@ export const processCardEffect = (
         // 2. Merge logic
         // Range = min(p1.range, p2.range)
         const range = Math.min(p1.range || 0, p2.range || 0);
+
+        // Self Damage Component
+        const selfDmgPart: CardData = {
+           id: 'pot_self_dmg',
+           type: 'CRAFTED',
+           name: 'Side Effect',
+           desc: 'Deal 1 to self.',
+           effects: [],
+           speed: 'FAST',
+           range: 0,
+           image: ''
+        };
         
         // Create Merged Card
         const mergedCard: CardData = {
@@ -149,14 +180,14 @@ export const processCardEffect = (
             uid: Math.random(),
             type: 'CRAFTED',
             name: `Unstable Brew`,
-            desc: `${p1.desc} ${p2.desc}`,
+            desc: `${p1.desc} ${p2.desc} Deal 1 to self.`,
             effects: [], // Values are handled by constituent cards
             speed: 'FAST', // Potions are FAST
             range: range,
             // effect: 'MERGED_POTION', // Removed
             ownerId: 'alchemist',
             volatile: true, // "The crafted card has VOLATILE"
-            mergedCards: [p1, p2],
+            mergedCards: [p1, p2, selfDmgPart],
             isPotion: true,
             image: card.image, // Use the Unstable Mixture icon or generic? Maybe keep parent icon
             color: 'bg-purple-950', // Visual helper
@@ -492,7 +523,8 @@ export const processCardEffect = (
         state.playerUnits,
         state.enemyUnits,
         tempPlayerZones,
-        state.enemyZoneCards
+        state.enemyZoneCards,
+        { onlyPlayerAction: true }
     );
 
     // Ensure we log what happened

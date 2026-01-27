@@ -94,9 +94,10 @@ export const BattleLane = ({
          {/* Enemy Card Slot */}
          <div 
            onClick={() => {
+             const isDetainedHidden = enemyCard ? (enemyCard.detained || 0) > 0 && !enemyCard.revealed && isResolving : false;
              if (provokeMode && enemyCard) {
                onEnemyCardClick?.();
-             } else if (enemyCard && (enemyCard.revealed || isEnemyCardRevealed)) {
+             } else if (enemyCard && (enemyCard.revealed || isEnemyCardRevealed) && !isDetainedHidden) {
                onPreviewStart(enemyCard, true);
              }
            }}
@@ -110,7 +111,7 @@ export const BattleLane = ({
                <div className={`h-[95%] aspect-[2/3] ${isResolving ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''}`}>
                    <Card 
                      {...enemyCard} 
-                     isHidden={!enemyCard.revealed && !isEnemyCardRevealed} 
+                     isHidden={(!enemyCard.revealed && !isEnemyCardRevealed) || ((enemyCard.detained || 0) > 0 && !enemyCard.revealed && isResolving)}
                      smallMode={true} 
                      onPreviewStart={(!enemyCard.revealed && !isEnemyCardRevealed) ? undefined : (() => onPreviewStart && onPreviewStart(enemyCard))}
                      onPreviewEnd={onPreviewEnd}
@@ -145,7 +146,7 @@ export const BattleLane = ({
                   <Card 
                     {...playerCard} 
                     smallMode={true} 
-                    isHidden={isPlayerCardFlipped}
+                    isHidden={isPlayerCardFlipped || (playerCard.revealed === false && (playerCard.detained || 0) > 0 && isResolving)}
                     onPreviewStart={() => onPreviewStart && onPreviewStart(playerCard)}
                     onPreviewEnd={onPreviewEnd}
                     className={`w-full h-full text-[10px] ${isResolving ? 'ring-2 ring-sky-500 shadow-lg' : ''}`}

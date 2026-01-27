@@ -180,7 +180,10 @@ const getFrogmanDecision = (unit: Unit, state: CombatState, plannedMoves: Planne
 
     // "When Bullyfrog play a card in middle lane [1], always play S on the Front lane [0]"
     if (bullyMove && bullyMove.lane === 1) {
-        return { card: shot, lane: 0 }; // Ignore other checks
+        // Prioritize Front (0), but if taken (e.g. by Tadpolearm), fallback to Rear (2)
+        const isFrontTaken = plannedMoves.some(m => m.lane === 0);
+        if (isFrontTaken) return { card: shot, lane: 2 };
+        return { card: shot, lane: 0 }; 
     }
 
     // "If an ally want to play something in Frogman lane [currentLane]"

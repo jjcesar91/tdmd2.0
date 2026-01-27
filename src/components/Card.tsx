@@ -261,6 +261,20 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-stone-400 rounded-full shadow-inner" />
               </div>
             </div>
+
+            {/* DETAINED OVERLAY - BACK FACE */}
+            {detained && detained > 0 && (
+              <div className="absolute inset-0 z-30 bg-black/60 flex flex-col items-center justify-center p-2 backdrop-blur-[1px]">
+                  <div className="bg-stone-900 border-2 border-amber-600 rounded-full p-3 shadow-2xl animate-pulse">
+                      <Lock size={compactPreview ? 16 : 32} className="text-amber-500" />
+                  </div>
+                  {!compactPreview && !smallMode && (
+                      <div className="mt-2 text-amber-500 font-bold uppercase tracking-wider text-xs bg-black/80 px-2 py-1 rounded border border-amber-900/50">
+                        Detained ({detained})
+                      </div>
+                  )}
+              </div>
+            )}
           </div>
         </div>
 
