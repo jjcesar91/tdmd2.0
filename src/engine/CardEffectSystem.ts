@@ -40,6 +40,13 @@ const applySingleCardEffect = (
 
     // INVISIBLE / IMMUNE
     if (card.id === 'pot_inv') {
+         // Resolve Target (Bond support for Potion)
+         // Note: POT_INV is usually cast on lane. But if used via Merge/Bond, it should check logic.
+         // However, applySingleCardEffect is called with 'targetLaneIdx'.
+         // If Bond logic redirects target, the 'targetLaneIdx' passed here must be correct OR we adjust here.
+         // BUT applySingleCardEffect applies TO targetLaneIdx provided.
+         // For Merged Potion loop below, we need to ensure we pass the correct target lane if Bond is active.
+         
          const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
          const hero = newPlayerUnits[targetLaneIdx];
          if (hero) {
@@ -207,12 +214,18 @@ export const processCardEffect = (
         };
         
         // Create Merged Card
+        let mergedDesc = `${p1.desc} ${p2.desc} Deal 1 to self.`;
+        if (p1.id === 'pot_inv' || p2.id === 'pot_inv') {
+            mergedDesc = mergedDesc.replace('Bond. ', ''); // Remove duplicating "Bond." if present in original strings
+            mergedDesc = `Bond (Invisible Potion). ${mergedDesc}`;
+        }
+
         const mergedCard: CardData = {
             id: `mix_${Math.random().toString(36).substr(2, 9)}`,
             uid: Math.random(),
             type: 'CRAFTED',
             name: `Unstable Brew`,
-            desc: `${p1.desc} ${p2.desc} Deal 1 to self.`,
+            desc: mergedDesc,
             effects: [], // Values are handled by constituent cards
             speed: 'FAST', // Potions are FAST
             range: range,
@@ -250,8 +263,23 @@ export const processCardEffect = (
         
         // Loop through constituent cards
         for (const subCard of card.mergedCards) {
+             let effectiveTargetLane = targetLaneIdx;
+             
+             // Bond Logic for Merged Cards components
+             // If component is Invisible Potion (pot_inv), it effectively has Bond.
+             if (subCard.id === 'pot_inv') {
+                 // Try to finding Owner
+                 const ownerId = card.ownerId; // Owner of the Merged Card (Alchemist)
+                 if (ownerId) {
+                     const ownerIdx = (currentState.playerUnits || state.playerUnits).findIndex(u => u && u.id === ownerId);
+                     if (ownerIdx !== -1) {
+                         effectiveTargetLane = ownerIdx;
+                     }
+                 }
+             }
+
              // We use our helper to apply effects without discarding/hands logic
-             const res = applySingleCardEffect(currentState, subCard, targetLaneIdx);
+             const res = applySingleCardEffect(currentState, subCard, effectiveTargetLane);
              
              // Update current local state to propagate changes to next effect
              currentState = { ...currentState, ...res.newStateUpdates };

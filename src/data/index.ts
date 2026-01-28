@@ -58,12 +58,13 @@ export const KEYWORDS: Record<string, string> = {
   'Persist': 'For the next X Cleanup Phase, it won\'t get discarded.',
   'Recoil': 'Affect the enemy lane, deal X each time a card is resolved on it.',
   'Craft': 'Create a new card and add it to your hand.',
-  'Merge': 'Combine two cards into one with both effects.'
+  'Merge': 'Combine two cards into one with both effects.',
+  'Bond': 'Effect applies to the Owner even if played in another lane.'
 };
 
 export const POTIONS_DB: Card[] = [
   { id: 'pot_heal', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 1, target: 'ALLY' }], name: 'Healing Potion', desc: 'Heal 1 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
-  { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
+  { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Bond. Immune this turn.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
   { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 1, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 1.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
   { id: 'pot_fortitude', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 3, target: 'ALLY' }], name: 'Fortitude Potion', desc: 'Gain 1 Gray Heart for 3 turns.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: fortitudePotionImage },
   { id: 'pot_acid', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 1, target: 'ENEMY' }], name: 'Acid Potion', desc: 'Apply Vulnerable 1 to enemy.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-lime-900', border: 'border-lime-700', image: acidPotionImage },

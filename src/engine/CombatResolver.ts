@@ -14,9 +14,22 @@ const resolveTargets = (
     sourceUnits: (Unit | null)[],
     targetUnits: (Unit | null)[], 
     targetType: 'SELF' | 'ENEMY' | 'ALLY' | 'ALL_ENEMIES' | 'ALL_ALLIES' | undefined,
-    isAoE: boolean | undefined
+    isAoE: boolean | undefined,
+    card?: CardData | null
 ): number[] => {
     let targets: number[] = [];
+
+    // Bond: If card has Bond, target OWNER instead of current lane unit
+    // Check both desc (for display) and direct property logic if needed.
+    // Also handling Merged Cards where `desc` might be complex ("Bond (Invisible Potion). ...")
+    if (card && card.desc && card.desc.includes('Bond') && (targetType === 'SELF' || targetType === 'ALLY')) {
+        if (card.ownerId) {
+             const ownerIdx = sourceUnits.findIndex(u => u && u.id === card.ownerId);
+             if (ownerIdx !== -1) {
+                 return [ownerIdx];
+             }
+        }
+    }
 
     if (targetType === 'ALL_ENEMIES') {
         return [0,1,2].filter(i => targetUnits[i] && !targetUnits[i]!.dead);
@@ -94,38 +107,41 @@ export const applyRoundBuffs = (
         if (!card) return;
         
         // Target resolving for Buffs (Self/Ally)
-        // Usually buffs are targeted at ALLY/SELF.
-        // If card is 'pot_aug', target is ALLY.
         
         // Process APPLY_MOD (Buffs)
         card.effects.forEach(effect => {
              if (effect.type === 'APPLY_MOD' && effect.modCategory === 'BUFF' && effect.modType === 'AUGMENT') {
                  // Resolve targets
-                 const targets = resolveTargets(laneIdx, newUnits, [], effect.target, card.isAoE); // Empty enemy units as buffs don't target enemies usually
+                 const targets = resolveTargets(laneIdx, newUnits, [], effect.target, card.isAoE, card);
                  targets.forEach(tIdx => {
                      if (newUnits[tIdx]) {
                          newUnits[tIdx]!.buffs.augment += effect.amount;
-                         // Log? logs are not returned here unfortunately.
                      }
                  });
              }
         });
 
-        // Legacy/Special cases
-        if (card.id === 'pot_heal') {
-             const targets = resolveTargets(laneIdx, newUnits, [], 'ALLY', card.isAoE);
+        // Generic HEAL support
+        if (card.id === 'pot_heal' || card.effects.some(e => e.type === 'HEAL')) {
+             const healEffect = card.effects.find(e => e.type === 'HEAL') || { amount: 3, target: 'ALLY' }; 
+             const targets = resolveTargets(laneIdx, newUnits, [], healEffect.target as any || 'ALLY', card.isAoE, card);
              targets.forEach(tIdx => {
-                 if (newUnits[tIdx]) newUnits[tIdx]!.hp = Math.min(newUnits[tIdx]!.maxHp, newUnits[tIdx]!.hp + 3);
+                 if (newUnits[tIdx]) newUnits[tIdx]!.hp = Math.min(newUnits[tIdx]!.maxHp, newUnits[tIdx]!.hp + healEffect.amount);
              });
         }
         
         if (card.id === 'pot_inv' || card.effects.some(e => e.type === 'IMMUNE')) {
-             const targets = resolveTargets(laneIdx, newUnits, [], 'ALLY', card.isAoE);
+             const effect = card.effects.find(e => e.type === 'IMMUNE');
+             const targetType = effect ? effect.target : 'ALLY';
+             const targets = resolveTargets(laneIdx, newUnits, [], targetType as any, card.isAoE, card);
              targets.forEach(tIdx => { if (newUnits[tIdx]) newUnits[tIdx]!.buffs.immune = true; });
         }
         
         if (card.effects.some(e => e.type === 'TANK_ALL')) {
-             if (newUnits[laneIdx]) newUnits[laneIdx]!.buffs.tanking = true; // Tanking usually self
+             const effect = card.effects.find(e => e.type === 'TANK_ALL');
+             const targetType = effect ? effect.target : 'SELF';
+             const targets = resolveTargets(laneIdx, newUnits, [], targetType as any, card.isAoE, card);
+             targets.forEach(tIdx => { if (newUnits[tIdx]) newUnits[tIdx]!.buffs.tanking = true; });
         }
     });
 
@@ -216,31 +232,42 @@ export const resolveLane = (
 
     // --- Phase 0: Defense / Gray HP Application ---
     // Player Defense & Supports
-    if (pUnit && !pUnit.dead && currentPCard) {
-        if (currentPCard.detained && currentPCard.detained > 0) {
+    if (currentPCard) { 
+        if (currentPCard.detained && currentPCard.detained > 0 && pUnit && !pUnit.dead) {
              msg += `${pUnit.name} Detained! `; // Log for Player
         } else {
             let gainedGrayHp = 0;
-            // Self Defense
             const grayHpEffect = currentPCard.effects.find(e => e.type === 'GAIN_GRAY_HP');
             if (grayHpEffect) gainedGrayHp += grayHpEffect.amount;
             
             if (gainedGrayHp > 0) {
-                pUnit.grayHp = (pUnit.grayHp || 0) + gainedGrayHp;
-                msg += `${pUnit.name} +${gainedGrayHp} Gray HP. `;
+                // Resolve Target (Support Bond)
+                const targets = resolveTargets(laneIdx, pUnits, [], grayHpEffect!.target || 'SELF', false, currentPCard);
+                targets.forEach(tIdx => {
+                    if (pUnits[tIdx] && !pUnits[tIdx]!.dead) {
+                        pUnits[tIdx]!.grayHp = (pUnits[tIdx]!.grayHp || 0) + gainedGrayHp;
+                        msg += `${pUnits[tIdx]!.name} +${gainedGrayHp} Gray HP. `;
+                    }
+                });
             }
         }
     }
 
     // Enemy Defense (Skipped in FAST mode)
-    if (!options?.onlyPlayerAction && eUnit && !eUnit.dead && currentECard) {
+    if (!options?.onlyPlayerAction && currentECard) {
          const grayHpEffect = currentECard.effects.find(e => e.type === 'GAIN_GRAY_HP');
          if (grayHpEffect) {
-             if (currentECard.detained && currentECard.detained > 0) {
+             if (currentECard.detained && currentECard.detained > 0 && eUnit) {
                  msg += `${eUnit.name} Defense Detained! `;
              } else {
-                 eUnit.grayHp = (eUnit.grayHp || 0) + grayHpEffect.amount;
-                 msg += `${eUnit.name} +${grayHpEffect.amount} Gray HP. `;
+                 // Resolve Target (Support Bond)
+                 const targets = resolveTargets(laneIdx, eUnits, [], grayHpEffect.target || 'SELF', false, currentECard);
+                 targets.forEach(tIdx => {
+                    if (eUnits[tIdx] && !eUnits[tIdx]!.dead) {
+                        eUnits[tIdx]!.grayHp = (eUnits[tIdx]!.grayHp || 0) + grayHpEffect.amount;
+                        msg += `${eUnits[tIdx]!.name} +${grayHpEffect.amount} Gray HP. `;
+                    }
+                 });
              }
          }
     }
@@ -275,7 +302,7 @@ export const resolveLane = (
         // VULNERABLE (APPLY_MOD Debuff)
         const vulnEffects = currentPCard.effects.filter(e => e.type === 'APPLY_MOD' && e.modType === 'VULNERABLE');
         vulnEffects.forEach(eff => {
-             const targets = resolveTargets(laneIdx, pUnits, eUnits, eff.target, currentPCard.isAoE);
+             const targets = resolveTargets(laneIdx, pUnits, eUnits, eff.target, currentPCard.isAoE, currentPCard);
              targets.forEach(tIdx => {
                  if (eUnits[tIdx]) {
                      const currentVal = eUnits[tIdx]!.buffs.vulnerable || 0;
@@ -297,7 +324,7 @@ export const resolveLane = (
             // Resolve Targets for Damage
             // Default to ENEMY if not specified in damage effect (Legacy fallback)
             const targetType = damageEffect?.target || 'ENEMY'; 
-            const targets = resolveTargets(laneIdx, pUnits, eUnits, targetType, currentPCard.isAoE);
+            const targets = resolveTargets(laneIdx, pUnits, eUnits, targetType, currentPCard.isAoE, currentPCard);
 
             targets.forEach(targetIdx => {
                 let dmg = baseDmg;

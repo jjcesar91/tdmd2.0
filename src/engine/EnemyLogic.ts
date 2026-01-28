@@ -17,27 +17,40 @@ export interface PlannedMove {
 }
 
 export const getEnemyDecision = (unit: Unit, state: CombatState, plannedMoves: PlannedMove[]): { card: Card, lane: number } => {
-    // Determine Identity and Intent
-    if (unit.name === 'Bullyfrog') return getBullyfrogDecision(unit, state, plannedMoves);
-    if (unit.name === 'Tadpolearm') return getTadpolearmDecision(unit, state, plannedMoves);
-    if (unit.name === 'Frogman') return getFrogmanDecision(unit, state, plannedMoves);
+    let result: { card: Card, lane: number };
 
-    // Default Fallback
-    const card = createCard('basic_attack', 'Attack', 'Deal 2 dmg', [{ type: 'DEAL_DAMAGE', amount: 2, target: 'ENEMY' }]);
-    // Find first available lane, preferring own
-    const myLaneIdx = state.enemyUnits.findIndex(u => u && u.id === unit.id);
-    let chosenLane = myLaneIdx !== -1 ? myLaneIdx : 0;
-    
-    // Check if lane is taken by ally
-    const isTaken = (idx: number) => plannedMoves.some(m => m.lane === idx);
-    
-    if (isTaken(chosenLane)) {
-        // Try to find any available
-        const avail = [0, 1, 2].find(i => !isTaken(i));
-        if (avail !== undefined) chosenLane = avail;
+    // Determine Identity and Intent
+    if (unit.name === 'Bullyfrog') {
+        result = getBullyfrogDecision(unit, state, plannedMoves);
+    } else if (unit.name === 'Tadpolearm') {
+        result = getTadpolearmDecision(unit, state, plannedMoves);
+    } else if (unit.name === 'Frogman') {
+        result = getFrogmanDecision(unit, state, plannedMoves);
+    } else {
+        // Default Fallback
+        const card = createCard('basic_attack', 'Attack', 'Deal 2 dmg', [{ type: 'DEAL_DAMAGE', amount: 2, target: 'ENEMY' }]);
+        // Find first available lane, preferring own
+        const myLaneIdx = state.enemyUnits.findIndex(u => u && u.id === unit.id);
+        let chosenLane = myLaneIdx !== -1 ? myLaneIdx : 0;
+        
+        // Check if lane is taken by ally
+        const isTaken = (idx: number) => plannedMoves.some(m => m.lane === idx);
+        
+        if (isTaken(chosenLane)) {
+            // Try to find any available
+            const avail = [0, 1, 2].find(i => !isTaken(i));
+            if (avail !== undefined) chosenLane = avail;
+        }
+        
+        result = { card, lane: chosenLane };
     }
-    
-    return { card, lane: chosenLane };
+
+    // Attach Owner ID for "Bond" mechanic
+    if (result.card) {
+        result.card.ownerId = unit.id;
+    }
+
+    return result;
 };
 
 // --- BULLYFROG ---
@@ -50,13 +63,13 @@ const getBullyfrogDecision = (unit: Unit, state: CombatState, plannedMoves: Plan
     bash.isAoE = true;
 
     // Remove visible lane constraints from description/data as requested
-    const growBelly = createCard('frog_belly', 'Grow Belly', 'Gain 3 Gray HP. Tank all.', [
+    const growBelly = createCard('frog_belly', 'Grow Belly', 'Bond. Gain 3 Gray HP. Tank all.', [
         { type: 'GAIN_GRAY_HP', amount: 3, target: 'SELF' },
         { type: 'TANK_ALL', amount: 1, target: 'SELF' }
     ], 'SIGNATURE');
     // growBelly.lanes = 'MID'; // Removed per new instruction
 
-    const croak = createCard('frog_croak', 'Croak', 'Heal 2. Vulnerable 2 to all opponents.', [
+    const croak = createCard('frog_croak', 'Croak', 'Bond. Heal 2. Vulnerable 2 to all opponents.', [
         { type: 'HEAL', amount: 2, target: 'SELF' },
         { type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 2, target: 'ALL_ENEMIES' }
     ], 'ULTIMATE');
@@ -114,7 +127,7 @@ const getBullyfrogDecision = (unit: Unit, state: CombatState, plannedMoves: Plan
 const getTadpolearmDecision = (unit: Unit, state: CombatState, plannedMoves: PlannedMove[]): { card: Card, lane: number } => {
     // Identity
     const poke = createCard('tad_poke', 'Poke', 'Deal 2.', [{ type: 'DEAL_DAMAGE', amount: 2, target: 'ENEMY' }], 'BASIC');
-    const cower = createCard('tad_cower', 'Cower', 'Gain Immune.', [{ type: 'IMMUNE', amount: 1, target: 'SELF' }], 'SIGNATURE');
+    const cower = createCard('tad_cower', 'Cower', 'Bond. Gain Immune.', [{ type: 'IMMUNE', amount: 1, target: 'SELF' }], 'SIGNATURE');
     cower.lanes = 'FRONT'; // "Lane: F"
 
     const myLaneIdx = state.enemyUnits.findIndex(u => u && u.id === unit.id);
@@ -166,7 +179,7 @@ const getTadpolearmDecision = (unit: Unit, state: CombatState, plannedMoves: Pla
 // --- FROGMAN ---
 const getFrogmanDecision = (unit: Unit, state: CombatState, plannedMoves: PlannedMove[]): { card: Card, lane: number } => {
     // Identity
-    const reload = createCard('frogman_reload', 'Reload', 'Gain Augment 2.', [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 2, target: 'SELF' }], 'BASIC');
+    const reload = createCard('frogman_reload', 'Reload', 'Bond. Gain Augment 2.', [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 2, target: 'SELF' }], 'BASIC');
     const shot = createCard('frogman_shot', 'Shot', 'Deal 2. Range 2.', [{ type: 'DEAL_DAMAGE', amount: 2, target: 'ENEMY' }], 'SIGNATURE');
     shot.range = 2;
 
