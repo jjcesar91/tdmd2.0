@@ -67,20 +67,20 @@ export function useGameLoop({
                  if (unit.buffs.vulnerable <= 0) delete unit.buffs.vulnerable;
             }
 
-            // Stoneskin Buff Logic:
+            // Fortitude Buff Logic:
             // "Gain 1 gray heart for 3 turns"
-            // If we have stoneskin buff > 0, we apply +1 Gray HP.
+            // If we have fortitude buff > 0, we apply +1 Gray HP.
             // Requirement says "3 turns counting the turn it is activated".
             // Implementation: Activated Turn 1 (Instant +1).
-            // Start Turn 2 (Stoneskin=3 -> 2). Apply +1.
-            // Start Turn 3 (Stoneskin=2 -> 1). Apply +1.
-            // Start Turn 4 (Stoneskin=1 -> 0). Buff expires, no +1.
-            if (unit.buffs.stoneskin && unit.buffs.stoneskin > 0) {
-                 unit.buffs.stoneskin -= 1;
-                 if (unit.buffs.stoneskin > 0) {
+            // Start Turn 2 (Fortitude=3 -> 2). Apply +1.
+            // Start Turn 3 (Fortitude=2 -> 1). Apply +1.
+            // Start Turn 4 (Fortitude=1 -> 0). Buff expires, no +1.
+            if (unit.buffs.fortitude && unit.buffs.fortitude > 0) {
+                 unit.buffs.fortitude -= 1;
+                 if (unit.buffs.fortitude > 0) {
                     unit.grayHp = (unit.grayHp || 0) + 1;
                  } else {
-                    delete unit.buffs.stoneskin;
+                    delete unit.buffs.fortitude;
                  }
             }
 

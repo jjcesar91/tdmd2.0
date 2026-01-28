@@ -27,6 +27,8 @@ import healingPotionImage from '../assets/images/potions/healing-potion.png';
 import invisibilityPotionImage from '../assets/images/potions/invisibility-potion.png';
 import augmentationPotionImage from '../assets/images/potions/augmentation-potion.png';
 import hastePotionImage from '../assets/images/potions/haste-potion.png';
+import acidPotionImage from '../assets/images/potions/acid-potion.png';
+import fortitudePotionImage from '../assets/images/potions/fortitude-potion.png';
 
 export const ZONES = ['F', 'M', 'R'];
 
@@ -63,8 +65,8 @@ export const POTIONS_DB: Card[] = [
   { id: 'pot_heal', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 1, target: 'ALLY' }], name: 'Healing Potion', desc: 'Heal 1 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
   { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Immune this turn.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
   { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 1, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 1.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
-  { id: 'pot_stoneskin', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 3, target: 'ALLY' }], name: 'Stoneskin Potion', desc: 'Gain 1 Gray Heart for 3 turns.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: invisibilityPotionImage },
-  { id: 'pot_acid', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 1, target: 'ENEMY' }], name: 'Acid Potion', desc: 'Apply Vulnerable 1 to enemy.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-lime-900', border: 'border-lime-700', image: explosiveFlaskCardImage },
+  { id: 'pot_fortitude', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 3, target: 'ALLY' }], name: 'Fortitude Potion', desc: 'Gain 1 Gray Heart for 3 turns.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: fortitudePotionImage },
+  { id: 'pot_acid', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 1, target: 'ENEMY' }], name: 'Acid Potion', desc: 'Apply Vulnerable 1 to enemy.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-lime-900', border: 'border-lime-700', image: acidPotionImage },
   { id: 'pot_haste', type: 'CRAFTED', effects: [{ type: 'HASTE', amount: 1, target: 'ALLY' }], name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
 ];
 

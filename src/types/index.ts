@@ -62,7 +62,7 @@ export interface Buffs {
   augment: number;
   anger?: number;
   vulnerable?: number;
-  stoneskin?: number;
+  fortitude?: number;
 }
 
 export interface Unit {

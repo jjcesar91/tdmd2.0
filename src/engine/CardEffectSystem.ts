@@ -78,18 +78,18 @@ const applySingleCardEffect = (
         return { newStateUpdates: stateUpdates, logs };
     }
 
-    // STONESKIN POTION
-    if (card.id === 'pot_stoneskin') {
+    // FORTITUDE POTION
+    if (card.id === 'pot_fortitude') {
         const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
         const hero = newPlayerUnits[targetLaneIdx];
         if (hero) {
-            const newBuffs = { ...hero.buffs, stoneskin: 3 };
+            const newBuffs = { ...hero.buffs, fortitude: 3 };
             newPlayerUnits[targetLaneIdx] = { 
                 ...hero, 
                 buffs: newBuffs,
                 grayHp: (hero.grayHp || 0) + 1
             };
-            logs.push(`Stoneskin Potion: ${hero.name} gains Stoneskin (3 turns)!`);
+            logs.push(`Fortitude Potion: ${hero.name} gains Fortitude (3 turns)!`);
             stateUpdates.playerUnits = newPlayerUnits;
         }
         return { newStateUpdates: stateUpdates, logs };
