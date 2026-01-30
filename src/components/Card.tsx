@@ -128,21 +128,15 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
 
             {/* Top corner indicators - Speed, Range & Lane */}
             {!smallMode && (
-              <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end pointer-events-none">
+              <div className="absolute top-2 right-2 z-40 flex flex-col gap-1 items-end pointer-events-none">
                   
                   {/* Speed Badge */}
-                  {(speed === 'FAST' || (previewMode && !compactPreview)) && (
+                  {speed === 'FAST' && (
                       <div className={`
-                        flex items-center justify-center backdrop-blur-sm shadow-lg border transition-all duration-300
-                        ${previewMode && !compactPreview ? 'px-2 py-0.5 rounded-full gap-1 min-w-[50px] bg-stone-950/90' : 'w-6 h-6 rounded-full bg-stone-950/90'}
-                        ${speed === 'FAST' ? 'border-amber-500/50' : 'border-stone-600'}
-                      `} title="Speed">
-                        <Zap size={previewMode && !compactPreview ? 10 : 10} className={speed === 'FAST' ? 'text-amber-400 fill-amber-400/20' : 'text-stone-500'} />
-                        {previewMode && !compactPreview && (
-                            <span className={`text-[9px] font-bold uppercase leading-none ${speed === 'FAST' ? 'text-amber-100' : 'text-stone-500'}`}>
-                                {speed === 'FAST' ? 'FAST' : 'NORM'}
-                            </span>
-                        )}
+                        flex items-center justify-center backdrop-blur-sm shadow-lg border transition-all duration-300 bg-stone-950/90 border-amber-500/50
+                        ${previewMode && !compactPreview ? 'w-8 h-8 rounded-full' : 'w-6 h-6 rounded-full'}
+                      `} title="Fast Speed">
+                        <Zap size={previewMode && !compactPreview ? 16 : 12} className="text-amber-400 fill-amber-400/20" />
                       </div>
                   )}
 
@@ -160,14 +154,19 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
                   )}
 
                   {/* Lane Badge */}
-                  {previewMode && !compactPreview && lanes && (
-                      <div className="flex items-center justify-center backdrop-blur-sm shadow-lg border border-stone-600 bg-stone-950/90 px-2 py-0.5 rounded-full gap-1 min-w-[50px]">
-                            <span className="text-[7px] text-stone-500 uppercase font-bold mr-px">POS</span>
-                            <span className="text-[9px] font-bold text-stone-300 leading-none">
-                                {Array.isArray(lanes) 
-                                  ? lanes.map(l => l[0]).join('/') 
-                                  : (lanes === 'ALL' ? 'ALL' : lanes.substring(0,3))}
-                            </span>
+                  {lanes && lanes !== 'ALL' && (
+                      <div className="flex flex-col items-center justify-center backdrop-blur-sm shadow-lg border border-stone-600 bg-stone-950/90 px-2 py-1.5 rounded-md gap-0.5 min-w-[20px]" title="Lane Restrictions">
+                            <div className="flex gap-1.5">
+                                {['FRONT', 'MID', 'REAR'].map((pos) => {
+                                    const isActive = Array.isArray(lanes) ? lanes.includes(pos as any) : lanes === pos;
+                                    return (
+                                        <div 
+                                          key={pos} 
+                                          className={`w-2 h-2 rounded-full border ${isActive ? 'bg-amber-400 border-amber-400 shadow-[0_0_4px_rgba(245,158,11,0.5)]' : 'bg-stone-900 border-stone-600'}`} 
+                                        />
+                                    );
+                                })}
+                            </div>
                       </div>
                   )}
               </div>
