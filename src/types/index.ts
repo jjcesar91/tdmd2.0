@@ -66,6 +66,7 @@ export interface Buffs {
   anger?: number;
   vulnerable?: number;
   fortitude?: number;
+  fortitudePower?: number;
 }
 
 export interface Unit {
