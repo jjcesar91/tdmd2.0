@@ -346,7 +346,9 @@ export const resolveLane = (
 
                 // Hunter's Mark
                 const targetEnemy = eUnits[targetIdx];
-                if (attackingUnit!.id === 'ranger' && targetEnemy && enemyZones[targetIdx]?.revealed) {
+                const isRevealedOrDetained = enemyZones[targetIdx]?.revealed || (enemyZones[targetIdx]?.detained || 0) > 0;
+                
+                if (attackingUnit!.id === 'ranger' && targetEnemy && isRevealedOrDetained) {
                     if (finalDmg > 0) {
                         finalDmg += 1;
                         msg += "Hunter's Mark! ";
