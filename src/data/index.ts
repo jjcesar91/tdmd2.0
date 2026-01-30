@@ -55,20 +55,22 @@ export const KEYWORDS: Record<string, string> = {
   'Revealed': 'Target character has a face up card on its lane.',
   'Vulnerable': 'For X turn, when damage is dealt to the character, it lose 2 more hearts (ignore defenses).',
   'Volatile': 'If this card is in your hand at the end of the turn, remove it from game.',
+  'Persistent': 'Don\'t get discarded at the end of turn.',
   'Persist': 'For the next X Cleanup Phase, it won\'t get discarded.',
   'Recoil': 'Affect the enemy lane, deal X each time a card is resolved on it.',
   'Craft': 'Create a new card and add it to your hand.',
   'Merge': 'Combine two cards into one with both effects.',
-  'Bond': 'Effect applies to the Owner even if played in another lane.'
+  'Bond': 'Effect applies to the Owner even if played in another lane.',
+  'Burn': 'Remove card from game'
 };
 
 export const POTIONS_DB: Card[] = [
-  { id: 'pot_heal', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 1, target: 'ALLY' }], name: 'Healing Potion', desc: 'Heal 1 hearts.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
-  { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Bond. Immune this turn.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
-  { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 1, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 1.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
-  { id: 'pot_fortitude', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 3, target: 'ALLY' }], name: 'Fortitude Potion', desc: 'Gain 1 Gray Heart for 3 turns.', isPotion: true, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: fortitudePotionImage },
-  { id: 'pot_acid', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 1, target: 'ENEMY' }], name: 'Acid Potion', desc: 'Apply Vulnerable 1 to enemy.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-lime-900', border: 'border-lime-700', image: acidPotionImage },
-  { id: 'pot_haste', type: 'CRAFTED', effects: [{ type: 'HASTE', amount: 1, target: 'ALLY' }], name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
+  { id: 'pot_heal', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 1, target: 'ALLY' }], name: 'Healing Potion', desc: 'Heal 1 hearts.', isPotion: true, potionLevel: 1, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
+  { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Bond. Immune this turn.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 0, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
+  { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 1, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 1.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
+  { id: 'pot_fortitude', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 3, target: 'ALLY' }], name: 'Fortitude Potion', desc: 'Gain 1 Gray Heart for 3 turns.', isPotion: true, potionLevel: 1, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: fortitudePotionImage },
+  { id: 'pot_acid', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 1, target: 'ENEMY' }], name: 'Acid Potion', desc: 'Apply Vulnerable 1 to enemy.', isPotion: true, potionLevel: 1, speed: 'FAST', range: 1, color: 'bg-lime-900', border: 'border-lime-700', image: acidPotionImage },
+  { id: 'pot_haste', type: 'CRAFTED', effects: [{ type: 'HASTE', amount: 1, target: 'ALLY' }], name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
 ];
 
 export const HEROES_DB: Hero[] = [
@@ -139,7 +141,7 @@ export const HEROES_DB: Hero[] = [
     id: 'alchemist',
     name: 'Alchemist',
     role: 'WILD',
-    desc: 'Passive: Before Draw Phase, Craft 1 random potion.',
+    desc: 'Passive: Before Draw Phase, Craft 1 random potion (Persistent).',
     passiveName: 'Skilled Brewery',
     passiveIcon: skilledBreweryIcon,
     hp: 3,
@@ -152,7 +154,7 @@ export const HEROES_DB: Hero[] = [
     lore: 'A prodigy that seeks legendary ingredients for dangerous formulas',
     cards: [
       { id: 'a_explosive_flask', type: 'BASIC', effects: [{ type: 'DEAL_DAMAGE', amount: 1, target: 'ENEMY' }], name: 'Explosive Flask', desc: 'AoE. Deal 1.', ownerId: 'alchemist', speed: 'NORMAL', range: 0, lanes: 'ALL', image: explosiveFlaskCardImage, isAoE: true },
-      { id: 'a_unstable_mixture', type: 'SIGNATURE', effects: [{ type: 'UNSTABLE_MIXTURE', amount: 0, target: 'SELF' }], name: 'Unstable Mixture', desc: 'Craft 2 random potions and Merge them. The crafted card has Volatile.', ownerId: 'alchemist', speed: 'FAST', range: 0, lanes: 'ALL', image: unstableMixtureCardImage },
+      { id: 'a_chemical_reaction', type: 'SIGNATURE', effects: [{ type: 'CHEMICAL_REACTION', amount: 0, target: 'SELF' }], name: 'Chemical Reaction', desc: 'Burn 2 potions in your hand to craft a level up potion.', ownerId: 'alchemist', speed: 'FAST', range: 0, lanes: 'ALL', image: unstableMixtureCardImage },
       { id: 'a_noxious_cloud', type: 'ULTIMATE', effects: [{ type: 'NOXIOUS', amount: 0, target: 'ENEMY' }], name: 'Noxious Cloud', desc: 'Persist 1. AoE. Apply Recoil 1.', ownerId: 'alchemist', speed: 'NORMAL', range: 0, persist: 1, recoil: 1, lanes: 'ALL', image: noxiousCloudCardImage }
     ]
   },

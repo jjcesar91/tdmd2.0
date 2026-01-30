@@ -48,7 +48,7 @@ export default function TheDragonMustDie() {
   // Custom Hook: Game Loop
   const {
       provokeMode, setProvokeMode, enterCombat, handleZoneClick, handleEndTurn,
-      handleProvokeClick, onCrusaderAction
+      handleProvokeClick, onCrusaderAction, handleSelectionConfirm, handleSelectionCancel
   } = useGameLoop({
       combatState, setCombatState, party, partyLanes, globalDeck, setGlobalDeck,
       mapNode, setMapNode, addLog, setLogs, setView, setParty
@@ -177,6 +177,8 @@ export default function TheDragonMustDie() {
         setCombatState={setCombatState}
         onRestart={() => enterCombat(mapNode === 4 ? 'boss' : 'normal')}
         onQuit={() => setView('START')}
+        onSelectionConfirm={handleSelectionConfirm}
+        onSelectionCancel={handleSelectionCancel}
       />
     );
   }

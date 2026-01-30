@@ -17,6 +17,7 @@ export type EffectType =
     | 'SCRY'              
     | 'REVEAL'
     | 'UNSTABLE_MIXTURE'
+    | 'CHEMICAL_REACTION'
     | 'NOXIOUS'
     ;
 
@@ -37,6 +38,7 @@ export interface Card {
   ownerId?: string;
   uid?: number;
   isPotion?: boolean;
+  potionLevel?: number;
   color?: string;
   border?: string;
   range?: number;
@@ -50,6 +52,7 @@ export interface Card {
   isAoE?: boolean;
   detained?: number;
   volatile?: boolean;
+  persistent?: boolean;
   mergedCards?: Card[];
   persist?: number;
   recoil?: number;
@@ -87,6 +90,14 @@ export interface Unit {
   aiCurrentStep?: number;
 }
 
+export interface SelectionRequest {
+  type: 'HAND' | 'DISCARD' | 'DECK';
+  count: number;
+  filter?: (card: Card) => boolean;
+  onConfirm: (selectedCardIndices: number[]) => void;
+  title: string;
+}
+
 export interface CombatState {
   turn: number;
   phase: 'planning' | 'resolving';
@@ -103,6 +114,7 @@ export interface CombatState {
   newlyDrawnCards: Set<number>;
   resolvingLane: number | null;
   laneEffects: { [key: number]: string[] }; // e.g. laneEffects[0] = ['HASTE']
+  selectionRequest?: SelectionRequest | null;
 }
 
 export type Hero = {

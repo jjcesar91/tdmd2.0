@@ -112,10 +112,15 @@ export function useGameLoop({
             return unit;
         });
 
-        let newDraw = [...(state.drawPile || [])]; let newDiscard = [...(state.discardPile || [])]; let newHand: CardData[] = [];
+        let newDraw = [...(state.drawPile || [])]; let newDiscard = [...(state.discardPile || [])]; let newHand: CardData[] = state.playerHand ? [...state.playerHand] : [];
         const newlyDrawnSet = new Set<number>();
         const alchemist = newPUnits.find((u: Unit | null) => u && !u.dead && u.id === 'alchemist');
-        if (alchemist) { const pot = POTIONS_DB[Math.floor(Math.random() * POTIONS_DB.length)]; const uid = Math.random(); newHand.push({ ...pot, uid, ownerId: 'alchemist' }); newlyDrawnSet.add(uid); }
+        if (alchemist) { 
+            const pot = POTIONS_DB[Math.floor(Math.random() * POTIONS_DB.length)]; 
+            const uid = Math.random(); 
+            newHand.push({ ...pot, desc: `${pot.desc} Persistent.`, uid, ownerId: 'alchemist', persistent: true }); 
+            newlyDrawnSet.add(uid); 
+        }
         for(let i=0; i<5; i++) {
           if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = newDiscard.sort(()=>Math.random()-0.5); newDiscard = []; }
           const drawnCard = newDraw.pop()!;
@@ -230,6 +235,44 @@ export function useGameLoop({
         }
         if (selectedCardIdx !== null) { 
           const card = playerHand[selectedCardIdx];
+
+          // --- INTERCEPT CHEMICAL REACTION ---
+          if (card.effects && card.effects.some(e => e.type === 'CHEMICAL_REACTION')) {
+              // Validations
+              // Needs 2 potions in hand (excluding self)
+              // Self is in playerHand[selectedCardIdx]
+              const potionsInHand = playerHand.filter((c, i) => c.isPotion && i !== selectedCardIdx);
+              if (potionsInHand.length < 2) {
+                  addLog("Not enough potions to burn!");
+                  return;
+              }
+
+              // Open Selection Modal
+              setCombatState(prev => ({
+                  ...prev!,
+                  selectionRequest: {
+                      type: 'HAND',
+                      count: 2,
+                      title: "Chemical Reaction: Burn 2 Potions",
+                      // Filter for visual? SelectionModal might need filter logic support or we filter list passed to it.
+                      // The current SelectionModal supports filtering via logic in CombatScreen render? 
+                      // Actually, SelectionModal takes `cards` prop. 
+                      // CombatScreen passes `playerHand`.
+                      // We need to only allow selecting Potions. 
+                      // Let's assume user is trusted or we enforce validation in `onConfirm`.
+                      // But for UI UX, we should disable non-potions.
+                      // For now, let's just pass `title` and handle validation in `handleSelectionConfirm` logic or assume valid inputs if UI is restricted.
+                      // Wait, I didn't verify SelectionModal supports disabling items based on filter.
+                      // Let's keep it simple: We instruct CombatScreen to filter if needed, OR we trust the user for now but the requirements said "prevent... if not 2 potions".
+                      
+                      // Actually, best is to filter in the Modal or pass a filter function.
+                      // Updated SelectionModal logic implies it iterates `cards`.
+                      onConfirm: () => {}, // This is handled by hook's handleSelectionConfirm, we store data in state.
+                  }
+              }));
+              return;
+          }
+
           const ownerIndex = playerUnits.findIndex((u: Unit | null) => u && u.id === card.ownerId);
           if (!card.isPotion) {
               if (ownerIndex === -1) { addLog("Hero is missing!"); return; } 
@@ -453,7 +496,20 @@ export function useGameLoop({
             }
         });
 
-        let newDiscard = [...combatState.discardPile, ...playerCardsToDiscard, ...combatState.playerHand];
+        // Handle Hand Discard (Volatile, Persistent, Normal)
+        const currentHand = combatState.playerHand;
+        let persistentHand: CardData[] = [];
+        const handToDiscard: CardData[] = [];
+
+        currentHand.forEach(c => {
+            if (c.persistent) {
+                persistentHand.push(c);
+            } else {
+                handToDiscard.push(c);
+            }
+        });
+
+        let newDiscard = [...combatState.discardPile, ...playerCardsToDiscard, ...handToDiscard];
         let newDrawPile = [...combatState.drawPile];
         pUnits = pUnits.map(u => u ? {...u, grayHp: 0} : null);
     
@@ -462,11 +518,12 @@ export function useGameLoop({
                 newGlobalDeck = newGlobalDeck.filter(c => c.ownerId !== hero.id);
                 newDrawPile = newDrawPile.filter(c => c.ownerId !== hero.id);
                 newDiscard = newDiscard.filter(c => c.ownerId !== hero.id);
+                persistentHand = persistentHand.filter(c => c.ownerId !== hero.id);
             });
         }
     
-        setCombatState({ ...combatState, drawPile: newDrawPile, discardPile: newDiscard, playerUnits: pUnits, enemyUnits: eUnits, playerHand: [], turn: combatState.turn + 1 });
-        startTurnLogic({ turn: combatState.turn + 1, playerUnits: pUnits, enemyUnits: eUnits, drawPile: newDrawPile, discardPile: newDiscard, enemyHand: [], enemyZoneCards: keptEnemyZones, playerZoneCards: keptPlayerZones });
+        setCombatState({ ...combatState, drawPile: newDrawPile, discardPile: newDiscard, playerUnits: pUnits, enemyUnits: eUnits, playerHand: persistentHand, turn: combatState.turn + 1 });
+        startTurnLogic({ turn: combatState.turn + 1, playerUnits: pUnits, enemyUnits: eUnits, drawPile: newDrawPile, discardPile: newDiscard, enemyHand: [], enemyZoneCards: keptEnemyZones, playerZoneCards: keptPlayerZones, playerHand: persistentHand });
         setGlobalDeck(newGlobalDeck);
     };
 
@@ -527,6 +584,88 @@ export function useGameLoop({
          setProvokeMode(true);
          addLog("Crusader Provoke: Select an enemy card to force an attack!");
     };
+
+    const handleSelectionConfirm = (indices: number[]) => {
+        if (!combatState || !combatState.selectionRequest) return;
+        const req = combatState.selectionRequest;
+        
+        // --- CHEMICAL REACTION LOGIC ---
+        if (req.title.includes("Chemical Reaction")) {
+            // indices refer to Hand Indices of the potions to burn
+            // Logic:
+            // 1. Remove selected cards from hand (Burn) - do not add to discard
+            // 2. Add random Level 2 potion to hand
+            // 3. Remove Chemical Reaction card (it was played)
+            // 4. Close modal
+            
+            const selectedCards = indices.map(i => combatState.playerHand[i]);
+
+            if (selectedCards.some(c => !c.isPotion)) {
+                addLog("Invalid Selection: Must be Potions!");
+                return;
+            }
+
+            const burnedNames = selectedCards.map(c => c.name).join(", ");
+            
+            // Logic to fetch Level 2 Potion
+            const lvl2Potions = POTIONS_DB.filter(p => p.potionLevel === 2);
+            const randomPot = lvl2Potions.length > 0 
+                 ? lvl2Potions[Math.floor(Math.random() * lvl2Potions.length)] 
+                 : POTIONS_DB[0]; // Fallback
+                 
+            const newPotion = { 
+                ...randomPot, 
+                uid: Math.random(), 
+                ownerId: 'alchemist', // Owned by Alchemist
+                persistent: true // Level up potions usually good to keep? Or adhere to base? Assuming normal
+            };
+
+            // Remove played card (Chemical Reaction) -> Discard Pile or Burn? usually discard
+            // But we need to find it directly. Usually it's in Hand or being "played".
+            // Since we intercepted the play, it is still in hand unless we removed it.
+            // But wait, the indices usually refer to the CURRENT hand state shown in modal.
+            
+            // If the Chemical Reaction card is also in hand, we must be careful with indices.
+            // The modal showed "HAND" (playerHand).
+            // Users selected indices of potions. The Chemical Reaction card index is NOT in `indices`.
+            // But we need to remove Chemical Reaction too.
+            // Chemical Reaction should be the `selectedCardIdx`?
+            
+            const chemicalReactionIdx = combatState.selectedCardIdx;
+            
+            // Construct new hand
+            // Filter out: selected indices AND chemicalReactionIdx
+            const newHand = combatState.playerHand.filter((_, idx) => 
+                !indices.includes(idx) && idx !== chemicalReactionIdx
+            );
+            
+            // Add constructed potion
+            newHand.push(newPotion);
+            
+            // Add Chemical Reaction to discard pile
+            const playedCard = combatState.playerHand[chemicalReactionIdx!];
+            const newDiscard = [...combatState.discardPile, playedCard];
+            
+            addLog(`Burned ${burnedNames}. Crafted ${newPotion.name}!`);
+            
+            setCombatState(prev => ({
+                ...prev!,
+                playerHand: newHand,
+                discardPile: newDiscard,
+                selectionRequest: null,
+                selectedCardIdx: null,
+                newlyDrawnCards: new Set([...prev!.newlyDrawnCards, newPotion.uid!])
+            }));
+            return;
+        }
+
+        // Default logic for other selections (future)
+        setCombatState(prev => ({ ...prev!, selectionRequest: null }));
+    };
+
+    const handleSelectionCancel = () => {
+        setCombatState(prev => ({ ...prev!, selectionRequest: null, selectedCardIdx: null }));
+    };
     
     return {
         provokeMode,
@@ -535,6 +674,8 @@ export function useGameLoop({
         handleZoneClick,
         handleEndTurn,
         handleProvokeClick,
-        onCrusaderAction
+        onCrusaderAction,
+        handleSelectionConfirm,
+        handleSelectionCancel
     };
 }

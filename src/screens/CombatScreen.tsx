@@ -2,6 +2,7 @@ import React from 'react';
 import { Sword, Trash2, Layers, Eye, X, Target, Swords, RefreshCw, LogOut } from 'lucide-react';
 import { Card } from '../components/Card';
 import { CardPreviewModal } from '../components/CardPreviewModal';
+import { SelectionModal } from '../components/SelectionModal';
 import { BattleLane } from '../components/BattleLane';
 import { CombatState, Card as CardData, Unit } from '../types';
 import { ZONES } from '../data';
@@ -27,8 +28,8 @@ interface CombatScreenProps {
   onCrusaderAction?: () => void;
   setCombatState: React.Dispatch<React.SetStateAction<CombatState | null>>;
   onRestart: () => void;
-  onQuit: () => void;
-}
+  onQuit: () => void;  onSelectionConfirm: (indices: number[]) => void;
+  onSelectionCancel: () => void;}
 
 export const CombatScreen: React.FC<CombatScreenProps> = ({
   combatState,
@@ -51,10 +52,12 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
   onCrusaderAction,
   setCombatState,
   onRestart,
-  onQuit
+  onQuit,
+  onSelectionConfirm,
+  onSelectionCancel
 }) => {
   const [previewLocked, setPreviewLocked] = React.useState(false);
-  const { turn, phase, playerHand, playerZoneCards, enemyZoneCards, playerUnits, enemyUnits, selectedCardIdx, drawPile, discardPile, resolvingLane } = combatState;
+  const { turn, phase, playerHand, playerZoneCards, enemyZoneCards, playerUnits, enemyUnits, selectedCardIdx, drawPile, discardPile, resolvingLane, selectionRequest } = combatState;
   const isPlayerTurn = phase === 'planning';
 
   const handlePreviewStart = (card: CardData, locked = false) => {
@@ -353,6 +356,21 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
              interactive={previewLocked} 
              onClose={handleForceClose}
            />
+        )}
+        
+        {/* SELECTION MODAL */}
+        {selectionRequest && (
+            <SelectionModal 
+                cards={
+                    selectionRequest.type === 'HAND' ? playerHand :
+                    selectionRequest.type === 'DISCARD' ? discardPile :
+                    drawPile
+                }
+                requiredCount={selectionRequest.count}
+                title={selectionRequest.title}
+                onConfirm={onSelectionConfirm}
+                onCancel={onSelectionCancel}
+            />
         )}
 
         {/* MODALS */}
