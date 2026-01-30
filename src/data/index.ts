@@ -67,10 +67,14 @@ export const KEYWORDS: Record<string, string> = {
 export const POTIONS_DB: Card[] = [
   { id: 'pot_heal', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 1, target: 'ALLY' }], name: 'Healing Potion', desc: 'Heal 1 hearts.', isPotion: true, potionLevel: 1, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
   { id: 'pot_inv', type: 'CRAFTED', effects: [{ type: 'IMMUNE', amount: 1, target: 'ALLY' }], name: 'Invisible Potion', desc: 'Bond. Immune this turn.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 0, color: 'bg-indigo-950', border: 'border-indigo-700', image: invisibilityPotionImage },
-  { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 1, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 1.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
-  { id: 'pot_fortitude', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 3, target: 'ALLY' }], name: 'Fortitude Potion', desc: 'Gain 1 Gray Heart for 3 turns.', isPotion: true, potionLevel: 1, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: fortitudePotionImage },
+  { id: 'pot_aug', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'AUGMENT', modCategory: 'BUFF', amount: 2, target: 'ALLY' }], name: 'Augmented Potion', desc: 'Gain Augment 2.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-amber-950', border: 'border-amber-700', image: augmentationPotionImage },
+  { id: 'pot_fortitude', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 1, target: 'ALLY' }], name: 'Fortitude Potion', desc: 'Gain 1 Gray Heart for 3 turns.', isPotion: true, potionLevel: 1, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: fortitudePotionImage },
   { id: 'pot_acid', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 1, target: 'ENEMY' }], name: 'Acid Potion', desc: 'Apply Vulnerable 1 to enemy.', isPotion: true, potionLevel: 1, speed: 'FAST', range: 1, color: 'bg-lime-900', border: 'border-lime-700', image: acidPotionImage },
-  { id: 'pot_haste', type: 'CRAFTED', effects: [{ type: 'HASTE', amount: 1, target: 'ALLY' }], name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage }
+  { id: 'pot_haste', type: 'CRAFTED', effects: [{ type: 'HASTE', amount: 1, target: 'ALLY' }], name: 'Haste Potion', desc: 'Next card played here gain FAST.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-orange-950', border: 'border-orange-700', image: hastePotionImage },
+  // Greater Potions
+  { id: 'pot_heal_greater', type: 'CRAFTED', effects: [{ type: 'HEAL', amount: 3, target: 'ALLY' }], name: 'Greater Healing Potion', desc: 'Heal 3 hearts.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-emerald-950', border: 'border-emerald-700', image: healingPotionImage },
+  { id: 'pot_fortitude_greater', type: 'CRAFTED', effects: [{ type: 'GAIN_GRAY_HP', amount: 2, target: 'ALLY' }], name: 'Greater Fortitude Potion', desc: 'Gain 2 Gray Heart for 3 turns.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 0, color: 'bg-slate-800', border: 'border-slate-600', image: fortitudePotionImage },
+  { id: 'pot_acid_greater', type: 'CRAFTED', effects: [{ type: 'APPLY_MOD', modType: 'VULNERABLE', modCategory: 'DEBUFF', amount: 3, target: 'ENEMY' }], name: 'Greater Acid Potion', desc: 'Apply Vulnerable 3 to enemy.', isPotion: true, potionLevel: 2, speed: 'FAST', range: 1, color: 'bg-lime-900', border: 'border-lime-700', image: acidPotionImage }
 ];
 
 export const HEROES_DB: Hero[] = [
@@ -141,7 +145,7 @@ export const HEROES_DB: Hero[] = [
     id: 'alchemist',
     name: 'Alchemist',
     role: 'WILD',
-    desc: 'Passive: Before Draw Phase, Craft 1 random potion (Persistent).',
+    desc: 'Passive: Before Draw Phase, Craft 1 random Level 1 potion (Persistent).',
     passiveName: 'Skilled Brewery',
     passiveIcon: skilledBreweryIcon,
     hp: 3,

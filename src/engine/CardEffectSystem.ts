@@ -90,13 +90,31 @@ const applySingleCardEffect = (
         const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
         const hero = newPlayerUnits[targetLaneIdx];
         if (hero) {
-            const newBuffs = { ...hero.buffs, fortitude: 3 };
+            const newBuffs = { ...hero.buffs, fortitude: 3, fortitudePower: 1 };
             newPlayerUnits[targetLaneIdx] = { 
                 ...hero, 
                 buffs: newBuffs,
-                grayHp: (hero.grayHp || 0) + 1
+                // Gray HP is now handled by combat resolver reading the card effect amount directly (which is now 1)
+                // We do NOT add extra gray HP here to avoid double dipping or calculation errors
             };
             logs.push(`Fortitude Potion: ${hero.name} gains Fortitude (3 turns)!`);
+            stateUpdates.playerUnits = newPlayerUnits;
+        }
+        return { newStateUpdates: stateUpdates, logs };
+    }
+
+    // GREATER FORTITUDE POTION
+    if (card.id === 'pot_fortitude_greater') {
+        const newPlayerUnits = [...(stateUpdates.playerUnits || state.playerUnits)];
+        const hero = newPlayerUnits[targetLaneIdx];
+        if (hero) {
+            const newBuffs = { ...hero.buffs, fortitude: 3, fortitudePower: 2 };
+            newPlayerUnits[targetLaneIdx] = { 
+                ...hero, 
+                buffs: newBuffs,
+                // Gray HP is now handled by combat resolver reading the card effect amount directly (which is now 2)
+            };
+            logs.push(`Greater Fortitude Potion: ${hero.name} gains Greater Fortitude (3 turns)!`);
             stateUpdates.playerUnits = newPlayerUnits;
         }
         return { newStateUpdates: stateUpdates, logs };

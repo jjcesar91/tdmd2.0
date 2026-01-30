@@ -9,9 +9,12 @@ interface SelectionModalProps {
     title: string;
     onConfirm: (indices: number[]) => void;
     onCancel: () => void;
+    filter?: (card: CardModel) => boolean;
+    containerClassName?: string;
+    gridClassName?: string;
 }
 
-export const SelectionModal = ({ cards, requiredCount, title, onConfirm, onCancel }: SelectionModalProps) => {
+export const SelectionModal = ({ cards, requiredCount, title, onConfirm, onCancel, filter, containerClassName, gridClassName }: SelectionModalProps) => {
     const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
     const handleToggle = (idx: number) => {
@@ -32,8 +35,8 @@ export const SelectionModal = ({ cards, requiredCount, title, onConfirm, onCance
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col items-center justify-center p-4">
-            <div className="bg-stone-900 border-2 border-amber-600 rounded-xl w-full max-w-4xl flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b border-stone-700 flex justify-between items-center bg-stone-950/50">
+            <div className={containerClassName || "bg-stone-900 border-2 border-amber-600 rounded-xl w-full max-w-4xl flex flex-col max-h-[90vh]"}>
+                <div className="p-4 border-b border-stone-700 flex justify-between items-center bg-stone-950/50 flex-none">
                     <h2 className="text-xl font-bold text-amber-500">{title} ({selectedIndices.length}/{requiredCount})</h2>
                     <button onClick={onCancel} className="bg-stone-800 hover:bg-stone-700 p-2 rounded-full transition-colors">
                         <X size={24} className="text-stone-400" />
@@ -41,8 +44,9 @@ export const SelectionModal = ({ cards, requiredCount, title, onConfirm, onCance
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <div className={gridClassName || "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"}>
                         {cards.map((card, idx) => {
+                            if (filter && !filter(card)) return null;
                             const isSelected = selectedIndices.includes(idx);
                             return (
                                 <div key={card.uid || idx} 

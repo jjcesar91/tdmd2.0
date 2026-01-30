@@ -68,19 +68,15 @@ export function useGameLoop({
             }
 
             // Fortitude Buff Logic:
-            // "Gain 1 gray heart for 3 turns"
-            // If we have fortitude buff > 0, we apply +1 Gray HP.
-            // Requirement says "3 turns counting the turn it is activated".
-            // Implementation: Activated Turn 1 (Instant +1).
-            // Start Turn 2 (Fortitude=3 -> 2). Apply +1.
-            // Start Turn 3 (Fortitude=2 -> 1). Apply +1.
-            // Start Turn 4 (Fortitude=1 -> 0). Buff expires, no +1.
+            // "Gain X gray heart for 3 turns"
             if (unit.buffs.fortitude && unit.buffs.fortitude > 0) {
                  unit.buffs.fortitude -= 1;
                  if (unit.buffs.fortitude > 0) {
-                    unit.grayHp = (unit.grayHp || 0) + 1;
+                    const power = unit.buffs.fortitudePower || 1;
+                    unit.grayHp = (unit.grayHp || 0) + power;
                  } else {
                     delete unit.buffs.fortitude;
+                    delete unit.buffs.fortitudePower;
                  }
             }
 
@@ -116,7 +112,8 @@ export function useGameLoop({
         const newlyDrawnSet = new Set<number>();
         const alchemist = newPUnits.find((u: Unit | null) => u && !u.dead && u.id === 'alchemist');
         if (alchemist) { 
-            const pot = POTIONS_DB[Math.floor(Math.random() * POTIONS_DB.length)]; 
+            const lvl1Potions = POTIONS_DB.filter(p => p.potionLevel === 1);
+            const pot = lvl1Potions.length > 0 ? lvl1Potions[Math.floor(Math.random() * lvl1Potions.length)] : POTIONS_DB[0];
             const uid = Math.random(); 
             newHand.push({ ...pot, desc: `${pot.desc} Persistent.`, uid, ownerId: 'alchemist', persistent: true }); 
             newlyDrawnSet.add(uid); 
@@ -607,17 +604,44 @@ export function useGameLoop({
 
             const burnedNames = selectedCards.map(c => c.name).join(", ");
             
-            // Logic to fetch Level 2 Potion
-            const lvl2Potions = POTIONS_DB.filter(p => p.potionLevel === 2);
-            const randomPot = lvl2Potions.length > 0 
-                 ? lvl2Potions[Math.floor(Math.random() * lvl2Potions.length)] 
-                 : POTIONS_DB[0]; // Fallback
+            // Recipes:
+            // 2x Healing Potion = Greater Healing: heal 3
+            // 2x Fortitude Potion = Greater Fortitude: Gain 2 Gray Heart for 3 turns
+            // 2x Acid Potion = Greater Acid: Vulnerable 3 to enemy
+            // Healing + Fortitude Potion = Invisible Potion
+            // Healing + Acid Potion = Haste Potion
+            // Acid + Fortitude Potion = Augmented Potion
+
+            const ids = selectedCards.map(c => c.id).sort();
+            const has = (id: string) => ids.includes(id);
+            const count = (id: string) => ids.filter(x => x === id).length;
+            
+            let resultId: string | null = null;
+            if (count('pot_heal') === 2) resultId = 'pot_heal_greater';
+            else if (count('pot_fortitude') === 2) resultId = 'pot_fortitude_greater';
+            else if (count('pot_acid') === 2) resultId = 'pot_acid_greater';
+            else if (has('pot_heal') && has('pot_fortitude')) resultId = 'pot_inv';
+            else if (has('pot_heal') && has('pot_acid')) resultId = 'pot_haste';
+            else if (has('pot_acid') && has('pot_fortitude')) resultId = 'pot_aug';
+
+            // Logic to fetch Level 2 Potion (Fallback or Result)
+            let craftedCard: CardData;
+            if (resultId) {
+                const found = POTIONS_DB.find(p => p.id === resultId);
+                craftedCard = found || POTIONS_DB[0];
+            } else {
+                 // Fallback: Random Level 2
+                 const lvl2Potions = POTIONS_DB.filter(p => p.potionLevel === 2);
+                 craftedCard = lvl2Potions.length > 0 
+                     ? lvl2Potions[Math.floor(Math.random() * lvl2Potions.length)] 
+                     : POTIONS_DB[0];
+            }
                  
             const newPotion = { 
-                ...randomPot, 
+                ...craftedCard, 
                 uid: Math.random(), 
                 ownerId: 'alchemist', // Owned by Alchemist
-                persistent: true // Level up potions usually good to keep? Or adhere to base? Assuming normal
+                persistent: true
             };
 
             // Remove played card (Chemical Reaction) -> Discard Pile or Burn? usually discard

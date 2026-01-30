@@ -370,6 +370,15 @@ export const CombatScreen: React.FC<CombatScreenProps> = ({
                 title={selectionRequest.title}
                 onConfirm={onSelectionConfirm}
                 onCancel={onSelectionCancel}
+                filter={selectionRequest.title.includes("Chemical Reaction") ? (c) => !!c.isPotion : undefined}
+                containerClassName={selectionRequest.title.includes("Chemical Reaction") 
+                   ? "bg-stone-900 border-4 border-amber-600 flex flex-col relative w-full h-full max-w-[56.25vh] aspect-[9/16] shadow-2xl overflow-hidden"
+                   : undefined
+                }
+                gridClassName={selectionRequest.title.includes("Chemical Reaction") 
+                   ? "grid grid-cols-2 gap-4"
+                   : undefined
+                }
             />
         )}
 
