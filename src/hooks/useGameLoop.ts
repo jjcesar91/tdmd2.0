@@ -247,9 +247,23 @@ export function useGameLoop({
 
               // Lane restriction check (Hero Position)
               if (card.lanes && card.lanes !== 'ALL') {
-                  const allowedIdx = card.lanes === 'FRONT' ? 0 : card.lanes === 'MID' ? 1 : 2;
-                  if (ownerIndex !== allowedIdx) {
-                      addLog(`Hero must be in ${card.lanes} lane to use this`);
+                  const allowedIndices: number[] = [];
+                  if (Array.isArray(card.lanes)) {
+                      card.lanes.forEach(l => {
+                          if (l === 'FRONT') allowedIndices.push(0);
+                          else if (l === 'MID') allowedIndices.push(1);
+                          else if (l === 'REAR') allowedIndices.push(2);
+                      });
+                  } else {
+                      const l = card.lanes;
+                      if (l === 'FRONT') allowedIndices.push(0);
+                      else if (l === 'MID') allowedIndices.push(1);
+                      else if (l === 'REAR') allowedIndices.push(2);
+                  }
+                  
+                  if (!allowedIndices.includes(ownerIndex)) {
+                      const laneStr = Array.isArray(card.lanes) ? card.lanes.join(' or ') : card.lanes;
+                      addLog(`Hero must be in ${laneStr} lane to use this`);
                       return;
                   }
               }
@@ -439,7 +453,7 @@ export function useGameLoop({
             }
         });
 
-        let newDiscard = [...combatState.discardPile, ...playerCardsToDiscard, ...combatState.playerHand, ...enemyCardsToDiscard];
+        let newDiscard = [...combatState.discardPile, ...playerCardsToDiscard, ...combatState.playerHand];
         let newDrawPile = [...combatState.drawPile];
         pUnits = pUnits.map(u => u ? {...u, grayHp: 0} : null);
     
@@ -479,11 +493,12 @@ export function useGameLoop({
         });
         
         const newEnemyZones = [...combatState.enemyZoneCards];
-        const oldCard = newEnemyZones[laneIdx];
+        // Old card is removed (provoked)
         newEnemyZones[laneIdx] = attackCard;
         
         // Discard the old card
-        const newEnemyDiscard = oldCard ? [...(combatState.discardPile || []), oldCard] : combatState.discardPile;
+        // FIX: Do not add enemy cards to player discard pile
+        const newEnemyDiscard = combatState.discardPile;
         
         setCombatState(prev => ({
           ...prev!,

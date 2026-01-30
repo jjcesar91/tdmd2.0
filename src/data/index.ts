@@ -109,7 +109,7 @@ export const HEROES_DB: Hero[] = [
     avatar: rangerAvatar,
     lore: 'Outcast in the wilds, seeking to restore nature balance to the land',
     cards: [
-      { id: 'r_arrow_shot', type: 'BASIC', effects: [{ type: 'DEAL_DAMAGE', amount: 1, target: 'ENEMY' }], name: 'Arrow Shot', desc: 'Deal 1.', range: 2, ownerId: 'ranger', speed: 'NORMAL', lanes: 'REAR', image: arrowShotCardImage },
+      { id: 'r_arrow_shot', type: 'BASIC', effects: [{ type: 'DEAL_DAMAGE', amount: 1, target: 'ENEMY' }], name: 'Arrow Shot', desc: 'Deal 1.', range: 2, ownerId: 'ranger', speed: 'NORMAL', lanes: ['MID', 'REAR'], image: arrowShotCardImage },
       { id: 'r_eye_above', type: 'SIGNATURE', effects: [{ type: 'SCRY', amount: 1, target: 'ENEMY' }], name: 'Quetzal Sight', desc: 'Reveal this lane.', range: 1, ownerId: 'ranger', speed: 'FAST', lanes: 'ALL', image: quetzalSightCardImage },
       { id: 'r_pietrifying_curse', type: 'ULTIMATE', effects: [{ type: 'DETAIN', amount: 2, target: 'ENEMY' }], name: 'Pietrifying Curse', desc: 'Detain 2', range: 2, ownerId: 'ranger', speed: 'NORMAL', lanes: 'ALL', image: pietrifyingCurseCardImage }
     ]

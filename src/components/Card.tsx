@@ -32,7 +32,7 @@ interface CardProps extends Partial<CardModel> {
   detained?: number;
 }
 
-export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, speed, className = "", smallMode = false, previewMode = false, compactPreview = false, image, detained }: CardProps) => {
+export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPreviewEnd, onClick, isSelected, disabled, isPotion, range, speed, lanes, className = "", smallMode = false, previewMode = false, compactPreview = false, image, detained }: CardProps) => {
   const timerRef = useRef<number | null>(null);
 
   const handleStart = (_e: React.MouseEvent | React.TouchEvent) => {
@@ -126,20 +126,48 @@ export const Card = ({ type, ownerId, name, desc, isHidden, onPreviewStart, onPr
 
 
 
-            {/* Top corner indicators - Speed & Range */}
+            {/* Top corner indicators - Speed, Range & Lane */}
             {!smallMode && (
-              <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-center">
-                  {/* Speed Icon (only if FAST) */}
-                  {speed === 'FAST' && (
-                      <div className="w-6 h-6 rounded-full bg-stone-950/90 border border-stone-600 flex items-center justify-center backdrop-blur-sm" title="FAST Speed">
-                        <Zap size={previewMode ? (compactPreview ? 12 : 14) : 10} className="text-white" />
+              <div className="absolute top-2 right-2 z-10 flex flex-col gap-1 items-end pointer-events-none">
+                  
+                  {/* Speed Badge */}
+                  {(speed === 'FAST' || (previewMode && !compactPreview)) && (
+                      <div className={`
+                        flex items-center justify-center backdrop-blur-sm shadow-lg border transition-all duration-300
+                        ${previewMode && !compactPreview ? 'px-2 py-0.5 rounded-full gap-1 min-w-[50px] bg-stone-950/90' : 'w-6 h-6 rounded-full bg-stone-950/90'}
+                        ${speed === 'FAST' ? 'border-amber-500/50' : 'border-stone-600'}
+                      `} title="Speed">
+                        <Zap size={previewMode && !compactPreview ? 10 : 10} className={speed === 'FAST' ? 'text-amber-400 fill-amber-400/20' : 'text-stone-500'} />
+                        {previewMode && !compactPreview && (
+                            <span className={`text-[9px] font-bold uppercase leading-none ${speed === 'FAST' ? 'text-amber-100' : 'text-stone-500'}`}>
+                                {speed === 'FAST' ? 'FAST' : 'NORM'}
+                            </span>
+                        )}
                       </div>
                   )}
 
                   {/* Range Badge */}
                   {range !== undefined && range > 0 && (
-                      <div className="w-6 h-6 rounded-full bg-stone-950/80 border border-stone-600 flex items-center justify-center shadow-lg backdrop-blur-sm">
-                        <span className={`${previewMode ? (compactPreview ? 'text-[10px]' : 'text-sm') : 'text-[8px]'} font-bold text-stone-300`}>R{range}</span>
+                      <div className={`
+                        flex items-center justify-center backdrop-blur-sm shadow-lg border border-stone-600 bg-stone-950/90
+                        ${previewMode && !compactPreview ? 'px-2 py-0.5 rounded-full gap-1 min-w-[50px]' : 'w-6 h-6 rounded-full'}
+                      `}>
+                        {previewMode && !compactPreview && <span className="text-[7px] text-stone-500 uppercase font-bold mr-px">RNG</span>}
+                        <span className={`${previewMode && !compactPreview ? 'text-[9px]' : 'text-[8px]'} font-bold text-stone-300 leading-none`}>
+                            {previewMode && !compactPreview ? range : `R${range}`}
+                        </span>
+                      </div>
+                  )}
+
+                  {/* Lane Badge */}
+                  {previewMode && !compactPreview && lanes && (
+                      <div className="flex items-center justify-center backdrop-blur-sm shadow-lg border border-stone-600 bg-stone-950/90 px-2 py-0.5 rounded-full gap-1 min-w-[50px]">
+                            <span className="text-[7px] text-stone-500 uppercase font-bold mr-px">POS</span>
+                            <span className="text-[9px] font-bold text-stone-300 leading-none">
+                                {Array.isArray(lanes) 
+                                  ? lanes.map(l => l[0]).join('/') 
+                                  : (lanes === 'ALL' ? 'ALL' : lanes.substring(0,3))}
+                            </span>
                       </div>
                   )}
               </div>

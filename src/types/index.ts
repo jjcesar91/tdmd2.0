@@ -45,7 +45,7 @@ export interface Card {
   revealed?: boolean;
   archetype?: 'KINGDOM' | 'VENGEANCE' | 'BALANCE' | 'POWER';
   speed?: 'NORMAL' | 'FAST';
-  lanes?: 'ALL' | 'FRONT' | 'MID' | 'REAR';
+  lanes?: 'ALL' | 'FRONT' | 'MID' | 'REAR' | ('FRONT' | 'MID' | 'REAR')[];
   image?: string;
   isAoE?: boolean;
   detained?: number;
