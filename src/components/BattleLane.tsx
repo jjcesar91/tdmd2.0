@@ -72,58 +72,29 @@ export const BattleLane = ({
       )}
 
       {/* 1. TOP: ENEMY UNIT */}
-      <div className="w-full h-[22%] min-h-[60px] relative">
-         {showTargetArrow && (
-           <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-50 animate-bounce">
-             <div className="flex flex-col items-center">
-               <div className="text-red-500 font-bold text-xs drop-shadow-lg">TARGET</div>
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-red-500">
-                 <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-               </svg>
-             </div>
-           </div>
-         )}
-         <UnitPortrait unit={enemyUnit} isEnemy={true} />
+      <div className="w-full h-[5%] min-h-[10px] relative z-0">
+         {/* Extended Overflow Container for Overlay Effect */}
+         <div className="absolute top-0 left-0 right-0 h-[45vh] pointer-events-none">
+            {showTargetArrow && (
+               <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-50 animate-bounce">
+                 <div className="flex flex-col items-center">
+                   <div className="text-red-500 font-bold text-xs drop-shadow-lg">TARGET</div>
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-red-500">
+                     <path d="M12 4L12 20M12 20L6 14M12 20L18 14" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                   </svg>
+                 </div>
+               </div>
+             )}
+             <UnitPortrait unit={enemyUnit} isEnemy={true} />
+         </div>
       </div>
 
       {/* 2. MIDDLE: CLASH ZONE */}
-      <div className="flex-1 w-full flex flex-col justify-center items-center gap-2 py-2 relative">
+      <div className="flex-1 w-full flex flex-col justify-end items-center gap-2 py-2 relative z-10">
          {/* Vertical Divider */}
          <div className="absolute top-0 bottom-0 w-px bg-stone-800 z-0" />
 
-         {/* Enemy Card Slot */}
-         <div 
-           onClick={() => {
-             const isDetainedHidden = enemyCard ? (enemyCard.detained || 0) > 0 && !enemyCard.revealed && isResolving : false;
-             if (provokeMode && enemyCard) {
-               onEnemyCardClick?.();
-             } else if (enemyCard && (enemyCard.revealed || isEnemyCardRevealed) && !isDetainedHidden) {
-               onPreviewStart(enemyCard, true);
-             }
-           }}
-           className={`w-full aspect-[3/4] max-h-[130px] z-10 transition-all duration-300 flex items-center justify-center
-             ${!enemyCard ? 'border-2 border-dashed border-stone-800 bg-stone-900/20 rounded-lg' : ''}
-             ${provokeMode && enemyCard ? 'cursor-pointer ring-2 ring-amber-500 animate-pulse' : ''}
-             ${!provokeMode && enemyCard && (enemyCard.revealed || isEnemyCardRevealed) ? 'cursor-pointer hover:ring-2 hover:ring-stone-500/50' : ''}
-           `}
-         >
-            {enemyCard ? (
-               <div className={`h-[95%] aspect-[2/3] ${isResolving ? 'scale-110 drop-shadow-[0_0_12px_rgba(239,68,68,0.6)]' : ''}`}>
-                   <Card 
-                     {...enemyCard} 
-                     isHidden={(!enemyCard.revealed && !isEnemyCardRevealed) || ((enemyCard.detained || 0) > 0 && !enemyCard.revealed && isResolving)}
-                     smallMode={true} 
-                     onPreviewStart={(!enemyCard.revealed && !isEnemyCardRevealed) ? undefined : (() => onPreviewStart && onPreviewStart(enemyCard))}
-                     onPreviewEnd={onPreviewEnd}
-                     className={`w-full h-full text-[10px] ${
-                       isResolving ? 'ring-2 ring-red-500 shadow-lg' : ''
-                     }`}
-                   />
-               </div>
-            ) : (
-               <div className="w-1.5 h-1.5 rounded-full bg-stone-800" />
-            )}
-         </div>
+         {/* Enemy Card Slot removed as per new layout */}
 
          {/* VS Icon */}
          <div className={`z-10 bg-stone-900 border border-stone-700 rounded-full p-1 shadow-md transition-all duration-300 ${isResolving ? 'scale-125 border-amber-500 bg-amber-900/30' : ''}`}>
