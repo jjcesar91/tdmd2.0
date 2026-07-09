@@ -26,26 +26,22 @@ interface BattleLaneProps {
   isEnemyCardRevealed?: boolean;
 }
 
-export const BattleLane = ({ 
-  zoneLabel, 
-  enemyUnit, 
-  playerUnit, 
-  enemyCard, 
-  playerCard, 
-  onPlayerSlotClick, 
-  onEnemyCardClick, 
-  isValidTarget, 
-  onPreviewStart, 
-  onPreviewEnd, 
-  onCrusaderAction, 
-  showTargetArrow, 
-  showDefenseArrow, 
-  onLaneHover, 
-  onLaneLeave, 
-  isResolving, 
-  provokeMode,
-  isPlayerCardFlipped,
-  isEnemyCardRevealed
+export const BattleLane = ({
+  zoneLabel,
+  enemyUnit,
+  playerUnit,
+  playerCard,
+  onPlayerSlotClick,
+  isValidTarget,
+  onPreviewStart,
+  onPreviewEnd,
+  onCrusaderAction,
+  showTargetArrow,
+  showDefenseArrow,
+  onLaneHover,
+  onLaneLeave,
+  isResolving,
+  isPlayerCardFlipped
 }: BattleLaneProps) => {
   return (
     <div 
